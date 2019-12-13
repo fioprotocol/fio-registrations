@@ -1,0 +1,86 @@
+<template>
+  <div class="container-fluid">
+    <b-card title="Registration Server" no-body>
+      <b-card-header header-tag="nav" class="pt-1">
+        <b-nav card-header tabs>
+          <b-nav-item :to="{name: 'home'}" exact exact-active-class="active">
+            Home
+          </b-nav-item>
+
+          <!-- <b-nav-item :to="{name: 'about'}" exact exact-active-class="active">
+            About
+          </b-nav-item> -->
+
+          <div v-if="!Login.loggedIn">
+            <b-nav-item :to="{name: 'login'}" exact exact-active-class="active">
+              Login
+            </b-nav-item>
+          </div>
+
+          <div v-if="Login.loggedIn">
+            <b-nav card-header tabs>
+              <b-nav-item :to="{name: 'find'}"
+                exact exact-active-class="active"
+              >
+                Search
+              </b-nav-item>
+
+              <b-nav-item :to="{name: 'users'}"
+                exact exact-active-class="active"
+              >
+                Admin Users
+              </b-nav-item>
+
+              <b-nav-item :to="{name: 'wallets'}"
+                exact exact-active-class="active"
+              >
+                Wallets
+              </b-nav-item>
+
+              <b-nav-item :to="{name: 'user'}"
+                exact exact-active-class="active"
+              >
+                My Profile
+              </b-nav-item>
+            </b-nav>
+          </div>
+        </b-nav>
+      </b-card-header>
+
+      <b-card-body class="pt-2">
+        <slot></slot>
+      </b-card-body>
+    </b-card>
+  </div>
+</template>
+
+<script>
+import {mapState} from 'vuex'
+import '../assets/admin.scss'
+import '../assets/custom.scss'
+
+import Vue from 'vue'
+
+import B from 'bootstrap-vue'
+Vue.use(B)
+// Vue.component('b-navbar', B.BNavbar)
+// Vue.component('b-navbar-nav', B.BNavbarNav)
+// Vue.component('b-navbar-brand', B.BNavbarBrand)
+// Vue.component('b-navbar-toggle', B.BNavbarToggle)
+
+export default {
+  name: 'Main',
+
+  methods: {
+    logout() {
+      this.$store.dispatch('Login/logout')
+    }
+  },
+
+  computed: {
+    ...mapState({
+      Login: state => state.Login
+    })
+  }
+}
+</script>

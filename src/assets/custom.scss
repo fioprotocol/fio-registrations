@@ -1,0 +1,32 @@
+@import "bootstrap";
+
+/* set a max-width for horizontal fluid layout and make it centered */
+.container-fluid {
+  margin-right: auto;
+  margin-left: auto;
+  max-width: 900px; /* or 950px */
+}
+
+.hidden {
+  visibility: hidden;
+}
+.alert.info {
+  @extend .alert;
+  @extend .alert-info;
+}
+.alert.success {
+  @extend .alert;
+  @extend .alert-success;
+}
+.alert.error {
+  @extend .alert;
+  @extend .alert-danger;
+}
+.wallet-logo {
+  width: 300px;
+  height: 100px;
+}
+
+.dim {
+  opacity: .3
+}

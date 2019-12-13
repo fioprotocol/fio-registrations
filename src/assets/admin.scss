@@ -1,0 +1,15 @@
+@import '~bootstrap';
+@import '~bootstrap-vue';
+
+.alert.info {
+  @extend .alert;
+  @extend .alert-info;
+}
+.alert.success {
+  @extend .alert;
+  @extend .alert-success;
+}
+.alert.error {
+  @extend .alert;
+  @extend .alert-danger;
+}

@@ -1,0 +1,100 @@
+import Vue from 'vue'
+import {server} from '../api'
+import Loading from './loading'
+
+const loading = Loading()
+
+export default {
+  namespaced: true,
+
+  state: {
+      ...loading.defaults([
+      'user', 'users', 'saveUser', 'deleteUser',
+      'find', 'findRefresh', 'refreshPaymentResult',
+      'sendInvite', 'invite',
+      'wallet', 'wallets', 'upsertWallet', 'uploadImage',
+    ]),
+  },
+
+  actions: {
+    init({state}, {key, data = {}}) {
+      Vue.set(state, key, {
+        ...loading.defaults(),
+        ...data
+      })
+    },
+
+    async get({dispatch}, payload) {
+      payload.method = 'get'
+      dispatch('fetch', payload)
+    },
+
+    async post({dispatch}, payload) {
+      payload.method = 'post'
+      dispatch('fetch', payload)
+    },
+
+    async delete({dispatch}, payload) {
+      payload.method = 'delete'
+      dispatch('fetch', payload)
+    },
+
+    async fetch({commit, state}, {key, path = key, method, body}) {
+      if(!path) {
+        throw new Error('missing: path')
+      }
+
+      if(!key) {
+        throw new Error(`Unknown key ${key}`)
+      }
+
+      let data = state[key]
+      if(!data) {
+        data = Vue.set(state, key, loading.defaults())
+      }
+
+      loading(data, async () => {
+        const baseUrl = path.startsWith('/public-api/') ? '' : '/api/'
+        const result = await server.fetch[method](baseUrl + path, body)
+        commit('result', {key, result})
+      })
+    },
+
+    async clear({state}, {key}) {
+      Vue.delete(state, key)
+    },
+
+    async reset({state}, {key}) {
+      const data = state[key]
+      if(!key || !data) {
+        throw new Error(`Unknown key ${key}`)
+      }
+
+      const keys = Object.keys(data)
+      keys.forEach(key => {
+        Vue.delete(data, key)
+      })
+
+      const defaults = loading.defaults()
+      for (var def in defaults) {
+        Vue.set(data, def, defaults[def])
+      }
+    },
+  },
+
+  mutations: {
+    result(state, {key, result}) {
+      const data = state[key]
+      loading.done(data)
+
+      if(Array.isArray(result)) {
+        Vue.set(data, 'list', result)
+      } else {
+        for (let field in result) {
+          const value = result[field]
+          Vue.set(data, field, value)
+        }
+      }
+    },
+  }
+}

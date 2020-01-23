@@ -26,9 +26,7 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
 
   const wallet = await db.Wallet.findOne({
     attributes: [
-      'id',
-      'name',
-      'logo_url',
+      'id', 'name', 'logo_url', 'domains',
       'domain_sale_price',
       'account_sale_price',
       'domain_sale_active',
@@ -41,9 +39,7 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
   })
 
   const {
-    id,
-    name,
-    logo_url,
+    id, name, logo_url, domains,
     domain_sale_price,
     account_sale_price,
     domain_sale_active,
@@ -59,20 +55,26 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
 // })().catch(e => console.error(e))
 
 
-router.post('/public-api/ref-domains', handler(async (req, res) => {
-  const {referralCode} = req.body
-  const ref = referralCode ? referralCode : process.env.DEFAULT_REFERRAL_CODE
-
-   const wallet = await db.Wallet.findOne({
-    attributes: ['domains'],
-    where: {referral_code: referralCode},
-  })
-
-  assert(wallet, `Unknown referralCode ${referralCode}`)
-  const {domains} = wallet
-
-  return res.send({success: domains});
-}))
+// router.post('/public-api/ref-domains', handler(async (req, res) => {
+//   const {referralCode} = req.body
+//   const ref = referralCode ? referralCode : process.env.DEFAULT_REFERRAL_CODE
+//
+//    const wallet = await db.Wallet.findOne({
+//     attributes: ['domains', 'account_sale_active'],
+//     where: { referral_code: ref },
+//   })
+//
+//   if(!wallet) {
+//     return res.status(400).send({error: `Referral code not found`})
+//   }
+//
+//   if(!wallet.account_sale_active) {
+//     return res.send({success: []})
+//   }
+//
+//   const {domains} = wallet
+//   return res.send({success: domains});
+// }))
 
 router.post('/public-api/buy-address', handler(async (req, res) => {
   const {

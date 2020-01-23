@@ -7,71 +7,77 @@
     <h5>username@domain</h5>
     <br/>
 
-    <div>
-      <div v-if="!urlPublicKey">
-        Public key parmeter is missing&hellip;
-        <br/>
-        <code>
-          {{href}}?publicKey=xyz
-        </code>
-      </div>
+    <div v-if="!urlPublicKey">
+      Public key parmeter is missing&hellip;
+      <br/>
+      <code>
+        {{href}}?publicKey=xyz
+      </code>
+    </div>
 
-      <div v-if="urlPublicKey && validPublicKey === false">
-        <b>Invalid public key&hellip;</b>
-        <br/>
+    <div v-if="urlPublicKey && validPublicKey === false">
+      <b>Invalid public key&hellip;</b>
+      <br/>
+      <div class="text-danger">
+        Check your link.
+      </div>
+    </div>
+
+    <div v-if="validPublicKey && Wallet.wallet">
+      <div v-if="!regAddress && !regDomain">
+        <div>
+          <b>Sale Closed</b>
+        </div>
         <div class="text-danger">
-          Check your link.
+          Please try back soon&hellip;
         </div>
       </div>
 
-      <div v-if="validPublicKey === true">
-        <div class="mt-3">
-          <TrxMonitor
-            v-on:pending="pending = true"
-            :publicKey="urlPublicKey"
-            :referralCode="referralCode"/>
-          <br>
-        </div>
+      <div class="mt-3">
+        <TrxMonitor
+          v-on:pending="pending = true"
+          :publicKey="urlPublicKey"
+          :referralCode="referralCode"/>
+        <br>
+      </div>
 
-        <div v-if="pending && !buyAgain">
-          <button class="btn btn-success" @click="buyAgain = true">
-            Buy Again
-          </button>
-        </div>
+      <div v-if="pending && !buyAgain">
+        <button class="btn btn-success" @click="buyAgain = true">
+          Buy Again
+        </button>
+      </div>
 
-        <div v-if="!pending || buyAgain">
-          <div class="container">
-            <div>
-              <div class="row">
-                <div v-if="regAddress" class="col-sm">
-                  <h4>Address</h4>
-                  <br/>
-                  <FormAccountReg
-                    :referralCode="referralCode"
-                    :defaultDomain="defaultDomain"
-                    :publicKey="urlPublicKey"
-                    :buyAddress="true"/>
-                </div>
+      <div v-if="!pending || buyAgain">
+        <div class="container">
+          <div>
+            <div class="row">
+              <div v-if="regAddress" class="col-sm">
+                <h4>Address</h4>
+                <br/>
+                <FormAccountReg
+                  :referralCode="referralCode"
+                  :defaultDomain="defaultDomain"
+                  :publicKey="urlPublicKey"
+                  :buyAddress="true"/>
+              </div>
 
-                <div v-if="regDomain" class="col-sm">
-                  <h4>Domain</h4>
-                  <br/>
-                  <FormAccountReg
-                    :referralCode="referralCode"
-                    :defaultDomain="defaultDomain"
-                    :publicKey="urlPublicKey"
-                    :buyAddress="false"/>
-                </div>
+              <div v-if="regDomain" class="col-sm">
+                <h4>Domain</h4>
+                <br/>
+                <FormAccountReg
+                  :referralCode="referralCode"
+                  :defaultDomain="defaultDomain"
+                  :publicKey="urlPublicKey"
+                  :buyAddress="false"/>
               </div>
             </div>
           </div>
         </div>
       </div>
-
     </div>
-    <br/>
 
-    <!-- <div>
+    <!-- <br/>
+    <div>
       <ul>
         <li>
           <router-link :to="{name: 'about'}">About</router-link>
@@ -177,28 +183,32 @@ export default {
     },
 
     regDomain() {
-      const reg =
+      const reg = !document.location.pathname ||
+        document.location.pathname === '/' ||
         /^\/ref\/?/.test(document.location.pathname) ||
         /^\/domain\/?/.test(document.location.pathname)
 
-      if(!reg || !this.Wallet.wallet) {
+      if(!reg) {
         return false
       }
 
-      return this.Wallet.wallet.domain_sale_active
+      return this.Wallet.wallet &&
+        this.Wallet.wallet.domain_sale_active &&
+        this.Wallet.wallet.domains.length > 0
     },
 
     regAddress() {
-      const reg =
+      const reg = !document.location.pathname ||
+        document.location.pathname === '/' ||
         /^\/ref\/?/.test(document.location.pathname) ||
-        /^\/address\/?/.test(document.location.pathname) ||
-        document.location.pathname === '/'
+        /^\/address\/?/.test(document.location.pathname)
 
-      if(!reg || !this.Wallet.wallet) {
-        return reg
+      if(!reg) {
+        return false
       }
 
-      return this.Wallet.wallet.account_sale_active
+      return this.Wallet.wallet &&
+        this.Wallet.wallet.account_sale_active
     },
   }
 }

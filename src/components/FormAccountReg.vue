@@ -4,7 +4,7 @@
       <FormAccount
         v-model="address"
         v-on:valid="valid"
-        :domains="Wallet.domains"
+        :domains="domains"
         :defaultDomain="defaultDomain"
         :buyAddress="buyAddress">
         <!-- id="address" -->
@@ -20,7 +20,7 @@
         >
         </alert>
 
-        <div v-if="Wallet.domains && Wallet.domains.length > 0">
+        <div v-if="domains.length > 0">
           <button
             id="check-button"
             type="submit"
@@ -108,14 +108,11 @@ export default {
     }
   },
 
-  created() {
-    const {referralCode} = this
-    if(referralCode) {
-      this.$store.dispatch('Wallet/loadDomains', {referralCode})
-    }
-  },
-
   computed: {
+    domains() {
+      return this.Wallet.wallet.domains
+    },
+
     validatedAddress() {
       return this.address !== null &&
         this.address === this.Account.availableAccount

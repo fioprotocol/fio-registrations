@@ -8,15 +8,13 @@ export default {
 
   state: {
     wallet: null,
-    domains: null,
     alertWallet: {},
-    alertDomains: {},
     buyAddress: {
       success: null,
       error: null
     },
     referralCode: null,
-    loading: loading.defaults(['wallet', 'domains', 'buyAddress'])
+    loading: loading.defaults(['wallet', 'buyAddress'])
   },
 
   actions: {
@@ -24,13 +22,6 @@ export default {
       loading.singleton(state.loading.wallet, async () => {
         const walletResult = await server.getRefWallet(referralCode)
         commit('loadWallet', {walletResult, referralCode})
-      })
-    },
-
-    async loadDomains({commit, state}, {referralCode}) {
-      loading.singleton(state.loading.domains, async () => {
-        const domainResult = await server.getRefDomains(referralCode)
-        commit('loadDomains', domainResult)
       })
     },
 
@@ -56,15 +47,6 @@ export default {
         state.alertWallet = walletResult.error
       }
       loading.done(state.loading.wallet)
-    },
-
-    loadDomains(state, domainResult) {
-      if(domainResult.success) {
-        state.domains = domainResult.success
-      } else {
-        state.alertDomains = domainResult.error
-      }
-      loading.done(state.loading.domains)
     },
 
     buyResult(state, result) {

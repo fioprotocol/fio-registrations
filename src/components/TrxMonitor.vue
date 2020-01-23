@@ -15,7 +15,7 @@
         </span>
 
         <span v-if="trx.trx_status !== null">
-          registration <b>{{trx.trx_status}}</b>
+          blockchain registration <b>{{trx.trx_status}}</b>
         </span>
 
         <span v-if="isPending(trx)">
@@ -36,10 +36,7 @@ let uid = 1
 export default {
   name: 'TrxMonitor',
   props: {
-    publicKey: {
-      type: String,
-      required: false
-    },
+    publicKey: String,
     referralCode: String,
     address: String,
     domain: String,
@@ -72,10 +69,7 @@ export default {
 
   methods: {
     updateBlockchainTrx() {
-      if(
-        (!this.referralCode || !this.publicKey) &&
-        !this.domain
-      ) {
+      if(!this.publicKey && !this.domain) {
         return
       }
 
@@ -112,11 +106,6 @@ export default {
       }
       return false
     },
-
-    // paySource(pay) {
-    //   const upper = pay.pay_source[0].toUpperCase()
-    //   return upper + pay.pay_source.substring(1, pay.pay_source.length)
-    // },
 
     accountType(trx) {
       return trx.address ? 'address' : 'domain'

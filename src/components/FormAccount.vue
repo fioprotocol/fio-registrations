@@ -21,7 +21,7 @@
 
         <div v-if="domains && domains.length === 0">
           <slot name="nodomains">
-            <div class="text-info">There are no domains setup</div>
+            <div class="text-info">This wallet is not selling accounts</div>
             <br/>
           </slot>
         </div>

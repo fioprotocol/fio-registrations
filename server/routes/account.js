@@ -1,3 +1,4 @@
+const assert = require('assert')
 const router = require('express').Router();
 const handler = require('./handler')
 const {trimKeys} = require('../db/helper')
@@ -15,6 +16,12 @@ router.post('/public-api/summary', handler(async (req, res) => {
   let {referralCode, trxStatus} = req.body
   const {address, domain} = req.body
 
+  assert(publicKey || domain, 'Public key or domain is required')
+
+  if(!referralCode) {
+    referralCode = process.env.DEFAULT_REFERRAL_CODE
+  }
+
   let accountWhere = {}
   let walletWhere = {}
 
@@ -29,10 +36,6 @@ router.post('/public-api/summary', handler(async (req, res) => {
   } else {
     if(!PublicKey.isValid(publicKey)) {
       return res.status(400).send({error: 'Invalid public key'})
-    }
-
-    if(!referralCode) {
-      referralCode = process.env.DEFAULT_REFERRAL_CODE
     }
 
     accountWhere.owner_key = publicKey

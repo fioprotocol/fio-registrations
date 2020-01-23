@@ -2,8 +2,8 @@ require('dotenv').config({
   path: require('path').resolve(process.cwd(), '.env-server')
 })
 
-const debug = require('debug')('fio:process-event')
-const traceFilter = require('./trace-filter')
+let debug = require('debug')('fio:process-event')
+const trace = require('./trace-filter')(() => debug, extend => debug = extend)
 
 const db = require('./db/models');
 const {Sequelize, sequelize} = db
@@ -28,21 +28,17 @@ const fio = new FioApi(chainEndpoint, {
 })
 
 async function all() {
-  const traceAll = debug.extend('all')
-  traceAll('all()')
-
   // pending => success or expire
-  await checkIrreversibility().catch(err => console.error(err))
+  await trace({checkIrreversibility})()
+    .catch(err => console.error(err))
 
   // expire => retry or review
-  await expireRetry(3).catch(err => console.error(err))
+  await trace({expireRetry})(3)
+    .catch(err => console.error(err))
 
   // no status or retry => pending or review
-  await broadcastPaidNeedingAccounts().catch(err => console.error(err))
-
-  await sendWebhooks().catch(err => console.error(err))
-
-  traceAll('all()')
+  await trace({broadcastPaidNeedingAccounts})()
+    .catch(err => console.error(err))
 }
 
 const regdomain = async (domain, ownerPublic, tpid) => {
@@ -74,8 +70,6 @@ const regaddress = async (address, ownerPublic, tpid) => {
   accounts with a "retry" status and broadcast.
 */
 async function broadcastPaidNeedingAccounts() {
-  debug('broadcastPaidNeedingAccounts()')
-
   const newRegs = await getPaidNeedingAccounts()
 
   return Promise.all(newRegs.map(newReg =>
@@ -83,8 +77,6 @@ async function broadcastPaidNeedingAccounts() {
 }
 
 async function getPaidNeedingAccounts() {
-  debug('getPaidNeedingAccounts()')
-
   const [newRegs] = await sequelize.query(`
     select
       a.id as account_id,
@@ -134,8 +126,6 @@ async function broadcastNewAccount({
   owner_key,
   tpid
 }) {
-  debug('broadcastNewAccount()')
-
   const account = (address ? address + '@' : '') + domain
   const regAction = address ?
     await regaddress( account, owner_key, tpid ) :
@@ -228,8 +218,6 @@ var nextCheck = 0
   @see controller.cpp validate_expiration
 */
 async function checkIrreversibility() {
-  debug('checkIrreversibility()')
-
   if(Date.now() < nextCheck) {
     return
   }
@@ -287,6 +275,7 @@ async function checkIrreversibility() {
   }
   let libTime
 
+  const promises = []
   for (let account of pendingAccounts) {
     const {owner_key} = account
 
@@ -320,29 +309,34 @@ async function checkIrreversibility() {
         const names = await fio.getNames(owner_key)
         const found = nameExists(names, address, domain)
 
-        // if(debug.enabled) {
-        //   debug('checkIrreversibility found',
-        //     JSON.stringify({ found, address, domain, names }, null, 2)
-        //   )
-        // }
+        if(debug.enabled) {
+          debug('checkIrreversibility',
+            JSON.stringify({ found, address, domain }, null, 2)
+          )
+        }
 
         if(found) {
-          db.BlockchainTrxEvent.create({
-            trx_status: 'success',
-            trx_status_notes: 'irreversible',
-            blockchain_trx_id: trx.id
-          })
-        } else {
-          if(expired) {
+          promises.push(
             db.BlockchainTrxEvent.create({
-              trx_status: 'expire',
+              trx_status: 'success',
+              trx_status_notes: 'irreversible',
               blockchain_trx_id: trx.id
             })
+          )
+        } else {
+          if(expired) {
+            promises.push(
+              db.BlockchainTrxEvent.create({
+                trx_status: 'expire',
+                blockchain_trx_id: trx.id
+              })
+            )
           }
         }
       }
     }
   }
+  return Promise.all(promises)
 }
 
 /**
@@ -351,8 +345,6 @@ async function checkIrreversibility() {
   @arg {number} retry - when retry count is reached creates a "review" status
 */
 async function expireRetry(retry = 3) {
-  debug('expireRetry()')
-
   const [res] = await db.sequelize.query(`
     select
       t.id as blockchain_trx_id,
@@ -430,27 +422,11 @@ function nameExists(names, address, domain) {
   return found === undefined ? false : found
 }
 
-async function sendWebhooks() {
-  debug('sendWebhooks()')
-
-  const webhooks = await getWebhooks()
-
-  return Promise.all(webhooks.map(webhook =>
-    sendWebhook(webhook)))
-}
-
-async function getWebhooks() {
-  return []
-}
-
 module.exports = {
-  all,
+  all: trace({all}),
   getPaidNeedingAccounts,
   broadcastPaidNeedingAccounts,
   broadcastNewAccount,
   checkIrreversibility,
-  expireRetry,
-  sendWebhooks
+  expireRetry
 }
-
-debug.log = traceFilter(Object.keys(module.exports))

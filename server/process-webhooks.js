@@ -9,24 +9,22 @@ const db = require('./db/models');
 const {Sequelize, sequelize} = db
 const {Op} = Sequelize
 
-const debug = require('debug')('fio:process-webhook')
-const traceFilter = require('./trace-filter')
+let debug = require('debug')('fio:process-webhook')
+const trace = require('./trace-filter')(() => debug, extend => debug = extend)
 
 async function all() {
-  return await postWebhookEvents()
+  return trace({postWebhookEvents})()
 }
 
 /**
 */
 async function postWebhookEvents() {
-  debug('postWebhookEvents()')
-
   function post(eventsByEndpoint, alias) {
     // these can run in parallel
-    const eps = Object.keys(eventsByEndpoint).map(async function (endpoint) {
-      eventsByEndpoint[endpoint].forEach(async function (event) {
+    const eps = Object.keys(eventsByEndpoint).map(function (endpoint) {
+      return eventsByEndpoint[endpoint].map(function (event) {
         // synchronous event delivery
-        await postWebhookEvent(endpoint, event, alias)
+        return postWebhookEvent(endpoint, event, alias)
       })
     })
 
@@ -279,8 +277,5 @@ function setCols(event, prefix, obj, cols) {
 }
 
 module.exports = {
-  all,
-  postWebhookEvents
+  all: trace({all})
 }
-
-debug.log = traceFilter(Object.keys(module.exports))

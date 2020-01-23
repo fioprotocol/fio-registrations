@@ -1,44 +1,99 @@
 
 /**
-  Hide redundant trace messages (messages that consist only of a
-  traceFunction name) until a non-matching message is logged.
-
-  This is used to tame the log while a scheduled process is running.
+  Tame the log while a scheduled process is running.
 */
-module.exports = function(traceFunctions) {
+
+// initial setup
+module.exports = function(debugFn, setDebug) {
+  const traceObjects = []
   let logQueue = []
-  const consoleError = console.error.bind(console)
 
-  return function(...args) {
-    // print recent trace messages before and after an interesting message (gives timming info)..
-    if(logQueue.length < traceFunctions.length) {
-      logQueue.push(null)
-      consoleError(...args)
-      return
+  const rootDebug = debugFn()
+  rootDebug.log = trace()
+
+  // trace wrapping a function
+  return function(traceObject) {
+    const [functionName] = Object.keys(traceObject)
+    const traceFunction = traceObject[functionName]
+
+    const cache = traceObjects.find(o => o.traceFunction === traceFunction)
+    if(cache) {
+      return cache.wrap
     }
-    const msg = args[0].split(' ')[3]
-    for (fname of traceFunctions) {
-      if(msg.endsWith(fname + '()')) {
-        logQueue.push(args)
 
-        // console.log(msg.length, fname.length + '()'.length + `\u001b[0m`.length, msg);
-        if(msg.length > fname.length + '()'.length + `\u001b[0m`.length) {
-          // A longer message or non-function named message is a message of interest
-          break
+    let callingDebug
+    if(setDebug) {
+      callingDebug = rootDebug.extend(functionName)
+      callingDebug.log = trace()
+    } else {
+      callingDebug = debugFn()
+      callingDebug.log = trace()
+    }
+
+    // every call to debug()
+    const wrap = async function(...args) {
+      let prefix, debugPrev = null
+      if(setDebug) {
+        prefix = ''
+        debugPrev = debugFn()
+      } else {
+        prefix = functionName + ' '
+      }
+
+      callingDebug(prefix + `enter`)
+
+      try {
+        if(debugPrev) {
+          setDebug(callingDebug)
         }
-        for (var i = 0; i < logQueue.length - traceFunctions.length; i++) {
-          // delete old redundant trace message
-          logQueue.shift()
+
+        return await traceFunction(...args)
+      } catch(err) {
+        callingDebug(prefix + `exit`)
+        throw err
+      } finally {
+        callingDebug(prefix + `exit`)
+        if(debugPrev) {
+          setDebug(debugPrev)
+        }
+      }
+    }
+    traceObjects.push({traceFunction, wrap})
+    return wrap
+  }
+
+  function trace() {
+    return function(...args) {
+      // return console.error(...args) // by-pass
+      // stringify shows color codes
+      // console.error(JSON.stringify(args[0]));
+
+      const queueLength = traceObjects.length * 2
+
+      const debugMsg = args[0]
+      const isTrace = debugMsg.endsWith('enter') || debugMsg.endsWith('exit')
+
+      // print message and full up the queue with place holders
+      if(logQueue.length < queueLength) {
+        logQueue.push(null)
+        console.error(...args)
+        if(!isTrace) {
+          logQueue = []
         }
         return
       }
-    }
 
-    for(msg2 of logQueue) {
-      if(msg2 !== null) {
-        consoleError(...msg2)
+      logQueue.shift()
+      logQueue.push(args)
+
+      if(!isTrace) {
+        for(msg2 of logQueue) {
+          if(msg2 !== null) {
+            console.error(...msg2)
+          }
+        }
+        logQueue = []
       }
-      logQueue = []
     }
   }
 }

@@ -65,14 +65,14 @@ async function postWebhookEvent(endpoint, event, alias) {
   const {webhook_events} = event[alias].Account.Wallet
 
   let webhookSecret;
-  if(webhookSecretCache[0] === endpoint) {
+  if(webhookSecretCache[0] === event.wallet_referral_code) {
     webhookSecret = webhookSecretCache[1]
   } else {
     webhookSecret = checkDecrypt(
       process.env.DATABASE_ENCRYPT_SECRET,
       webhook_shared_secret
     ).toString()
-    webhookSecretCache[0] = endpoint
+    webhookSecretCache[0] = event.wallet_referral_code
     webhookSecretCache[1] = webhookSecret
   }
 

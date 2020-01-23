@@ -16,42 +16,52 @@
         </code>
       </div>
 
-      <div class="mt-3">
-        <TrxMonitor
-          v-on:pending="pending = true"
-          :publicKey="urlPublicKey"
-          :referralCode="referralCode"/>
-        <br>
+      <div v-if="urlPublicKey && validPublicKey === false">
+        <b>Invalid public key&hellip;</b>
+        <br/>
+        <div class="text-danger">
+          Check your link.
+        </div>
       </div>
 
-      <div v-if="pending && !buyAgain">
-        <button class="btn btn-success" @click="buyAgain = true">
-          Buy Again
-        </button>
-      </div>
+      <div v-if="validPublicKey === true">
+        <div class="mt-3">
+          <TrxMonitor
+            v-on:pending="pending = true"
+            :publicKey="urlPublicKey"
+            :referralCode="referralCode"/>
+          <br>
+        </div>
 
-      <div v-if="!pending || buyAgain">
-        <div class="container">
-          <div>
-            <div class="row">
-              <div v-if="regAddress" class="col-sm">
-                <h4>Address</h4>
-                <br/>
-                <FormAccountReg
-                  :referralCode="referralCode"
-                  :defaultDomain="defaultDomain"
-                  :publicKey="urlPublicKey"
-                  :buyAddress="true"/>
-              </div>
+        <div v-if="pending && !buyAgain">
+          <button class="btn btn-success" @click="buyAgain = true">
+            Buy Again
+          </button>
+        </div>
 
-              <div v-if="regDomain" class="col-sm">
-                <h4>Domain</h4>
-                <br/>
-                <FormAccountReg
-                  :referralCode="referralCode"
-                  :defaultDomain="defaultDomain"
-                  :publicKey="urlPublicKey"
-                  :buyAddress="false"/>
+        <div v-if="!pending || buyAgain">
+          <div class="container">
+            <div>
+              <div class="row">
+                <div v-if="regAddress" class="col-sm">
+                  <h4>Address</h4>
+                  <br/>
+                  <FormAccountReg
+                    :referralCode="referralCode"
+                    :defaultDomain="defaultDomain"
+                    :publicKey="urlPublicKey"
+                    :buyAddress="true"/>
+                </div>
+
+                <div v-if="regDomain" class="col-sm">
+                  <h4>Domain</h4>
+                  <br/>
+                  <FormAccountReg
+                    :referralCode="referralCode"
+                    :defaultDomain="defaultDomain"
+                    :publicKey="urlPublicKey"
+                    :buyAddress="false"/>
+                </div>
               </div>
             </div>
           </div>
@@ -76,6 +86,7 @@ import '../assets/custom.scss'
 
 import FormAccountReg from '../components/FormAccountReg.vue'
 import TrxMonitor from '../components/TrxMonitor.vue'
+import ServerMixin from '../components/ServerMixin'
 import {mapState} from 'vuex'
 
 export default {
@@ -84,6 +95,10 @@ export default {
     referralCode: String,
     defaultDomain: String,
   },
+
+  mixins: [
+    ServerMixin('checkPublicKey'),
+  ],
 
   components: {
     FormAccountReg,
@@ -95,12 +110,21 @@ export default {
       urlPublicKey: this.$route.query.publicKey,
       href: '',
       buyAgain: false,
-      pending: false
+      pending: false,
+      validPublicKey: null
     }
   },
 
   created() {
     const {publicKey} = this.$route.query
+
+    if(publicKey) {
+      this.$store.dispatch('Server/get', {
+        key: 'checkPublicKey',
+        path: '/public-api/check-public-key/' + publicKey
+      })
+    }
+
     if(!publicKey) {
       if(localStorage.buyAddressLocation) {
         // recover from a lost window
@@ -124,6 +148,14 @@ export default {
     })
 
     this.href = window.location.href
+  },
+
+  watch: {
+    ['checkPublicKey._loading']: function(loading) {
+      if(!loading) {
+        this.validPublicKey = this.checkPublicKey.success
+      }
+    }
   },
 
   computed: {
@@ -152,8 +184,7 @@ export default {
       if(!reg || !this.Wallet.wallet) {
         return false
       }
-      //wallet loaded
-      // console.log('domain sale', this.Wallet.wallet.domain_sale_active)
+
       return this.Wallet.wallet.domain_sale_active
     },
 
@@ -167,7 +198,6 @@ export default {
         return reg
       }
 
-      //wallet loaded
       return this.Wallet.wallet.account_sale_active
     },
   }

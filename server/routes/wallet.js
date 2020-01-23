@@ -10,6 +10,13 @@ const db = require('../db/models')
 const {Sequelize, sequelize} = db
 const {Op} = Sequelize
 
+const {PublicKey} = require('@fioprotocol/fiojs').Ecc
+
+router.get('/public-api/check-public-key/:publicKey', handler(async (req, res) => {
+  const isPublicKey = PublicKey.isValid(req.params.publicKey)
+  return res.send({success: isPublicKey})
+}))
+
 router.post('/public-api/ref-wallet', handler(async (req, res) => {
   let {referralCode} = req.body
 

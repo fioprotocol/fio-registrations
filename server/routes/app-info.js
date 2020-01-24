@@ -11,6 +11,7 @@ router.get('/public-api/info', async (req, res) => {
     },
     // pay_sources: {key: name} TODO historical sources from database
     uploadEnabled: plugins.upload !== undefined,
+    chainEndpoint: process.env.CHAIN_ENDPOINT
   })
 })
 

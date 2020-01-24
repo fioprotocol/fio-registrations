@@ -427,7 +427,14 @@ router.post('/send-invite', handler(async (req, res) => {
     subject: `Wallet Registrations Invitation`,
     html: `You have been invited by ${inviteBy.username} to join the Wallet Registrations server.
 
-Join: ${inviteUrl}/${email_encoded}/${invite_unhashed}`
+<a href="${inviteUrl}/${email_encoded}/${invite_unhashed}">Join</a>
+
+<small>${inviteUrl}/${email_encoded}/${invite_unhashed}<small>
+`,
+    text: `You have been invited by ${inviteBy.username} to join the Wallet Registrations server.
+
+${inviteUrl}/${email_encoded}/${invite_unhashed}
+`
   })
 
   return res.send({success: 'Invitation sent'})

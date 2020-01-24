@@ -10,8 +10,9 @@ class Sendmail {
   /** @arg {
     from: 'no-reply@yourdomain.com',
     to: 'test@qq.com, test@sohu.com, test@163.com ',
-    subject: 'test sendmail',
-    html: 'Mail of test sendmail ',
+    subject: 'Test sendmail',
+    html: 'HTML version',
+    test: 'Text version'
   }
   */
   async send(message) {

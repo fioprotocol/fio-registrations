@@ -15,7 +15,7 @@
     "migrate": "sequelize-cli db:migrate",
     "sync": "node ./server/db/sync.js",
     "seed": "sequelize-cli db:seed:all",
-    "postinstall": "npm run build && npm run sync && npm run seed"
+    "postinstall": "npm run sync && npm run seed"
   },
   "dependencies": {
     "@fioprotocol/fiojs": "^0.5.1",

@@ -15,7 +15,7 @@
           </b-form-group>
 
           <b-form-group label="Password" label-for="regsrv-password">
-            <b-input type="password" autofocus
+            <b-input type="password"
               id="regsrv-password" autocomplete="on"
               v-model="password" required
               placeholder="Enter password">

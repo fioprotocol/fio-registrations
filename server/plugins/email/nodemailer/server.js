@@ -48,11 +48,13 @@ class NodeMailer {
       message.from = process.env.EMAIL_FROM
     }
 
-    const result = await this.transporter.sendMail(message)
-    if(process.env.NODE_ENV !== 'production') {
+    this.debug('Waring: re-enable production check "Don\'t log in production, that compromises password links"')
+    // if(process.env.NODE_ENV !== 'production') {
       // Don't log in production, that compromises password links
       this.debug(JSON.stringify(message))
-    }
+    // }
+
+    const result = await this.transporter.sendMail(message)
     return result
   }
 }

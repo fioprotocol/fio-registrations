@@ -6,6 +6,10 @@ if (!process.env.EMAIL_FROM) {
 }
 
 class Sendmail {
+  constructor({debug}) {
+    this.debug = debug
+  }
+
   /** @arg {
     from: 'no-reply@yourdomain.com',
     to: 'test@qq.com, test@sohu.com, test@163.com ',
@@ -15,8 +19,10 @@ class Sendmail {
   }
   */
   async send(message) {
+    this.debug('Waring: re-enable production check "Don\'t log in production, that compromises password links"')
+      this.debug(JSON.stringify(message))
+
     if(process.env.NODE_ENV !== 'production') {
-      console.log(`EMAIL ${message.subject} (${JSON.stringify(message)}) [NODE_ENV !== 'production' not sent]`);
       return
     }
 

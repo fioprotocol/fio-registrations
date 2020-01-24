@@ -15,7 +15,7 @@ class Sendmail {
     to: 'test@qq.com, test@sohu.com, test@163.com ',
     subject: 'Test sendmail',
     html: 'HTML version',
-    test: 'Text version'
+    text: 'Text version'
   }
   */
   async send(message) {

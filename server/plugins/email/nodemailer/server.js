@@ -39,7 +39,7 @@ class NodeMailer {
     to: 'test@qq.com, test@sohu.com, test@163.com ',
     subject: 'Test SmtpServer',
     html: 'HTML version',
-    test: 'Text version'
+    text: 'Text version'
   }
     @see https://nodemailer.com/message/
   */

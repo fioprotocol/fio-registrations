@@ -2,7 +2,7 @@ const JsonFetch = require('./json-fetch')
 
 class FioClient {
   /*{
-    chainEndpoint: string,
+    chainEndpoint: string|function<async>,
     options: {
       expireIn: number,
       privateKeys: array<string>,
@@ -15,7 +15,12 @@ class FioClient {
   constructor(chainEndpoint, options = {}) {
     this.options = options
     const {logging} = options
-    this.chain = JsonFetch(chainEndpoint, {logging})
+    if(typeof chainEndpoint === 'function') {
+      const endpoint = await chainEndpoint()
+      this.chain = JsonFetch(endpoint, {logging})
+    } else {
+      this.chain = JsonFetch(chainEndpoint, {logging})
+    }
   }
 
   // https://developers.fioprotocol.io/api/API-spec

@@ -36,6 +36,7 @@ const app = express()
 // Raw body needed to verify webhook signatures.
 app.use(
   express.json({
+    limit: '3mb', // larger due to encoding
     verify: function(req, res, buf) {
       if (req.originalUrl.startsWith('/webhook')) {
         req.rawBody = buf.toString();
@@ -71,7 +72,6 @@ const appLimit = limit({
 })
 
 app.use(appLimit)
-// app.use(bodyParser.json())
 
 // keep signed server state between API calls
 app.use(handler(async function(req, res, next) {

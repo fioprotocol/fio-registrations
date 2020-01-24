@@ -141,6 +141,7 @@
               placeholder="Enter the secure (https) webhook endpoint to your server."
             >
             </b-form-input>
+            <small class="text-muted">Receive payment and transaction status notifications.</small>
           </b-col>
           <b-col cols="auto">
             <b-link v-b-modal.webhook-test-modal>

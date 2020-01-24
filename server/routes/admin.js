@@ -425,7 +425,7 @@ router.post('/send-invite', handler(async (req, res) => {
   await sendmail.send({
     to: email,
     subject: `Wallet Registrations Invitation`,
-    body: `You have been invited by ${inviteBy.username} to join the Wallet Registrations server.
+    html: `You have been invited by ${inviteBy.username} to join the Wallet Registrations server.
 
 Join: ${inviteUrl}/${email_encoded}/${invite_unhashed}`
   })

@@ -381,7 +381,6 @@ router.post('/send-invite', handler(async (req, res) => {
     return res.status(401).send({error: 'Missing invite URL'})
   }
 
-  debug('send-invite, check for already taken email or allow re-send of unclaimed invite')
   const existingEmail = await db.User.findOne({
     attributes: ['id'],
     where: {
@@ -424,8 +423,8 @@ router.post('/send-invite', handler(async (req, res) => {
 
   await sendmail.send({
     to: email,
-    subject: `Wallet Registrations Invitation`,
-    html: `You have been invited by ${inviteBy.username} to join the Wallet Registrations server.
+    subject: `Account Registration Server Invite`,
+    html: `You have been invited by ${inviteBy.username} to join the Account Registration Server.
 
 <a href="${inviteUrl}/${email_encoded}/${invite_unhashed}">Join</a>
 

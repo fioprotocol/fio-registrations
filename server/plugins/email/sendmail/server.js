@@ -6,7 +6,6 @@ if (!process.env.EMAIL_FROM) {
 }
 
 class Sendmail {
-
   /** @arg {
     from: 'no-reply@yourdomain.com',
     to: 'test@qq.com, test@sohu.com, test@163.com ',
@@ -31,9 +30,10 @@ class Sendmail {
           console.error(`sendmail error ${err} reply ${reply} message ${JSON.stringify(message)}`);
           reject(err)
         } else {
-          resolve(reply)
+          resolve(reply) // ok to resolve twice
         }
       })
+      // sendmail can be very slow, this frees up the caller
       resolve()
     })
   }

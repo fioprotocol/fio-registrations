@@ -49,14 +49,23 @@ function newInstance(type, name, args = {}) {
   }
 }
 
-function initOnce(plugin) {
+function initOnce(plugin, pdebug) {
   // Make sure init() is called only once (if exists)
   if(!plugin.__initPromise) {
-    plugin.__initPromise = plugin.init ? plugin.init() :
-      new Promise(resolve => resolve(plugin))
+    plugin.__initPromise = plugin.init ? plugin.init :
+      new Promise(resolve => resolve())
   }
 
-  return plugin.__initPromise.then(() => plugin)
+  if(!plugin.__initPromise.then) {
+    plugin.__initPromise = new Promise(resolve => resolve(plugin.init()))
+  }
+
+  return plugin.__initPromise.then((ret) => {
+    if(ret) {
+      pdebug(ret)
+    }
+    return plugin
+  })
 }
 
 const plugins = {router}
@@ -64,8 +73,8 @@ const plugins = {router}
 /** Email send only service or server */
 if(process.env.PLUGIN_EMAIL) {
   const name = process.env.PLUGIN_EMAIL
-  const {plugin} = newInstance('email', name)
-  plugins.email = initOnce(plugin)
+  const {plugin, pdebug} = newInstance('email', name)
+  plugins.email = initOnce(plugin, pdebug)
 }
 
 /** Crypto payment provider.  Only a single processor is supported so far. */
@@ -75,14 +84,14 @@ if(process.env.PLUGIN_PAYMENT) {
   if(plugin.webhook) {
     regWebhook('payment', name, plugin.webhook.bind(plugin), pdebug)
   }
-  plugins.payment = initOnce(plugin)
+  plugins.payment = initOnce(plugin, pdebug)
 }
 
 /** public hosted uploads, used for wallet logo */
 if(process.env.PLUGIN_UPLOAD) {
   const name = process.env.PLUGIN_UPLOAD
-  const {plugin} = newInstance('upload', name)
-  plugins.upload = initOnce(plugin)
+  const {plugin, pdebug} = newInstance('upload', name)
+  plugins.upload = initOnce(plugin, pdebug)
 }
 
 module.exports = plugins

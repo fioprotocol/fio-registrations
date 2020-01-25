@@ -37,12 +37,14 @@
         </div>
       </div>
 
-      <div class="mt-3">
+      <div class="mt-3" v-if="!buyAgain || pending">
         <TrxMonitor
           :topActive="1"
-          v-on:pending="pending = true"
+          :refresh="refresh"
           :publicKey="urlPublicKey"
-          :referralCode="referralCode"/>
+          :referralCode="referralCode"
+          @pending="pending = true"
+        />
         <br>
       </div>
 
@@ -106,10 +108,11 @@
 
       <div class="mt-3">
         <TrxMonitor
+          :refresh="refresh"
           :afterTopActive="1"
-          v-on:pending="pending = true"
           :publicKey="urlPublicKey"
           :referralCode="referralCode"
+          @pending="pending = true"
         >
 
           <template v-slot:header-if-showing>
@@ -165,7 +168,8 @@ export default {
       buyAgain: false,
       pending: false,
       validPublicKey: null,
-      accountRegPending: false
+      accountRegPending: false,
+      refresh: null
     }
   },
 
@@ -275,6 +279,7 @@ export default {
         if(newValue) {
           this.buyAgain = false
           this.pending = true
+          this.refresh = Date.now()
         }
       }
     },

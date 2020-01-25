@@ -36,6 +36,7 @@
 <script>
 import {mapState} from 'vuex'
 
+// allows for a summary per account
 let uid = 1
 
 export default {
@@ -46,7 +47,8 @@ export default {
     address: String,
     domain: String,
     topActive: Number,
-    afterTopActive: Number
+    afterTopActive: Number,
+    refresh: Number,
   },
 
   beforeCreate() {
@@ -83,7 +85,9 @@ export default {
     },
 
     isAnyPending() {
-      const found = this.summary.list.find(trx => this.isPending(trx))
+      const found = this.summary &&
+        this.summary.list.find(trx => this.isPending(trx))
+
       return found !== undefined
     },
   },
@@ -151,6 +155,10 @@ export default {
       }
       this.$emit('pending', pending)
     },
+
+    refresh() {
+      this.updateBlockchainTrx()
+    }
   },
 
   beforeDestroy () {

@@ -20,7 +20,7 @@ module.exports = (sequelize, DataTypes) => {
     tpid: {
       type: DataTypes.STRING(127),
       allowNull: true,
-      comment: 'username:domain Transaction processor ID (account that receives commission from fees)'
+      comment: 'username@domain Transaction processor ID (account that receives commission from fees)'
     },
     active: {
       type: DataTypes.BOOLEAN,

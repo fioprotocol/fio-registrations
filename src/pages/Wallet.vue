@@ -103,7 +103,7 @@
       </b-form-group>
 
       <b-form-group id="tpid-group"
-        label="Transaction Processor ID:" label-for="tpid" type="text"
+        label="Technology Provider ID (TPID):" label-for="tpid" type="text"
       >
         <b-form-input id="tpid" v-model="form.tpid"
           placeholder="Enter tpid account name" :state="tpidValidation"

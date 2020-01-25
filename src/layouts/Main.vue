@@ -1,51 +1,45 @@
 <template>
   <div class="container-fluid">
     <b-card title="Registration Server" no-body>
-      <b-card-header header-tag="nav" class="pt-1">
-        <b-nav card-header tabs>
-          <b-nav-item :to="{name: 'home'}" exact exact-active-class="active">
-            Home
-          </b-nav-item>
-
-          <!-- <b-nav-item :to="{name: 'about'}" exact exact-active-class="active">
-            About
-          </b-nav-item> -->
-
-          <div v-if="!Login.loggedIn">
+      <div v-if="!Login.loggedIn">
+        <b-card-header header-tag="nav" class="pt-1">
+          <b-nav card-header tabs>
             <b-nav-item :to="{name: 'login'}" exact exact-active-class="active">
               Login
             </b-nav-item>
-          </div>
+          </b-nav>
+        </b-card-header>
+      </div>
 
-          <div v-if="Login.loggedIn">
-            <b-nav card-header tabs>
-              <b-nav-item :to="{name: 'find'}"
-                exact exact-active-class="active"
-              >
-                Search
-              </b-nav-item>
+      <div v-if="Login.loggedIn">
+        <b-card-header header-tag="nav" class="pt-1">
+          <b-nav card-header tabs>
+            <b-nav-item :to="{name: 'find'}"
+              exact exact-active-class="active"
+            >
+              Search
+            </b-nav-item>
 
-              <b-nav-item :to="{name: 'users'}"
-                exact exact-active-class="active"
-              >
-                Admin Users
-              </b-nav-item>
+            <b-nav-item :to="{name: 'users'}"
+              exact exact-active-class="active"
+            >
+              Admin Users
+            </b-nav-item>
 
-              <b-nav-item :to="{name: 'wallets'}"
-                exact exact-active-class="active"
-              >
-                Wallets
-              </b-nav-item>
+            <b-nav-item :to="{name: 'wallets'}"
+              exact exact-active-class="active"
+            >
+              Wallets
+            </b-nav-item>
 
-              <b-nav-item :to="{name: 'user'}"
-                exact exact-active-class="active"
-              >
-                My Profile
-              </b-nav-item>
-            </b-nav>
-          </div>
-        </b-nav>
-      </b-card-header>
+            <b-nav-item :to="{name: 'user'}"
+              exact exact-active-class="active"
+            >
+              My Profile
+            </b-nav-item>
+          </b-nav>
+        </b-card-header>
+      </div>
 
       <b-card-body class="pt-2">
         <slot></slot>

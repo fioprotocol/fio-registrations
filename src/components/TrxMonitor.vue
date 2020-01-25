@@ -1,28 +1,33 @@
 <template>
-  <div v-if="summary.list.length">
-    <div v-for="trx of summary.list" :key="trx['BlockchainEvents.id']">
-      <div>
-        <b>{{accountName(trx)}}</b>
+  <div>
+    <div v-if="summaryFiltered.length">
+      <slot name="header-if-showing">
+      </slot>
 
-        <span v-if="trx.trx_status === null">
-          payment
-          <span v-if="trx.forward_url">
-            <a :href="trx.forward_url" target="_blank"><b>{{pay_status(trx)}}</b></a>
+      <div v-for="trx of summaryFiltered" :key="trx['BlockchainEvents.id']">
+        <div>
+          <b>{{accountName(trx)}}</b>
+
+          <span v-if="trx.trx_status === null">
+            payment
+            <span v-if="trx.forward_url">
+              <a :href="trx.forward_url" target="_blank"><b>{{pay_status(trx)}}</b></a>
+            </span>
+            <span v-else>
+              <b>{{pay_status(trx)}}</b>
+            </span>
           </span>
-          <span v-else>
-            <b>{{pay_status(trx)}}</b>
+
+          <span v-if="trx.trx_status !== null">
+            blockchain registration <b>{{trx.trx_status}}</b>
           </span>
-        </span>
 
-        <span v-if="trx.trx_status !== null">
-          blockchain registration <b>{{trx.trx_status}}</b>
-        </span>
-
-        <span v-if="isPending(trx)">
-          &nbsp;
-          <span class="mb-1 spinner-grow spinner-grow-sm"
-          role="status" aria-hidden="true"></span>
-        </span>
+          <span v-if="isPending(trx)">
+            &nbsp;
+            <span class="mb-1 spinner-grow spinner-grow-sm"
+            role="status" aria-hidden="true"></span>
+          </span>
+        </div>
       </div>
     </div>
   </div>
@@ -40,6 +45,8 @@ export default {
     referralCode: String,
     address: String,
     domain: String,
+    topActive: Number,
+    afterTopActive: Number
   },
 
   beforeCreate() {
@@ -60,6 +67,20 @@ export default {
         return state.Server['summary' + this.uid]
       },
     }),
+
+    summaryFiltered() {
+      const {topActive, afterTopActive, summary} = this
+
+      if(!topActive && !afterTopActive) {
+        return summary.list
+      }
+
+      if(topActive) {
+        return summary.list.slice(0, topActive)
+      }
+
+      return summary.list.slice(afterTopActive, summary.length)
+    },
 
     isAnyPending() {
       const found = this.summary.list.find(trx => this.isPending(trx))

@@ -1,8 +1,12 @@
 <template>
   <div id="app">
-    <img v-if="Wallet.wallet" :src="logo" id="logo">
+    <div>
+      <img v-if="Wallet.wallet" :src="logo" id="logo">
+    </div>
 
-    <h1>{{Wallet.wallet && Wallet.wallet.name}} Registrations</h1>
+    <div class="mt-4">
+      <h1>{{Wallet.wallet && Wallet.wallet.name}} Registrations</h1>
+    </div>
 
     <h5>username@domain</h5>
     <br/>
@@ -35,6 +39,7 @@
 
       <div class="mt-3">
         <TrxMonitor
+          :topActive="1"
           v-on:pending="pending = true"
           :publicKey="urlPublicKey"
           :referralCode="referralCode"/>
@@ -73,6 +78,24 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <div class="mt-3">
+        <TrxMonitor
+          :afterTopActive="1"
+          v-on:pending="pending = true"
+          :publicKey="urlPublicKey"
+          :referralCode="referralCode"
+        >
+
+          <template v-slot:header-if-showing>
+            <div class="mt-4">
+              <hr/>
+              <h5>Prior Registrations</h5>
+            </div>
+          </template>
+        </TrxMonitor>
+        <br>
       </div>
     </div>
 
@@ -115,7 +138,7 @@ export default {
     return {
       urlPublicKey: this.$route.query.publicKey,
       href: '',
-      buyAgain: false,
+      buyAgain: true,
       pending: false,
       validPublicKey: null
     }

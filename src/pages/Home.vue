@@ -67,6 +67,17 @@
                   :registrationPending="accountReg"
                   @registrationPending="accountReg = $event"
                 />
+                <div class="text-left">
+                  <div class="list-group">
+                    <small class="list-group-item">
+                      &rsaquo;&nbsp;Memorable name for your crypto wallet<br/>
+                      &rsaquo;&nbsp;Works across all participating wallets<br/>
+                      <span v-if="Number(Wallet.wallet.account_sale_price) > 0">
+                        &rsaquo;&nbsp;Reserve now for {{Wallet.wallet.account_sale_price}} USDC or equivalent
+                      </span>
+                    </small>
+                  </div>
+                </div>
               </div>
 
               <div v-if="regDomain" class="col-sm">
@@ -76,7 +87,17 @@
                   :referralCode="referralCode"
                   :defaultDomain="defaultDomain"
                   :publicKey="urlPublicKey"
-                  :buyAddress="false"/>
+                  :buyAddress="false"
+                />
+                <div class="text-left">
+                  <div class="list-group">
+                    <small class="list-group-item">
+                      &rsaquo;&nbsp;Create FIO Addresses on your own domain<br/>
+                      &rsaquo;&nbsp;Transferable between wallets and users<br/>
+                      &rsaquo;&nbsp;Reserve now for {{Wallet.wallet.domain_sale_price}} USDC or equivalent
+                    </small>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -271,17 +292,9 @@ export default {
   margin: 0 auto;
   margin-top: 60px;
 }
+
 #logo {
   width: 300px;
   height: 100px;
-}
-
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-li {
-  display: inline-block;
-  margin: 0 10px;
 }
 </style>

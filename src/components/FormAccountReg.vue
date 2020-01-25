@@ -8,21 +8,10 @@
         :defaultDomain="defaultDomain"
         :buyAddress="buyAddress"
       >
-        <!-- <template v-slot:nodomains>
-          <div class="alert alert-secondary" role="alert">
-            There are no domains for sale under referral code <b>{{referralCode}}</b>.
-          </div>
-        </template> -->
-
-        <alert id="regAccountAlert" :object="regAccountAlert"
-          class="mt-3" :timeout="0" singleton
-        >
-        </alert>
-
         <button
           id="check-button"
           type="submit"
-          class="btn btn-success"
+          class="btn btn-success mt-4"
           :disabled="address === null"
         >
           <div v-if="!validatedAddress">
@@ -43,6 +32,12 @@
             </div>
           </div>
         </button>
+
+        <alert id="regAccountAlert" class="mt-4"
+          :object="regAccountAlert"
+          :timeout="0" singleton
+        >
+        </alert>
       </FormAccount>
     </form>
   </div>

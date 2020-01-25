@@ -5,7 +5,7 @@
         <component v-bind:is="alerts[message]"></component>
       </div>
     </transition-group>
-    <div v-if="placeHolder" key="empty">
+    <div v-if="space && placeHolder" key="empty">
       <div class="alert hidden" role="alert">hidden</div>
     </div>
     <slot></slot>
@@ -27,10 +27,15 @@ export default {
       default: true
     },
 
+    space: {
+      type: Boolean,
+      default: false
+    },
+
     timeout: {
       type: Number,
       default: 7
-    }
+    },
   },
 
   data() {

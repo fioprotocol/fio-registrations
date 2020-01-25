@@ -29,16 +29,16 @@ const fio = new FioApi(chainEndpoint, {
 
 async function all() {
   // pending => success or expire
-  // await trace({checkIrreversibility})()
-  //   .catch(err => console.error(err))
-  //
-  // // expire => retry or review
-  // await trace({expireRetry})(3)
-  //   .catch(err => console.error(err))
-  //
-  // // no status or retry => pending or review
-  // await trace({broadcastPaidNeedingAccounts})()
-  //   .catch(err => console.error(err))
+  await trace({checkIrreversibility})()
+    .catch(err => console.error(err))
+
+  // expire => retry or review
+  await trace({expireRetry})(3)
+    .catch(err => console.error(err))
+
+  // no status or retry => pending or review
+  await trace({broadcastPaidNeedingAccounts})()
+    .catch(err => console.error(err))
 }
 
 const regdomain = async (domain, ownerPublic, tpid) => {

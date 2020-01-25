@@ -12,6 +12,10 @@ const {Op} = Sequelize
 
 const {PublicKey} = require('@fioprotocol/fiojs').Ecc
 
+if(process.env.MIN_ADDRESS_PRICE == null) {
+  throw new Error('Required: process.env.MIN_ADDRESS_PRICE')
+}
+
 router.get('/public-api/check-public-key/:publicKey', handler(async (req, res) => {
   const isPublicKey = PublicKey.isValid(req.params.publicKey)
   return res.send({success: isPublicKey})

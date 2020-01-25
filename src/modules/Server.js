@@ -85,6 +85,11 @@ export default {
   mutations: {
     result(state, {key, result}) {
       const data = state[key]
+      if(data == null) {
+        // A component can be destroyed before a request finishes
+        return
+      }
+
       loading.done(data)
 
       if(Array.isArray(result)) {

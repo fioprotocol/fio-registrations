@@ -11,15 +11,49 @@
     <h5>username@domain</h5>
     <br/>
 
-    <div v-if="!urlPublicKey">
-      Public key parmeter is missing&hellip;
-      <br/>
-      <code>
-        {{href}}?publicKey=xyz
-      </code>
+    <div v-if="!regPublicKey && !inputPublicKey">
+      <div class="container text-center">
+        <div class="card mx-auto">
+          <div class="card-header">
+            <h4>
+              You need to link your wallet first
+            </h4>
+          </div>
+          <div class="container text-left">
+            <div v-if="!enterPublicKey">
+              <div class="mt-3">
+                Many wallets support FIO Protocol and allow you to easily register FIO Address or FIO Domain and link it to that wallet. Check your favorite wallet for a FIO Address registration.
+              </div>
+
+              <div class="mt-3 mb-3">
+                Alternatively, you enter FIO Public key manually. To do so,
+                <a href @click.prevent="enterPublicKey = true" class="primary-link">click here</a>.
+              </div>
+            </div>
+
+            <div v-else>
+              <div class="form-group mb-3">
+                <label for="regPublicKey">Public Key:</label>
+                <PublicKeyInput @valid="inputPublicKey = $event" />
+                <!-- <small class="form-text text-muted">
+                </small> -->
+              </div>
+
+              <div class="text-left mb-4 container">
+                <h5>WARNING!</h5>
+                <ul id="ul-a">
+                  <li>Once you enter your FIO Public key you will not be able to change it, even if you have made an error or loose the associated private key.</li>
+                  <li>This option should only be used by crypto experts who understand what they are doing.</li>
+                  <li>We strongly recommend that you use one of our partner wallets instead.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div v-if="urlPublicKey && validPublicKey === false">
+    <div v-if="regPublicKey && validPublicKey === false">
       <b>Invalid public key&hellip;</b>
       <br/>
       <div class="text-danger">
@@ -27,7 +61,7 @@
       </div>
     </div>
 
-    <div v-if="validPublicKey && Wallet.wallet">
+    <div v-if="regPublicKey && validPublicKey && Wallet.wallet">
       <div v-if="!regAddress && !regDomain">
         <div>
           <b>Sale Closed</b>
@@ -37,15 +71,16 @@
         </div>
       </div>
 
-      <div class="mt-3" v-if="!buyAgain || pending">
-        <TrxMonitor
-          :topActive="1"
-          :refresh="refresh"
-          :publicKey="urlPublicKey"
-          :referralCode="referralCode"
-          @pending="pending = true"
-        />
-        <br>
+      <div v-if="!buyAgain || pending">
+        <div class="mt-3 mb-4">
+          <TrxMonitor
+            :topActive="1"
+            :refresh="refresh"
+            :publicKey="regPublicKey"
+            :referralCode="referralCode"
+            @pending="pending = true"
+          />
+        </div>
       </div>
 
       <div v-if="pending && !buyAgain">
@@ -64,14 +99,14 @@
                 <FormAccountReg
                   :referralCode="referralCode"
                   :defaultDomain="defaultDomain"
-                  :publicKey="urlPublicKey"
+                  :publicKey="regPublicKey"
                   :buyAddress="true"
                   :registrationPending="accountReg"
                   @registrationPending="accountReg = $event"
                 />
-                <div class="text-left">
+                <div class="text-left mb-4">
                   <div class="list-group">
-                    <small class="list-group-item">
+                    <small class="list-group-item marketing">
                       &rsaquo;&nbsp;Memorable name for your crypto wallet<br/>
                       &rsaquo;&nbsp;Works across all participating wallets<br/>
                       <span v-if="Number(Wallet.wallet.account_sale_price) > 0">
@@ -88,7 +123,7 @@
                 <FormAccountReg
                   :referralCode="referralCode"
                   :defaultDomain="defaultDomain"
-                  :publicKey="urlPublicKey"
+                  :publicKey="regPublicKey"
                   :buyAddress="false"
                 />
                 <div class="text-left">
@@ -110,7 +145,7 @@
         <TrxMonitor
           :refresh="refresh"
           :afterTopActive="1"
-          :publicKey="urlPublicKey"
+          :publicKey="regPublicKey"
           :referralCode="referralCode"
           @pending="pending = true"
         >
@@ -126,6 +161,12 @@
       </div>
     </div>
 
+    <!-- <div v-if="inputPublicKey">
+      <div class="alert alert-info mt-3 container" role="alert">
+        Public key accepted
+      </div>
+    </div> -->
+
     <!-- <br/>
     <div>
       <ul>
@@ -140,6 +181,7 @@
 <script>
 import '../assets/custom.scss'
 
+import PublicKeyInput from '../components/PublicKeyInput.vue'
 import FormAccountReg from '../components/FormAccountReg.vue'
 import TrxMonitor from '../components/TrxMonitor.vue'
 import ServerMixin from '../components/ServerMixin'
@@ -157,13 +199,16 @@ export default {
   ],
 
   components: {
+    PublicKeyInput,
     FormAccountReg,
     TrxMonitor
   },
 
   data() {
     return {
-      urlPublicKey: this.$route.query.publicKey,
+      enterPublicKey: false,
+      regPublicKey: this.$route.query.publicKey,
+      inputPublicKey: null,
       href: '',
       buyAgain: false,
       pending: false,
@@ -217,9 +262,21 @@ export default {
 
   watch: {
     ['checkPublicKey._loading']: function(loading) {
-      if(!loading) {
+      if(loading === false) {
+        console.log('chk', this.checkPublicKey.success)
         this.validPublicKey = this.checkPublicKey.success
       }
+    },
+
+    inputPublicKey: function(inputPublicKey) {
+      this.validPublicKey = true
+      this.regPublicKey = inputPublicKey
+
+      const url = new URLSearchParams(document.location.search)
+      url.set('publicKey', inputPublicKey)
+      const path = document.location.pathname + '?' + url.toString()
+      history.pushState(null, null, path)
+      // document.location = path
     }
   },
 
@@ -296,10 +353,21 @@ export default {
   color: #2c3e50;
   margin: 0 auto;
   margin-top: 60px;
+  max-width: 500px; /* or 950px */
 }
+/* .container {
+} */
 
 #logo {
   width: 300px;
   height: 100px;
+}
+
+.public-key-input {
+  width: 440px;
+}
+
+ul {
+  list-style: initial;
 }
 </style>

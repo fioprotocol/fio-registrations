@@ -146,24 +146,24 @@ export default {
         } else {
           this.selectedDomain = newValue[0]
         }
-        Vue.nextTick(() => {
-          this.focusInput()
-        })
+        // Vue.nextTick(() => {
+        //   this.focusInput()
+        // })
       }
     })
   },
   methods: {
-    focusInput() {
-      const input = this.$refs[`${this.type}-input`]
-      if(input) {
-        input.focus();
-      }
-    }
+    // focusInput() {
+    //   const input = this.$refs[`${this.type}-input`]
+    //   if(input) {
+    //     input.focus();
+    //   }
+    // }
   },
 
-  mounted() {
-    this.focusInput();
-  },
+  // mounted() {
+  //   this.focusInput();
+  // },
 };
 </script>
 

@@ -6,40 +6,43 @@
         v-on:valid="valid"
         :domains="domains"
         :defaultDomain="defaultDomain"
-        :buyAddress="buyAddress">
-        <!-- id="address" -->
-
-        <template v-slot:nodomains>
+        :buyAddress="buyAddress"
+      >
+        <!-- <template v-slot:nodomains>
           <div class="alert alert-secondary" role="alert">
             There are no domains for sale under referral code <b>{{referralCode}}</b>.
           </div>
-        </template>
+        </template> -->
 
         <alert id="regAccountAlert" :object="regAccountAlert"
           class="mt-3" :timeout="0" singleton
         >
         </alert>
 
-        <div v-if="domains.length > 0">
-          <button
-            id="check-button"
-            type="submit"
-            class="btn btn-success"
-            :disabled="address === null" >
-            <div v-if="!validatedAddress">
-              <div v-if="!checkAddressLoading">
-                Check Availability
-              </div>
-              <div v-else
-                class="mb-1 spinner-grow spinner-grow-sm text-light"
-                role="status" aria-hidden="true">
-              </div>
+        <button
+          id="check-button"
+          type="submit"
+          class="btn btn-success"
+          :disabled="address === null"
+        >
+          <div v-if="!validatedAddress">
+            <div v-if="!checkAddressLoading">
+              Check Availability
             </div>
-            <div v-if="validatedAddress">
+            <div v-else
+              class="mb-1 spinner-grow spinner-grow-sm text-light"
+              role="status" aria-hidden="true">
+            </div>
+          </div>
+          <div v-if="validatedAddress">
+            <div v-if="free">
+              Register
+            </div>
+            <div v-else>
               Pay ${{purchasePrice}} via {{AppInfo.pay_source.name}}
             </div>
-          </button>
-        </div>
+          </div>
+        </button>
       </FormAccount>
     </form>
   </div>
@@ -49,8 +52,13 @@
 import FormAccount from '../components/FormAccount.vue'
 import Alert from '../components/Alert.vue'
 import {mapState} from 'vuex'
+import ServerMixin from './ServerMixin'
 
 export default {
+  mixins: [
+    ServerMixin('buyResult'),
+  ],
+
   data() {
     return {
       address: null,
@@ -74,6 +82,10 @@ export default {
     buyAddress: {
       type: Boolean,
       default: true
+    },
+    registrationPending: {
+      type: Boolean,
+      default: false
     }
   },
 
@@ -86,24 +98,38 @@ export default {
       if(!this.validatedAddress) {
         const {address} = this
         this.$store.dispatch('Account/isAccountRegistered', {address})
-      } else { // Pay
+      } else {
         const {referralCode, address, publicKey} = this
         const redirectUrl = window.location.href
 
-        this.$store.dispatch('Wallet/buyAddress', {address, referralCode, publicKey, redirectUrl})
+        this.$store.dispatch('Server/post', {
+          key: 'buyResult', path: '/public-api/buy-address',
+          body: {address, referralCode, publicKey, redirectUrl}
+        })
       }
     }
   },
 
   watch: {
-    ['Wallet.buyAddress.success']: function(val) {
-      // Backup the purchase incase the link or window is lost
-      localStorage.buyAddressLocation = document.location
-      localStorage.buyAddressLocationDate = new Date().toISOString()
+    ['buyResult._loading']: function(loading) {
+      if(loading) { return }
 
-      const {forward_url} = val.charge
-      if(forward_url) {
-        window.location = forward_url
+      const success = this.buyResult.success
+
+      if(success.charge) {
+        // Backup the purchase incase the link or window is lost
+        localStorage.buyAddressLocation = document.location
+        localStorage.buyAddressLocationDate = new Date().toISOString()
+
+        const {forward_url} = success.charge
+        if(forward_url) {
+          window.location = forward_url
+        }
+      }
+
+      if(success === true) {
+        // free account
+        this.$emit('registrationPending', true)
       }
     }
   },
@@ -111,6 +137,10 @@ export default {
   computed: {
     domains() {
       return this.Wallet.wallet.domains
+    },
+
+    free() {
+      return Number(this.purchasePrice) === 0
     },
 
     validatedAddress() {
@@ -124,9 +154,14 @@ export default {
     },
 
     regAccountAlert() {
+      if(this.registrationPending) {
+        return {success: 'Registration pending'}
+      }
+
       if(this.validAddress === null) {
         return {}
       }
+
       if(this.validAddress === false) {
         const type = this.buyAddress ? 'address' : 'domain'
         return {error: 'Invalid ' + type}
@@ -137,11 +172,14 @@ export default {
         return {error: `${type} "${this.address}" is already registered`}
       }
 
-      if(this.Wallet.buyAddress && this.Wallet.buyAddress.error) {
-        return {error: this.Wallet.buyAddress.error}
+      if(this.buyResult.error) {
+        return {error: this.buyResult.error}
       }
 
       if(this.validatedAddress) {
+        if(this.free) {
+          return {success: `${type} "${this.address}" is available`}
+        }
         return {success: `${type} "${this.address}" is available for $${this.purchasePrice}/year`}
       }
       return {}

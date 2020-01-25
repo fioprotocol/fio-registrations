@@ -76,8 +76,9 @@
         label="New Account Sale Price:" label-for="account-price"
         description="Sale price for new accounts (in USD / USDC)"
       >
-        <b-form-input id="account-price" v-model="form.account_sale_price"
-          type="number" min=".03" step="any"
+        <b-form-input id="account-price"
+          v-model="form.account_sale_price"
+          type="number" step="any"
           placeholder="Enter account sale price"
         >
         </b-form-input>

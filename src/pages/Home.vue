@@ -47,7 +47,7 @@
       </div>
 
       <div v-if="pending && !buyAgain">
-        <button class="btn btn-success" @click="buyAgain = true">
+        <button class="btn btn-success" @click="buyAgainClick()">
           Buy Again
         </button>
       </div>
@@ -63,7 +63,10 @@
                   :referralCode="referralCode"
                   :defaultDomain="defaultDomain"
                   :publicKey="urlPublicKey"
-                  :buyAddress="true"/>
+                  :buyAddress="true"
+                  :registrationPending="accountReg"
+                  @registrationPending="accountReg = $event"
+                />
               </div>
 
               <div v-if="regDomain" class="col-sm">
@@ -138,9 +141,17 @@ export default {
     return {
       urlPublicKey: this.$route.query.publicKey,
       href: '',
-      buyAgain: true,
+      buyAgain: false,
       pending: false,
-      validPublicKey: null
+      validPublicKey: null,
+      accountRegPending: false
+    }
+  },
+
+  methods: {
+    buyAgainClick() {
+      this.buyAgain = true
+      this.accountReg = false
     }
   },
 
@@ -232,6 +243,19 @@ export default {
 
       return this.Wallet.wallet &&
         this.Wallet.wallet.account_sale_active
+    },
+
+    accountReg: {
+      get: function() {
+        return this.accountRegPending
+      },
+      set: function(newValue) {
+        this.accountRegPending = newValue
+        if(newValue) {
+          this.buyAgain = false
+          this.pending = true
+        }
+      }
     },
   }
 }

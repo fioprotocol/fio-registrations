@@ -48,34 +48,6 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
   return res.send({success: wallet});
 }))
 
-// test query
-// ;(async () => {
-//
-//   console.log(JSON.stringify(result, null, 2));
-// })().catch(e => console.error(e))
-
-
-// router.post('/public-api/ref-domains', handler(async (req, res) => {
-//   const {referralCode} = req.body
-//   const ref = referralCode ? referralCode : process.env.DEFAULT_REFERRAL_CODE
-//
-//    const wallet = await db.Wallet.findOne({
-//     attributes: ['domains', 'account_sale_active'],
-//     where: { referral_code: ref },
-//   })
-//
-//   if(!wallet) {
-//     return res.status(400).send({error: `Referral code not found`})
-//   }
-//
-//   if(!wallet.account_sale_active) {
-//     return res.send({success: []})
-//   }
-//
-//   const {domains} = wallet
-//   return res.send({success: domains});
-// }))
-
 router.post('/public-api/buy-address', handler(async (req, res) => {
   const {
     address, referralCode, publicKey,
@@ -109,11 +81,18 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   const buyAccount = addressArray.length === 2
   const type = buyAccount ? 'account' : 'domain'
   if(!wallet[`${type}_sale_active`]) {
-    return res.status(400).send({error: `This referral code is not selling ${type}s.`})
+    return res.status(400).send(
+      {error: `This referral code is not selling ${type}s.`}
+    )
   }
 
   const {name, logo_url} = wallet
   const price = wallet[`${type}_sale_price`]
+
+  // Block free accounts if this server is not forked implemented for this
+  if(type === 'account' && Number(price) < process.env.MIN_ADDRESS_PRICE) {
+    return res.status(400).send({error: `Price is too low`})
+  }
 
   const result = await db.sequelize.transaction(async transaction => {
     const tr = {transaction}
@@ -133,6 +112,22 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       },
       transaction
     })
+
+    if(type === 'account' && Number(price) === 0) {
+      const accountPay = await db.AccountPay.create({
+        pay_source: 'free',
+        buy_price: price,
+        account_id: account.id,
+      }, tr)
+
+      const accountPayEvent = await db.AccountPayEvent.create({
+        pay_status: 'success',
+        event_id: String(0),
+        account_pay_id: accountPay.id
+      }, tr)
+
+      return {success: true, account_id: account.id}
+    }
 
     const charge = await processor.createCharge({
       name, logoUrl: logo_url, price, type, address, publicKey,
@@ -167,16 +162,10 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       account_pay_id: accountPay.id
     }, tr)
 
-    return {charge, account_id: account.id}
+    return {success: {charge}, account_id: account.id}
   })
 
-  const {charge, account_uuid} = result
-  return res.send({
-    success: {
-      account_uuid,
-      charge
-    }
-  });
+  return res.send(result);
 }))
 
 module.exports = router;

@@ -9,12 +9,8 @@ export default {
   state: {
     wallet: null,
     alertWallet: {},
-    buyAddress: {
-      success: null,
-      error: null
-    },
     referralCode: null,
-    loading: loading.defaults(['wallet', 'buyAddress'])
+    loading: loading.defaults(['wallet'])
   },
 
   actions: {
@@ -22,18 +18,6 @@ export default {
       loading.singleton(state.loading.wallet, async () => {
         const walletResult = await server.getRefWallet(referralCode)
         commit('loadWallet', {walletResult, referralCode})
-      })
-    },
-
-    async buyAddress({commit, state}, {
-      address, referralCode, publicKey,
-      redirectUrl
-    }) {
-      loading(state.loading.buyAddress, async () => {
-        const buyResult = await server.post('/public-api/buy-address', {
-          address, referralCode, publicKey, redirectUrl
-        })
-        commit('buyResult', buyResult)
       })
     },
   },
@@ -48,16 +32,5 @@ export default {
       }
       loading.done(state.loading.wallet)
     },
-
-    buyResult(state, result) {
-      if(result.success) {
-        state.buyAddress.success = result.success
-        state.buyAddress.error = null
-      } else {
-        state.buyAddress.error = result.error
-        state.buyAddress.success = null
-      }
-      loading.done(state.loading.buyAddress)
-    }
   }
 }

@@ -123,7 +123,7 @@
         >
         </b-form-textarea>
 
-        <small class="text-muted">Provide each :<b>domain</b> on a separate line omitting the preceding colon.</small>
+        <small class="text-muted">Provide each @<b>domain</b> on a separate line omitting the preceding colon.</small>
       </b-form-group>
 
       <b-form-group id="webhook-group"

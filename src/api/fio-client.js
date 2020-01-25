@@ -30,7 +30,7 @@ class FioClient {
 
   // https://developers.fioprotocol.io/api/API-spec
   /**
-    @arg {Account} address:domain
+    @arg {Account} address@domain
     @return {boolean}
   */
   async isAccountRegistered(address) {

@@ -12,7 +12,7 @@
           required
         />
         <span class="input-group-btn mt-2">
-          <button class="btn btn-info" type="submit">
+          <button class="btn btn-secondary" type="submit">
             <div v-if="validPublicKey">
               Check &mdash; Valid!
             </div>

@@ -10,7 +10,7 @@
           Status:
             <router-link :to="{name: 'find', params: {search: 'review'}}">review</router-link>,
             <router-link :to="{name: 'find', params: {search: 'pending'}}">pending</router-link>,
-            <router-link :to="{name: 'find', params: {search: 'success'}}">success</router-link>,
+            <!-- <router-link :to="{name: 'find', params: {search: 'success'}}">success</router-link>, -->
             <router-link :to="{name: 'find', params: {search: 'expire'}}">expire</router-link>,
             <router-link :to="{name: 'find', params: {search: 'retry'}}">retry</router-link>,
             <router-link :to="{name: 'find', params: {search: 'cancel'}}">cancel</router-link>
@@ -33,6 +33,15 @@
           v-else role="status" aria-hidden="true"></span>
       </b-button>
     </b-form>
+
+    <div v-if="isPublicKeySearch" class="mb-4">
+      <h5>{{searchInput}}</h5>
+
+      <b-table stacked bordered
+        :fields="['balance']" :items="[{balance: totalBalance}]"
+      >
+      </b-table>
+    </div>
 
     <div v-for="type of [
       {
@@ -60,15 +69,18 @@
             <b-table :items="[row.item]" :stacked="true" :fields="type.details">
               <template v-slot:cell(pending_total)="data">
                 {{row.item.pending_total}}
-                <span v-if="row.item.pending_total">
-                  &nbsp;(<b-link @click="refreshPayment(row.item.extern_id)">refresh</b-link>)
+                <span v-if="row.item.pay_status !== 'pending'">
+                  <span v-if="row.item.pending_total">
+                    &nbsp;(<b-link @click="refreshPayment(row.item.extern_id)">refresh</b-link>)
+                  </span>
                 </span>
               </template>
 
               <template v-slot:cell(pay_status_notes)="data">
                 {{data.value}}
+                <span v-if="data.value">&nbsp;&mdash;</span>
                 <div v-if="row.item.pay_created_by">
-                  &nbsp;&mdash;{{row.item.pay_created_by}}
+                  Created by: <b>{{row.item.pay_created_by}}</b>
                 </div>
               </template>
 
@@ -106,7 +118,12 @@
               <template v-slot:cell(pay_monitor)="data">
                 <small>{{date(data.item.pay_created)}}</small>
                 &nbsp;&mdash;&nbsp;
-                {{data.item.pay_status}} / {{data.item.extern_status}}
+                {{data.item.pay_status}}
+                {{data.item.extern_status ? '/' : ''}}
+                {{data.item.extern_status ? data.item.extern_status.toLowerCase() : ''}}
+                <span v-if="data.item.pay_status === 'pending'">
+                  &nbsp;(<b-link @click="refreshPayment(data.item.extern_id)">refresh</b-link>)
+                </span>
               </template>
 
               <template v-slot:cell(trx_monitor)="data">
@@ -121,7 +138,7 @@
                 <TrxMonitor
                   :address="row.item.address"
                   :domain="row.item.domain"
-                  v-on:pending="pending"
+                  @pending="pending"
                 />
               </b-col>
             </div>
@@ -143,18 +160,9 @@
             </div>
 
             <div class="row mt-3">
-              <!-- <b-col cols="auto">
-                <b-button size="sm" v-b-modal.deposit-modal>
-                  Deposit / Refund
-                </b-button>
-                <b-modal id="deposit-modal" title="External Deposit / Refund">
-                  external deposit
-                </b-modal>
-              </b-col> -->
-
               <b-col cols="auto" class="ml-auto">
                 <div class="row">
-                  <b-col cols="auto" v-if="finalStatus(row)">
+                  <b-col cols="auto" v-if="canRetry(row)">
                     <b-button size="sm" v-b-modal.retry-modal>
                       Retry
                     </b-button>
@@ -165,14 +173,17 @@
                     </b-modal>
                   </b-col>
 
-                  <b-col cols="auto" v-if="finalStatus(row)">
+                  <b-col cols="auto" v-if="canCancel(row)">
                     <b-button size="sm" v-b-modal.cancel-modal varient="danger">
                       Cancel
                     </b-button>
                     <b-modal id="cancel-modal" @ok="updateTrxStatus('cancel')"
-                      title="Cancel"
+                      title="Cancel" cancel-title="Abort" ok-title="OK, Cancel"
                     >
                       Cancel registration for <b>{{account(row.item)}}</b>?
+                      <span v-if="row.item.trx_status">
+                        This removes the expense from the customer's balance.
+                      </span>
                     </b-modal>
                   </b-col>
 
@@ -193,6 +204,15 @@
         </b-table>
       </div>
     </div>
+
+    <div v-if="isPublicKeySearch" class="mb-4">
+      <h2>Transactions</h2>
+      <Transactions
+        :publicKey="searchInput"
+        @balance="totalBalance = $event"
+        :refresh="refreshTransactions"
+      />
+    </div>
   </div>
 </template>
 
@@ -200,9 +220,13 @@
 import Vue from 'vue'
 import {mapState} from 'vuex'
 import TrxMonitor from '../components/TrxMonitor.vue'
+import Transactions from '../components/Transactions.vue'
 
 export default {
   name: 'Find',
+
+  components: { TrxMonitor, Transactions },
+
   props: {
     search: String
   },
@@ -210,6 +234,8 @@ export default {
   data() {
     return {
       searchInput: '',
+      totalBalance: null,
+      refreshTransactions: 0,
       accountFields: [
         'address', 'domain',
         {
@@ -227,6 +253,7 @@ export default {
         },
         {
           key: 'trx_status',
+          label: 'Registration Status'
         },
       ],
 
@@ -257,7 +284,10 @@ export default {
         'confirmed_total',
         'pending_total',
         'pay_status_notes',
-        'trx_status_notes',
+        {
+          key: 'trx_status_notes',
+          label: 'Registration Status Notes'
+        },
         'block_num',
         'trx_id',
         'owner_key',
@@ -300,12 +330,11 @@ export default {
       let bal = item.confirmed_total || 0
       if(
         item.buy_price !== null &&
-        item.trx_status === 'success' &&
-        item.trx_id !== null // bought here
+        item.trx_status !== 'cancel'
       ) {
         bal -= item.buy_price
       }
-      return bal
+      return Math.round(bal * 100) / 100
     },
 
     async updateTrxStatus(new_status) {
@@ -316,8 +345,10 @@ export default {
         body: {account_id, new_status}
       })
 
-      // this.rowSelect.row.trx_status = new_status
       this.rowSelect.item.trx_status = new_status
+
+      // This can effect the balance
+      setTimeout(() => { this.refreshTransactions = Date.now() }, 250)
     },
 
     serverUpdateTrx(row) {
@@ -345,19 +376,33 @@ export default {
           `${this.rowSelect.item.address || ''}@${this.rowSelect.item.domain}`
         )
       })
+      this.refreshTransactions = Date.now()
     },
 
-    pending() {
+    pending(pending) {
       // console.log('pending', pending)
-      // if(!pending) {
+      if( ! pending) {
         this.refreshRowSelect()
-      // }
+      }
     },
 
-    finalStatus(row) {
-      return row.item.trx_status !== 'cancel' && (
-        /review|expire/.test(row.item.trx_status) ||
-        /review|expire/.test(row.item.pay_status)
+    canRetry(row) {
+      // trx_status ! /pending|retry|success|cancel/
+      return (
+        row.item.trx_status === null ||
+        /expire|review/.test(row.item.trx_status)
+      )
+    },
+
+    canCancel(row) {
+      // trx_status ! /pending|retry|success|cancel
+      // pay_status ! /pending|success|cancel/
+      return (
+        row.item.trx_status === null ||
+        /expire|review/.test(row.item.trx_status) && (
+          row.item.pay_status === null ||
+          /review/.test(row.item.pay_status)
+        )
       )
     },
 
@@ -392,6 +437,10 @@ export default {
       refreshPaymentResult: state => state.Server.refreshPaymentResult,
       Server: state => state.Server,
     }),
+
+    isPublicKeySearch() {
+      return /[a-zA-Z0-9]{30,}/.test(this.searchInput)
+    },
 
     addresses() {
       if(!this.find.success) {
@@ -438,10 +487,6 @@ export default {
         this.refreshRowSelect()
       }
     },
-  },
-
-  components: {
-    TrxMonitor
   },
 
   created() {

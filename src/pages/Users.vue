@@ -106,7 +106,7 @@ export default {
         return null
       }
       const d = new Date(value)
-      return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`
+      return d.toLocaleString()
     },
 
     onRowSelected(items) {

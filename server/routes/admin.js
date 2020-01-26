@@ -19,11 +19,54 @@ const crypto = require('crypto')
 const bcrypt = require('bcryptjs')
 
 const db = require('../db/models')
+const transactions = require('../db/transactions')
 const {Sequelize, sequelize} = db
 const {Op} = Sequelize
 
 const {PublicKey} = require('@fioprotocol/fiojs').Ecc
 const {checkEncrypt, checkDecrypt} = require('../encryption-check')
+
+router.post('/adjustment', handler(async (req, res) => {
+  const {user_id, username} = res.state
+  if(!user_id) {
+    return res.status(401).send({error: 'Unauthorized'})
+  }
+
+  const {publicKey, notes} = req.body
+  const amount = Number(req.body.amount)
+
+  assert(publicKey, 'Missing json body: publicKey')
+  assert(PublicKey.isValid(publicKey), 'Invalid: publicKey')
+  assert(amount !== 0, 'Required non-zero: amount')
+  assert(typeof notes === 'string', 'Required json body string: notes')
+
+  const adj = await db.AccountAdj.create({
+    created_by: username,
+    owner_key: publicKey,
+    amount,
+    notes
+  })
+
+  return res.send({
+    success: 'Created',
+    created: adj.created,
+    amount
+  })
+}))
+
+router.get('/transactions/:publicKey', handler(async (req, res) => {
+  const {user_id} = res.state
+  if(!user_id) {
+    return res.status(401).send({error: 'Unauthorized'})
+  }
+
+  const {publicKey} = req.params
+  assert(publicKey, 'Missing url parameter: publicKey')
+  assert(PublicKey.isValid(publicKey), 'Invalid: publicKey')
+
+  const history = await transactions.history(publicKey)
+  res.send({success: history})
+}))
 
 router.get('/find/:search', handler(async (req, res) => {
   const {user_id} = res.state
@@ -33,7 +76,7 @@ router.get('/find/:search', handler(async (req, res) => {
 
   const {search} = req.params
   if(!search || search.trim() === '') {
-    return res.status(401).send({error: 'Missing search query param in url'})
+    return res.status(401).send({error: 'Missing url parameter: search'})
   }
 
   let accountWhere = {}, accountPayWhere = {}

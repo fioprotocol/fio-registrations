@@ -11,12 +11,14 @@ const Scak = require('./scak')
 const db = require('../db/models')
 const Op = require('sequelize').Op
 
-const loginsPerHour = process.env.LOGINS_PER_HOUR || 10
+const loginAttemptsPerHour = process.env.LOGIN_ATTEMPTS_PER_HOUR != null ?
+  process.env.LOGIN_ATTEMPTS_PER_HOUR : 10
 
 const loginLimiter = keyGenerator => limit({
   keyGenerator,
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: process.env.NODE_ENV !== 'production' ? 60 : 10,
+  max: process.env.NODE_ENV !== 'production' ?
+    Math.max(60, loginAttemptsPerHour) : loginAttemptsPerHour,
   handler: function (req, res) {
     res.send({error: 'Too many login attempts in one hour'})
   }

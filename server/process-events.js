@@ -84,6 +84,7 @@ async function getPaidNeedingAccounts() {
       a.domain,
       a.owner_key,
       w.tpid
+      --, le.trx_status
     from account a
     join wallet w on w.id = a.wallet_id
     join account_pay ap on ap.id = (
@@ -93,19 +94,19 @@ async function getPaidNeedingAccounts() {
     join account_pay_event ape on ape.id = (
       select max(id) from account_pay_event
       where account_pay_id = ap.id
-    ) and ape.pay_status = 'success'
+    )
+    join (
+      select e.trx_status, t.account_id
+      from blockchain_trx_event e
+      join blockchain_trx t on
+        t.id = e.blockchain_trx_id and
+        t.type = 'register'
+      order by e.id desc
+      limit 1
+    ) as bte on bte.account_id = a.id
     where
-      coalesce((
-        select e.trx_status
-        from blockchain_trx_event e
-        join blockchain_trx t on
-          t.id = e.blockchain_trx_id and
-          t.type = 'register'
-        where
-          t.account_id = a.id
-        order by e.id desc
-        limit 1
-      ), 'not exist') in ('retry', 'not exist')
+      (ape.pay_status = 'success' AND bte.trx_status IS NULL) OR
+      bte.trx_status = 'retry'
     order by
       a.id
   `)

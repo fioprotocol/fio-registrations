@@ -46,165 +46,167 @@
       </b-table>
     </div>
 
-    <div v-for="type of [
-      {
-        id: 1, title: 'Addresses', ref: 'address-table',
-        items: addresses, fields: accountFields, details
-      },
-      {
-        id: 2, title: 'Domains', ref: 'domain-table',
-        items: domains, fields: domainFields, details
-      }
-    ]" v-bind:key="type.id" >
-      <div v-if="type.items.length">
-        <h2>{{type.title}}</h2>
+    <div v-if="found">
+      <div v-for="type of [
+        {
+          id: 1, title: 'Addresses', ref: 'address-table',
+          items: addresses, fields: accountFields, details
+        },
+        {
+          id: 2, title: 'Domains', ref: 'domain-table',
+          items: domains, fields: domainFields, details
+        }
+      ]" v-bind:key="type.id" >
+        <div v-if="type.items.length">
+          <h2>{{type.title}}</h2>
 
-        <b-table
-          :items="type.items" :fields="type.fields" :primary-key="'account_id'"
-          :outlined="true" :hover="false" :small="true" :ref="type.ref"
-          @row-selected="onRowSelected" selectable select-mode="single"
-        >
-          <!-- <template v-slot:cell(balance)="data">
-            {{balance(data.item)}}
-          </template> -->
+          <b-table
+            :items="type.items" :fields="type.fields" :primary-key="'account_id'"
+            :outlined="true" :hover="false" :small="true" :ref="type.ref"
+            @row-selected="onRowSelected" selectable select-mode="single"
+          >
+            <!-- <template v-slot:cell(balance)="data">
+              {{balance(data.item)}}
+            </template> -->
 
-          <template v-slot:row-details="row">
-            <b-table :items="[row.item]" :stacked="true" :fields="type.details">
-              <template v-slot:cell(pending_total)="data">
-                {{row.item.pending_total}}
-                <span v-if="row.item.pay_status !== 'pending'">
-                  <span v-if="row.item.pending_total">
-                    &nbsp;(<b-link @click="refreshPayment(row.item.extern_id)">refresh</b-link>)
+            <template v-slot:row-details="row">
+              <b-table :items="[row.item]" :stacked="true" :fields="type.details">
+                <template v-slot:cell(pending_total)="data">
+                  {{row.item.pending_total}}
+                  <span v-if="row.item.pay_status !== 'pending'">
+                    <span v-if="row.item.pending_total">
+                      &nbsp;(<b-link @click="refreshPayment(row.item.extern_id)">refresh</b-link>)
+                    </span>
                   </span>
-                </span>
-              </template>
+                </template>
 
-              <template v-slot:cell(pay_status_notes)="data">
-                {{data.value}}
-                <span v-if="data.value">&nbsp;&mdash;</span>
-                <div v-if="row.item.pay_created_by">
-                  Created by: <b>{{row.item.pay_created_by}}</b>
-                </div>
-              </template>
-
-              <template v-slot:cell(trx_status_notes)="data">
-                {{data.value}}
-              </template>
-
-              <template v-slot:cell(trx_id)="data">
-                <small class="text-muted">{{data.value}}</small>
-              </template>
-
-              <template v-slot:cell(owner_key)="data">
-                <small class="text-muted">{{data.value}}</small>
-              </template>
-
-              <template v-slot:cell(extern_id)="data">
-                <div v-if="data.item.forward_url">
-                  <div>
-                    <b>{{ data.value }}</b> (<b>
-                      <a :href="data.item.forward_url" target="_blank">
-                        {{data.item.pay_source}}
-                      </a>
-                    </b>)
+                <template v-slot:cell(pay_status_notes)="data">
+                  {{data.value}}
+                  <span v-if="data.value">&nbsp;&mdash;</span>
+                  <div v-if="row.item.pay_created_by">
+                    Created by: <b>{{row.item.pay_created_by}}</b>
                   </div>
-                </div>
-                <div v-else>
-                  <b>{{ data.value }}</b> (<b>{{data.item.pay_source}}</b>)
-                </div>
-              </template>
+                </template>
 
-              <template v-slot:cell(metadata)="data">
-                <small class="text-muted">{{data.value}}</small>
-              </template>
+                <template v-slot:cell(trx_status_notes)="data">
+                  {{data.value}}
+                </template>
 
-              <template v-slot:cell(pay_monitor)="data">
-                <small>{{date(data.item.pay_created)}}</small>
-                &nbsp;&mdash;&nbsp;
-                {{data.item.pay_status}}
-                {{data.item.extern_status ? '/' : ''}}
-                {{data.item.extern_status ? data.item.extern_status.toLowerCase() : ''}}
-                <span v-if="data.item.pay_status === 'pending'">
-                  &nbsp;(<b-link @click="refreshPayment(data.item.extern_id)">refresh</b-link>)
-                </span>
-              </template>
+                <template v-slot:cell(trx_id)="data">
+                  <small class="text-muted">{{data.value}}</small>
+                </template>
 
-              <template v-slot:cell(trx_monitor)="data">
-                <small>{{date(data.item.trx_created)}}</small>
-                &nbsp;&mdash;&nbsp;
-                {{data.item.trx_status}}
-              </template>
-            </b-table>
+                <template v-slot:cell(owner_key)="data">
+                  <small class="text-muted">{{data.value}}</small>
+                </template>
 
-            <div class="row mt-3" v-if="monitorStatus">
-              <b-col cols="auto" class="ml-auto">
-                <TrxMonitor
-                  :address="row.item.address"
-                  :domain="row.item.domain"
-                  @pending="pending"
-                />
-              </b-col>
-            </div>
+                <template v-slot:cell(extern_id)="data">
+                  <div v-if="data.item.forward_url">
+                    <div>
+                      <b>{{ data.value }}</b> (<b>
+                        <a :href="data.item.forward_url" target="_blank">
+                          {{data.item.pay_source}}
+                        </a>
+                      </b>)
+                    </div>
+                  </div>
+                  <div v-else>
+                    <b>{{ data.value }}</b> (<b>{{data.item.pay_source}}</b>)
+                  </div>
+                </template>
 
-            <div class="row">
-              <b-col cols="auto" class="ml-auto">
-                <b-alert variant="danger" dismissible class="mt-3"
-                  :show="serverUpdateTrx(row).error != null"
-                >
-                  {{serverUpdateTrx(row).error}}
-                </b-alert>
+                <template v-slot:cell(metadata)="data">
+                  <small class="text-muted">{{data.value}}</small>
+                </template>
 
-                <b-alert variant="success" dismissible class="mt-3"
-                  :show="serverUpdateTrx(row).success != null"
-                >
-                  {{serverUpdateTrx(row).success}}
-                </b-alert>
-              </b-col>
-            </div>
+                <template v-slot:cell(pay_monitor)="data">
+                  <small>{{date(data.item.pay_created)}}</small>
+                  &nbsp;&mdash;&nbsp;
+                  {{data.item.pay_status}}
+                  {{data.item.extern_status ? '/' : ''}}
+                  {{data.item.extern_status ? data.item.extern_status.toLowerCase() : ''}}
+                  <span v-if="data.item.pay_status === 'pending'">
+                    &nbsp;(<b-link @click="refreshPayment(data.item.extern_id)">refresh</b-link>)
+                  </span>
+                </template>
 
-            <div class="row mt-3">
-              <b-col cols="auto" class="ml-auto">
-                <div class="row">
-                  <b-col cols="auto" v-if="canRetry(row)">
-                    <b-button size="sm" v-b-modal.retry-modal>
-                      Retry
-                    </b-button>
-                    <b-modal id="retry-modal" @ok="updateTrxStatus('retry')"
-                      title="Retry"
-                    >
-                      Register <b>{{account(row.item)}}</b> anyways?
-                    </b-modal>
-                  </b-col>
+                <template v-slot:cell(trx_monitor)="data">
+                  <small>{{date(data.item.trx_created)}}</small>
+                  &nbsp;&mdash;&nbsp;
+                  {{data.item.trx_status}}
+                </template>
+              </b-table>
 
-                  <b-col cols="auto" v-if="canCancel(row)">
-                    <b-button size="sm" v-b-modal.cancel-modal varient="danger">
-                      Cancel
-                    </b-button>
-                    <b-modal id="cancel-modal" @ok="updateTrxStatus('cancel')"
-                      title="Cancel" cancel-title="Abort" ok-title="OK, Cancel"
-                    >
-                      Cancel registration for <b>{{account(row.item)}}</b>?
-                      <!-- <span v-if="row.item.trx_status">
-                        Remember to credit the customer's balance.
-                      </span> -->
-                    </b-modal>
-                  </b-col>
+              <div class="row mt-3" v-if="monitorStatus">
+                <b-col cols="auto" class="ml-auto">
+                  <TrxMonitor
+                    :address="row.item.address"
+                    :domain="row.item.domain"
+                    @pending="pending"
+                  />
+                </b-col>
+              </div>
 
-                  <b-col cols="auto" v-if="/cancel/.test(row.item.trx_status)">
-                    <b-button size="sm" v-b-modal.review-modal varient="danger">
-                      Undo Cancel
-                    </b-button>
-                    <b-modal id="review-modal" @ok="updateTrxStatus('review')"
-                      title="Undo Cancel"
-                    >
-                      Move <b>{{account(row.item)}}</b> back into <b>review</b> status?
-                    </b-modal>
-                  </b-col>
-                </div>
-              </b-col>
-            </div>
-          </template>
-        </b-table>
+              <div class="row">
+                <b-col cols="auto" class="ml-auto">
+                  <b-alert variant="danger" dismissible class="mt-3"
+                    :show="serverUpdateTrx(row).error != null"
+                  >
+                    {{serverUpdateTrx(row).error}}
+                  </b-alert>
+
+                  <b-alert variant="success" dismissible class="mt-3"
+                    :show="serverUpdateTrx(row).success != null"
+                  >
+                    {{serverUpdateTrx(row).success}}
+                  </b-alert>
+                </b-col>
+              </div>
+
+              <div class="row mt-3">
+                <b-col cols="auto" class="ml-auto">
+                  <div class="row">
+                    <b-col cols="auto" v-if="canRetry(row)">
+                      <b-button size="sm" v-b-modal.retry-modal>
+                        Retry
+                      </b-button>
+                      <b-modal id="retry-modal" @ok="updateTrxStatus('retry')"
+                        title="Retry"
+                      >
+                        Register <b>{{account(row.item)}}</b> anyways?
+                      </b-modal>
+                    </b-col>
+
+                    <b-col cols="auto" v-if="canCancel(row)">
+                      <b-button size="sm" v-b-modal.cancel-modal varient="danger">
+                        Cancel
+                      </b-button>
+                      <b-modal id="cancel-modal" @ok="updateTrxStatus('cancel')"
+                        title="Cancel" cancel-title="Abort" ok-title="OK, Cancel"
+                      >
+                        Cancel registration for <b>{{account(row.item)}}</b>?
+                        <!-- <span v-if="row.item.trx_status">
+                          Remember to credit the customer's balance.
+                        </span> -->
+                      </b-modal>
+                    </b-col>
+
+                    <b-col cols="auto" v-if="/cancel/.test(row.item.trx_status)">
+                      <b-button size="sm" v-b-modal.review-modal varient="danger">
+                        Undo Cancel
+                      </b-button>
+                      <b-modal id="review-modal" @ok="updateTrxStatus('review')"
+                        title="Undo Cancel"
+                      >
+                        Move <b>{{account(row.item)}}</b> back into <b>review</b> status?
+                      </b-modal>
+                    </b-col>
+                  </div>
+                </b-col>
+              </div>
+            </template>
+          </b-table>
+        </div>
       </div>
     </div>
 
@@ -450,11 +452,23 @@ export default {
     },
 
     found() {
+      if(this.find._loading) {
+        return false
+      }
+
       return this.find.success && this.find.success.length > 0
     },
 
     notFound() {
-      return this.submittedSearch !== null && (!this.find.success || this.find.success.length === 0)
+      if(this.submittedSearch === '' || this.find._loading) {
+        return false
+      }
+
+      if(this.find.success && this.find.success.length > 0) {
+        return false
+      }
+
+      return true
     },
 
     addresses() {

@@ -14,7 +14,7 @@ export default {
   name: 'Amount',
 
   props: {
-    value: Number
+    value: [Number, String]
   }
 }
 </script>

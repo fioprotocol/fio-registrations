@@ -34,8 +34,8 @@
       </b-button>
     </b-form>
 
-    <div v-if="isPublicKeySearch" class="mb-4">
-      <h5>{{searchInput}}</h5>
+    <div v-if="isPublicKeySearch && found" class="mb-4">
+      <h5>{{submittedSearch}}</h5>
 
       <b-table stacked bordered
         :fields="['balance']" :items="[{balance: totalBalance}]"
@@ -64,9 +64,9 @@
           :outlined="true" :hover="false" :small="true" :ref="type.ref"
           @row-selected="onRowSelected" selectable select-mode="single"
         >
-          <template v-slot:cell(balance)="data">
+          <!-- <template v-slot:cell(balance)="data">
             {{balance(data.item)}}
-          </template>
+          </template> -->
 
           <template v-slot:row-details="row">
             <b-table :items="[row.item]" :stacked="true" :fields="type.details">
@@ -208,13 +208,17 @@
       </div>
     </div>
 
-    <div v-if="isPublicKeySearch" class="mb-4">
+    <div v-if="isPublicKeySearch && found" class="mb-4">
       <h2>Transactions</h2>
       <Transactions
-        :publicKey="searchInput"
+        :publicKey="submittedSearch"
         @balance="totalBalance = $event"
         :refresh="refreshTransactions"
       />
+    </div>
+
+    <div v-if="notFound">
+      <code>No matching results</code>
     </div>
   </div>
 </template>
@@ -238,6 +242,7 @@ export default {
   data() {
     return {
       searchInput: '',
+      submittedSearch: '',
       totalBalance: null,
       refreshTransactions: 0,
       accountFields: [
@@ -247,10 +252,10 @@ export default {
           key: 'pay_created',
           formatter: 'date',
         },
-        {
-          label: 'Balance',
-          key: 'balance',
-        },
+        // {
+        //   label: 'Balance',
+        //   key: 'balance',
+        // },
         {
           label: 'Pay Status',
           key: 'pay_status',
@@ -268,10 +273,10 @@ export default {
           key: 'pay_created',
           formatter: 'date',
         },
-        {
-          label: 'Balance',
-          key: 'balance',
-        },
+        // {
+        //   label: 'Balance',
+        //   key: 'balance',
+        // },
         {
           label: 'Pay Status',
           key: 'pay_status',
@@ -330,16 +335,16 @@ export default {
       return (item.address ? item.address + '@' : '') + item.domain
     },
 
-    balance(item) {
-      let bal = item.confirmed_total || 0
-      if(
-        item.buy_price !== null &&
-        item.trx_status !== 'cancel'
-      ) {
-        bal -= item.buy_price
-      }
-      return Math.round(bal * 100) / 100
-    },
+    // balance(item) {
+    //   let bal = item.confirmed_total || 0
+    //   if(
+    //     item.buy_price !== null &&
+    //     item.trx_status !== 'cancel'
+    //   ) {
+    //     bal -= item.buy_price
+    //   }
+    //   return Math.round(bal * 100) / 100
+    // },
 
     async updateTrxStatus(new_status) {
       const {account_id} = this.rowSelect.item
@@ -360,13 +365,14 @@ export default {
       if(this.$router.history.current.params.search !== this.searchInput) {
         this.$router.push({name: 'find', params: {search: this.searchInput}})
       }
-      this.lookup()
+      // this.lookup()
     },
 
     lookup() {
+      this.submittedSearch = this.search
       this.$store.dispatch('Server/get', {
         key: 'find',
-        path: 'find/' + encodeURIComponent(this.searchInput)
+        path: 'find/' + encodeURIComponent(this.submittedSearch)
       })
     },
 
@@ -440,7 +446,15 @@ export default {
     }),
 
     isPublicKeySearch() {
-      return /[a-zA-Z0-9]{30,}/.test(this.searchInput)
+      return /[a-zA-Z0-9]{30,}/.test(this.submittedSearch)
+    },
+
+    found() {
+      return this.find.success && this.find.success.length > 0
+    },
+
+    notFound() {
+      return this.submittedSearch !== null && (!this.find.success || this.find.success.length === 0)
     },
 
     addresses() {

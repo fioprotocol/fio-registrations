@@ -83,13 +83,22 @@ export default {
   },
 
   watch: {
+    publicKey: function() {
+      this.getTransactions()
+    },
+
     ['transactions._loading']: function(loading) {
       if(loading !== false) { return }
       let balance = 0
-      this.transactions.success.forEach(t => {
-        t.balance = this.round(balance += Number(t.total))
-      })
-      this.$emit('balance', this.round(balance))
+      if(this.transactions.success) {
+        this.transactions.success.forEach(t => {
+          t.balance = this.round(balance += Number(t.total))
+        })
+
+        this.$emit('balance', this.round(balance))
+      } else {
+        this.$emit('balance', null)
+      }
     },
 
     refresh() {

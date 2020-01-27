@@ -65,6 +65,15 @@
             :outlined="true" :hover="false" :small="true" :ref="type.ref"
             @row-selected="onRowSelected" selectable select-mode="single"
           >
+            <template v-slot:cell(address)="data">
+              <span v-if="data.item.address">
+                <b>{{data.item.address}}@{{data.item.domain}}</b>
+              </span>
+              <span v-else>
+                <b>{{data.item.domain}}</b>
+              </span>
+            </template>
+
             <!-- <template v-slot:cell(balance)="data">
               {{balance(data.item)}}
             </template> -->
@@ -168,10 +177,10 @@
                   <div class="row">
                     <b-col cols="auto" v-if="canRetry(row)">
                       <b-button size="sm" v-b-modal.retry-modal>
-                        Retry
+                        Retry Registration
                       </b-button>
                       <b-modal id="retry-modal" @ok="updateTrxStatus('retry')"
-                        title="Retry"
+                        title="Retry Registration"
                       >
                         Register <b>{{account(row.item)}}</b> anyways?
                       </b-modal>
@@ -248,7 +257,7 @@ export default {
       totalBalance: null,
       refreshTransactions: 0,
       accountFields: [
-        'address', 'domain',
+        'address',
         {
           label: 'Purchase Date',
           key: 'pay_created',

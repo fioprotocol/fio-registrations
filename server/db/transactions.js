@@ -43,6 +43,29 @@ async function history(publicKey, total) {
       order by id desc limit 1
     )
     where a.owner_key = :publicKey
+    union all
+    select
+      coalesce(t.block_time, te.created),
+      'registration' as type,
+      te.id as source_id,
+      trx_id as extern_id,
+      0 as total,
+      0 as confirmed_amount,
+      0 as pending_amount,
+      te.created_by, te.trx_status_notes, a.address, a.domain
+      --, te.*
+    from account a
+    left join blockchain_trx t on t.id = (
+      select id from blockchain_trx
+      where t.account_id = a.id and t.type = 'register'
+      order by id desc limit 1
+    )
+    left join blockchain_trx_event te on te.id = (
+      select id from blockchain_trx_event
+      where blockchain_trx_id = t.id
+      order by id desc limit 1
+    )
+    where a.owner_key = :publicKey
     order by 1, 2, 3
     ${sumSelect2}`, {replacements: {publicKey}}
   )

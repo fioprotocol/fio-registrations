@@ -375,8 +375,9 @@ export default {
     onSubmit() {
       if(this.$router.history.current.params.search !== this.searchInput) {
         this.$router.push({name: 'find', params: {search: this.searchInput}})
+      } else {
+        this.lookup()
       }
-      // this.lookup()
     },
 
     lookup() {

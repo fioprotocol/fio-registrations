@@ -29,7 +29,7 @@
             </div>
             <div v-else>
               Pay ${{purchasePrice}} via {{AppInfo.pay_source.name}}
-              <span v-if="purchasePrice !== price">
+              <span v-if="purchasePrice !== Number(price)">
                 &nbsp;(with credit)
               </span>
             </div>

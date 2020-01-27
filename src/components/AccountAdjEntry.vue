@@ -44,7 +44,7 @@
       </div>
 
       <b-alert v-if="adjustment.success" class="mt-2" varient="info" dismissible show>
-        Created {{entryType.toUpperCase()}} adjustment {{inputAmount}}
+        {{successMessage}}
       </b-alert>
 
       <b-alert v-if="adjustment.error" class="mt-2" varient="danger" dismissible show>
@@ -74,6 +74,7 @@ export default {
       entryType: null,
       inputAmount: null,
       notes: null,
+      successMessage: ''
     }
   },
 
@@ -92,6 +93,7 @@ export default {
     ['adjustment._loading']: function(loading) {
       if(loading !== false) { return }
       this.$emit('update')
+      this.successMessage = `Created ${this.entryType.toUpperCase()} adjustment ${this.inputAmount}`
     }
   },
 }

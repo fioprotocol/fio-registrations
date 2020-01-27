@@ -78,7 +78,7 @@
       >
         <b-form-input id="account-price"
           v-model="form.account_sale_price"
-          type="number" step="any"
+          type="number" step="0.01" min="0.00"
           placeholder="Enter account sale price"
         >
         </b-form-input>
@@ -93,7 +93,7 @@
         description="Sale price for new domains (in USD / USDC)"
       >
         <b-form-input id="domain-price" v-model="form.domain_sale_price"
-          type="number" min=".03" step="any"
+          type="number" min="0.03" step="0.01"
           placeholder="Enter domain sale price"
         >
         </b-form-input>

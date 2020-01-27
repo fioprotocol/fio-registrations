@@ -6,6 +6,7 @@ const handler = require('./handler')
 const {fio} = require('../api')
 const plugins = require('../plugins')
 
+const transactions = require('../db/transactions')
 const db = require('../db/models')
 const {Sequelize, sequelize} = db
 const {Op} = Sequelize
@@ -91,12 +92,26 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   }
 
   const {name, logo_url} = wallet
-  const price = wallet[`${type}_sale_price`]
+  const price = Number(wallet[`${type}_sale_price`])
 
-  // Block free accounts if this server is not forked implemented for this
-  if(type === 'account' && Number(price) < process.env.MIN_ADDRESS_PRICE) {
+  // Block free accounts if this server is not forked and implemented for this
+  if(type === 'account' && price < process.env.MIN_ADDRESS_PRICE) {
     return res.status(400).send({error: `Price is too low`})
   }
+
+  // apply credit
+  const balance = await transactions.balance(publicKey)
+
+  let credit = 0
+  if(balance.total) {
+    const bal = Number(balance.total)
+    if(bal < 0) {
+      credit = bal
+    }
+  }
+  const adjPrice = Math.round(
+    (Math.max(0, price + credit)) * 100
+  ) / 100
 
   const result = await db.sequelize.transaction(async transaction => {
     const tr = {transaction}
@@ -117,7 +132,10 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       transaction
     })
 
-    if(type === 'account' && Number(price) === 0) {
+    if(
+      (type === 'account' && price === 0) ||
+      adjPrice === 0
+    ) {
       const accountPay = await db.AccountPay.create({
         pay_source: 'free',
         buy_price: price,
@@ -134,7 +152,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     }
 
     const charge = await processor.createCharge({
-      name, logoUrl: logo_url, price, type, address, publicKey,
+      name, logoUrl: logo_url, price: adjPrice, type, address, publicKey,
       accountId: account.id, redirectUrl
     })
 

@@ -29,6 +29,9 @@
             </div>
             <div v-else>
               Pay ${{purchasePrice}} via {{AppInfo.pay_source.name}}
+              <span v-if="purchasePrice !== price">
+                &nbsp;(with credit)
+              </span>
             </div>
           </div>
         </button>
@@ -44,14 +47,14 @@
 </template>
 
 <script>
+import {mapState} from 'vuex'
 import FormAccount from '../components/FormAccount.vue'
 import Alert from '../components/Alert.vue'
-import {mapState} from 'vuex'
 import ServerMixin from './ServerMixin'
 
 export default {
   mixins: [
-    ServerMixin('buyResult'),
+    ServerMixin('buyResult')
   ],
 
   data() {
@@ -91,8 +94,8 @@ export default {
 
     register() {
       if(!this.validatedAddress) {
-        const {address} = this
-        this.$store.dispatch('Account/isAccountRegistered', {address})
+        const {address, publicKey} = this
+        this.$store.dispatch('Account/isAccountRegistered', {address, publicKey})
       } else {
         const {referralCode, address, publicKey} = this
         const redirectUrl = window.location.href
@@ -130,12 +133,22 @@ export default {
   },
 
   computed: {
+    ...mapState({
+      Wallet: state => state.Wallet || {},
+      Account: state => state.Account || {},
+      AppInfo: state => state.AppInfo.info,
+    }),
+
     domains() {
       return this.Wallet.wallet.domains
     },
 
     free() {
-      return Number(this.purchasePrice) === 0
+      return Number(this.price) === 0
+    },
+
+    credit() {
+      return this.Account.credit
     },
 
     validatedAddress() {
@@ -175,22 +188,23 @@ export default {
         if(this.free) {
           return {success: `${type} "${this.address}" is available`}
         }
-        return {success: `${type} "${this.address}" is available for $${this.purchasePrice}/year`}
+        return {success: `${type} "${this.address}" is available for $${this.price}/year`}
       }
       return {}
     },
 
-    purchasePrice() {
+    price() {
       return this.buyAddress ?
         this.Wallet.wallet.account_sale_price :
         this.Wallet.wallet.domain_sale_price
     },
 
-    ...mapState({
-      Wallet: state => state.Wallet || {},
-      Account: state => state.Account || {},
-      AppInfo: state => state.AppInfo.info,
-    }),
+    purchasePrice() {
+      // Math.max will not let the price go negative
+      return Math.max(0,
+        Math.round((Number(this.price) + this.credit) * 100) / 100
+      )
+    },
   },
 
   components: {

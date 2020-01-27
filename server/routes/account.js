@@ -4,13 +4,33 @@ const handler = require('./handler')
 const {trimKeys} = require('../db/helper')
 
 // const {fio} = require('../api')
-const {Ecc} = require('@fioprotocol/fiojs')
-const {PublicKey} = Ecc
+const {PublicKey} = require('@fioprotocol/fiojs').Ecc
 
 const db = require('../db/models')
+const transactions = require('../db/transactions')
 const {Sequelize, sequelize} = db
 const {Op} = Sequelize
 
+const limit = require("express-rate-limit")
+
+const hourlyLimit = (max, key = '') => limit({
+  keyGenerator: req => req.ip + key,
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: process.env.NODE_ENV !== 'production' ? Math.max(60, max) : max,
+  handler: function (req, res) {
+    res.send({error: 'Too many requests in one hour'})
+  }
+})
+
+/** Credit Balance for purchases.  Home.vue */
+router.get('/public-api/balance/:publicKey', hourlyLimit(20), handler(async (req, res) => {
+  const {publicKey} = req.params
+  assert(PublicKey.isValid(publicKey), 'Invalid public key')
+  const balance = await transactions.balance(publicKey)
+  return res.send({success: true, balance})
+}))
+
+/** Transaction Monitor.  TrxMonitor.vue */
 router.post('/public-api/summary', handler(async (req, res) => {
   const {publicKey} = req.body
   let {referralCode, trxStatus} = req.body

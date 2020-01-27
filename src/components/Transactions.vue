@@ -42,8 +42,6 @@ import ServerMixin from './ServerMixin'
 import AccountAdjEntry from './AccountAdjEntry'
 import Amount from './Amount'
 
-let bal = 0
-
 export default {
   name: 'Transactions',
 

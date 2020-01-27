@@ -40,6 +40,9 @@
       <b-table stacked bordered
         :fields="['balance']" :items="[{balance: totalBalance}]"
       >
+        <template v-slot:cell(balance)="data">
+          <Amount :value="data.value"/>
+        </template>
       </b-table>
     </div>
 
@@ -181,9 +184,9 @@
                       title="Cancel" cancel-title="Abort" ok-title="OK, Cancel"
                     >
                       Cancel registration for <b>{{account(row.item)}}</b>?
-                      <span v-if="row.item.trx_status">
-                        This removes the expense from the customer's balance.
-                      </span>
+                      <!-- <span v-if="row.item.trx_status">
+                        Remember to credit the customer's balance.
+                      </span> -->
                     </b-modal>
                   </b-col>
 
@@ -221,11 +224,12 @@ import Vue from 'vue'
 import {mapState} from 'vuex'
 import TrxMonitor from '../components/TrxMonitor.vue'
 import Transactions from '../components/Transactions.vue'
+import Amount from '../components/Amount.vue'
 
 export default {
   name: 'Find',
 
-  components: { TrxMonitor, Transactions },
+  components: { TrxMonitor, Transactions, Amount },
 
   props: {
     search: String
@@ -346,9 +350,6 @@ export default {
       })
 
       this.rowSelect.item.trx_status = new_status
-
-      // This can effect the balance
-      setTimeout(() => { this.refreshTransactions = Date.now() }, 250)
     },
 
     serverUpdateTrx(row) {

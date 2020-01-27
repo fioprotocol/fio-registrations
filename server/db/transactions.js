@@ -43,35 +43,14 @@ async function history(publicKey, total) {
       order by id desc limit 1
     )
     where a.owner_key = :publicKey
-    union all
-    select -- expenses
-      coalesce(t.block_time, te.created), 'transaction' as type, te.id as source_id,
-      trx_id as extern_id,
-      case when te.trx_status <> 'cancel' then ap.buy_price else 0 end total,
-      case when te.trx_status = 'success' then ap.buy_price else 0 end confirmed_amount,
-      case when te.trx_status <> 'success' and te.trx_status <> 'cancel' then ap.buy_price else 0 end pending_amount,
-      te.created_by, te.trx_status_notes, a.address, a.domain
-      --, te.*
-    from account a
-    join account_pay ap on ap.id = (
-      select id from account_pay
-      where account_id = a.id
-      order by id limit 1
-    )
-    join blockchain_trx t on t.id = (
-      select id from blockchain_trx
-      where t.account_id = a.id and t.type = 'register'
-      order by id desc limit 1
-    )
-    join blockchain_trx_event te on te.id = (
-      select id from blockchain_trx_event
-      where blockchain_trx_id = t.id
-      order by id desc limit 1
-    )
-    where a.owner_key = :publicKey
     order by 1, 2, 3
     ${sumSelect2}`, {replacements: {publicKey}}
   )
+
+  if(total) {
+    return result[0]
+  }
+
   return result
 }
 

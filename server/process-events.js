@@ -400,9 +400,10 @@ async function expireRetry(retry = 3) {
       })
       continue
     }
+
     trxEvents.push({
       trx_status: 'review',
-      trx_status_notes: 'retries faild',
+      trx_status_notes: 'retries failed',
       blockchain_trx_id
     })
   }

@@ -80,7 +80,7 @@ export default {
   methods: {
     addAdjustment() {
       const {publicKey, entryType, inputAmount, notes} = this
-      const amount = entryType === 'credit' ? inputAmount : -1 * inputAmount
+      const amount = entryType === 'credit' ? -1 * inputAmount : inputAmount
       this.$store.dispatch('Server/post', {
         key: 'adjustment', path: '/adjustment',
         body: {publicKey, amount, notes}

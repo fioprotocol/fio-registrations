@@ -263,7 +263,6 @@ export default {
   watch: {
     ['checkPublicKey._loading']: function(loading) {
       if(loading === false) {
-        console.log('chk', this.checkPublicKey.success)
         this.validPublicKey = this.checkPublicKey.success
       }
     },
@@ -277,7 +276,7 @@ export default {
       const path = document.location.pathname + '?' + url.toString()
       history.pushState(null, null, path)
       // document.location = path
-    }
+    },
   },
 
   computed: {

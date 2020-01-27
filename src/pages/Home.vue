@@ -4,7 +4,7 @@
       <img v-if="Wallet.wallet" :src="logo" id="logo">
     </div>
 
-    <div class="mt-4">
+    <div class="mt-5">
       <h1>{{Wallet.wallet && Wallet.wallet.name}} Registrations</h1>
     </div>
 
@@ -72,7 +72,7 @@
       </div>
 
       <div v-if="!buyAgain || pending">
-        <div class="mt-3 mb-4">
+        <div class="mb-4">
           <TrxMonitor
             :topActive="1"
             :refresh="refresh"

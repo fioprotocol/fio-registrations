@@ -122,16 +122,18 @@ export default {
     },
 
     isPending(trx) {
-      if(/pending/.test(trx.pay_status)) {
-        return true
-      }
-      if(/pending|retry/.test(trx.trx_status)) {
+      if(trx.trx_status === null && trx.pay_status === 'success') {
         return true
       }
 
-      if(trx.trx_status === null) {
-        return trx.pay_status === 'success'
+      if(trx.trx_status) {
+        return /pending|retry/.test(trx.trx_status)
       }
+
+      if(trx.pay_status) {
+        return /pending/.test(trx.pay_status)
+      }
+
       return false
     },
 

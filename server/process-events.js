@@ -84,7 +84,7 @@ async function getPaidNeedingAccounts() {
       a.domain,
       a.owner_key,
       w.tpid
-      --, le.trx_status
+      --, te.trx_status, ape.pay_status
     from account a
     join wallet w on w.id = a.wallet_id
     join account_pay ap on ap.id = (
@@ -95,18 +95,17 @@ async function getPaidNeedingAccounts() {
       select max(id) from account_pay_event
       where account_pay_id = ap.id
     )
-    join (
-      select e.trx_status, t.account_id
-      from blockchain_trx_event e
-      join blockchain_trx t on
-        t.id = e.blockchain_trx_id and
-        t.type = 'register'
-      order by e.id desc
-      limit 1
-    ) as bte on bte.account_id = a.id
+    left join blockchain_trx t on t.id = (
+      select max(id) from blockchain_trx
+      where account_id = a.id
+    )
+    left join blockchain_trx_event te on te.id = (
+      select max(id) from blockchain_trx_event
+      where blockchain_trx_id = t.id
+    )
     where
-      (ape.pay_status = 'success' AND bte.trx_status IS NULL) OR
-      bte.trx_status = 'retry'
+      (ape.pay_status = 'success' AND te.trx_status IS NULL) OR
+      te.trx_status = 'retry'
     order by
       a.id
   `)
@@ -154,12 +153,6 @@ async function broadcastNewAccount({
         block_time: bc.processed.block_time + 'Z',
         account_id
       })
-
-      if(bc.transaction_id !== trx_id) {
-        console.error(`Error: Calculated transaction ID does not match broadcast transaction ID`, bc, transaction);
-        dbTrx.trx_id = bc.transaction_id
-        await dbTrx.save()
-      }
 
       await db.BlockchainTrxEvent.create({
         trx_status: 'pending',

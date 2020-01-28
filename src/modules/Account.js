@@ -35,7 +35,7 @@ export default {
 
         let credit = 0
         if(balanceRes.success) {
-          const bal = Number(balanceRes.balance.total)
+          const bal = +Number(balanceRes.balance.total)
           if(bal < 0) {
             credit = bal
           }

@@ -9,22 +9,26 @@ if(!process.env.COINBASE_WEBHOOK_SECRET) {
   throw new Error('Required: process.env.COINBASE_WEBHOOK_SECRET');
 }
 
-// Map Coinbase status (key) to registration server status (value)
-const statusMap = {
+/**
+  Map Coinbase status (key) to show when a transaction is no longer pending.
+  A pending status will get polled for updates.
+*/
+const pendingStatusMap = {
   // https://commerce.coinbase.com/docs/api/#charge-resource
-  'NEW': 'pending',
-  'PENDING': 'pending',
-  'COMPLETED': 'success',
-  'EXPIRED' : 'cancel',
-  'RESOLVED': 'success',
-  'CANCELED' : 'cancel',
-  'UNRESOLVED': 'review',
-  'UNDERPAID': 'review',
-  'OVERPAID': 'success', // accept over-payments
-  'DELAYED': 'review',
-  'MULTIPLE': 'review',
-  'MANUAL': 'review',
-  'OTHER': 'review'
+  'NEW': true,
+  'PENDING': true,
+
+  'COMPLETED': false,
+  'EXPIRED' : false,
+  'RESOLVED': false,
+  'CANCELED' : false,
+  'UNRESOLVED': false,
+  'UNDERPAID': false,
+  'OVERPAID': false,
+  'DELAYED': false,
+  'MULTIPLE': false,
+  'MANUAL': false,
+  'OTHER': false
 }
 
 class Coinbase {
@@ -44,7 +48,7 @@ class Coinbase {
     return new Promise(resolve => resolve())
   }
 
-  /** @plugin required */
+  /** @plugin required by Interface */
   getDisplayName() {
     return 'Coinbase'
   }
@@ -53,7 +57,17 @@ class Coinbase {
     Open a payment transaction at coinbase.
 
     @plugin required
-    @return {pay_status, extern_id, extern_status, extern_time}
+
+    <code>
+    {
+      pending: Boolean, // is required or payments may be stuck in "review"
+      extern_id: String, // Is a unique ID (seq 0..n) for timeline event (used to filter prior status lines and pick up new ones)
+      extern_status: String, // is any status the processor returns
+      extern_time: Date // is a time stamp returned by the processor
+    }
+    </code>
+
+    @return {pending: Boolean, extern_id: String, extern_status: String, extern_time: Date}
   */
   async createCharge({
     name, logoUrl, price, type, address, publicKey,
@@ -80,7 +94,7 @@ class Coinbase {
     }
 
     const result = await this.coinbase.post('/charges', charge)
-    // const result = {data: testCharge}
+    // const result = require('./examples/multitrx/1created.json').event
 
     if(result.data) {
       const {code, timeline, hosted_url} = result.data
@@ -94,6 +108,17 @@ class Coinbase {
 
   /**
     @example res.sendStatus(200) -- A successful status code must be sent to acknowledge the request.
+
+    @example <code> // Call
+    syncEvents(extern_id, events) where events {
+      pending_total: 'running total, every line must sum prior lines'
+      confirmed_total: 'running total, every line must sum prior lines'
+      pending: isPending === undefined ? true : isPending,
+      event_id: String(event_id), // sequence start at 0
+      extern_status: processors_status,
+      extern_time: time,
+      metadata // json data or errors for investigation
+    }</code>
 
     @example await cb()
     @plugin optional
@@ -202,8 +227,8 @@ function timelineUpdate(event_id, line, payments) {
   const {status, time, context} = line
   const metadata = {}
 
-  const pay_status = statusMap[context ? context : status]
-  if(!pay_status) {
+  const isPending = pendingStatusMap[context ? context : status]
+  if(isPending === undefined) {
     const err = `Unknown status ${status} or context ${context}`
     console.error(`[Coinbase plugin] ${err}`)
     metadata.unknown_status = err
@@ -213,7 +238,7 @@ function timelineUpdate(event_id, line, payments) {
     (context && status !== 'UNRESOLVED') ||
     (status === 'UNRESOLVED' && !context)
   ) {
-    const err = `Unexpected context ${context} for provided status ${status}`
+    const err = `REVIEW: Unexpected context ${context} for provided status ${status}`
     console.error(`[Coinbase plugin] ${err}`)
     metadata.unexpected_status = err
   }
@@ -229,7 +254,7 @@ function timelineUpdate(event_id, line, payments) {
     delete total_usd['PENDING']
 
     if(Object.keys(total_usd).length) {
-      Object.assign(metadata, {total_usd}) //etc.
+      Object.assign(metadata, {total_usd})
     }
   }
 
@@ -242,8 +267,11 @@ function timelineUpdate(event_id, line, payments) {
     }
   }
 
+  // Success is not needed, it set by the server-process when
+  // confirmed_total >= buy_price.  Pending === false is an indicator
+  // that the transaction does not need to be monitored anymore.
   return {
-    pay_status: pay_status ? pay_status : 'review',
+    pending: isPending === undefined ? true : isPending,
     event_id: String(event_id),
     extern_status: context ? context : status,
     extern_time: time,

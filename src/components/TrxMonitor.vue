@@ -16,6 +16,9 @@
             <span v-else>
               <b>{{pay_status(trx)}}</b>
             </span>
+            <span v-if="trx.pay_status_notes">
+              {{trx.pay_status_notes}}
+            </span>
           </span>
 
           <span v-if="trx.trx_status !== null">

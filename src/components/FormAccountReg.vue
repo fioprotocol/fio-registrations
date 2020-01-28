@@ -24,12 +24,15 @@
             </div>
           </div>
           <div v-if="validatedAddress">
-            <div v-if="free">
+            <div v-if="freeSale || priceAfterCredit === 0">
               Register
+              <span v-if="priceAfterCredit !== priceBeforeCredit">
+                &nbsp;(with credit)
+              </span>
             </div>
             <div v-else>
-              Pay ${{purchasePrice}} via {{AppInfo.pay_source.name}}
-              <span v-if="purchasePrice !== Number(price)">
+              Pay ${{priceAfterCredit}} via {{AppInfo.pay_source.name}}
+              <span v-if="priceAfterCredit !== priceBeforeCredit">
                 &nbsp;(with credit)
               </span>
             </div>
@@ -126,7 +129,7 @@ export default {
       }
 
       if(success === true) {
-        // free account
+        // freeSale account
         this.$emit('registrationPending', true)
       }
     }
@@ -143,8 +146,8 @@ export default {
       return this.Wallet.wallet.domains
     },
 
-    free() {
-      return Number(this.price) === 0
+    freeSale() {
+      return Number(this.priceBeforeCredit) === 0
     },
 
     credit() {
@@ -185,25 +188,23 @@ export default {
       }
 
       if(this.validatedAddress) {
-        if(this.free) {
+        if(this.freeSale) {
           return {success: `${type} "${this.address}" is available`}
         }
-        return {success: `${type} "${this.address}" is available for $${this.price}/year`}
+        return {success: `${type} "${this.address}" is available for $${this.priceBeforeCredit}/year`}
       }
       return {}
     },
 
-    price() {
+    priceBeforeCredit() {
       return this.buyAddress ?
-        this.Wallet.wallet.account_sale_price :
-        this.Wallet.wallet.domain_sale_price
+        +Number(this.Wallet.wallet.account_sale_price) :
+        +Number(this.Wallet.wallet.domain_sale_price)
     },
 
-    purchasePrice() {
+    priceAfterCredit() {
       // Math.max will not let the price go negative
-      return Math.max(0,
-        Math.round((Number(this.price) + this.credit) * 100) / 100
-      )
+      return +Math.max(0, this.priceBeforeCredit + this.credit).toFixed(2)
     },
   },
 

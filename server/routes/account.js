@@ -125,7 +125,7 @@ router.post('/public-api/summary', handler(async (req, res) => {
         include: [
           {
             attributes: [
-              'pay_status', ['metadata', 'pay_metadata'],
+              'pay_status', 'pay_status_notes', ['metadata', 'pay_metadata'],
               'extern_time', 'extern_status'
             ],
             model: db.AccountPayEvent,

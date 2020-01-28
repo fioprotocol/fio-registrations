@@ -502,7 +502,10 @@ export default {
       }
 
       return /pending|retry/.test(this.rowSelect.item.pay_status) ||
-        /pending|retry/.test(this.rowSelect.item.trx_status)
+        /pending|retry/.test(this.rowSelect.item.trx_status) || (
+          this.rowSelect.item.pay_status === 'success' &&
+          this.rowSelect.item.trx_status === null
+        )
     },
   },
 

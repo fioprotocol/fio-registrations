@@ -50,6 +50,7 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
     domain_sale_active,
     account_sale_active
   } = wallet || {}
+
   return res.send({success: wallet});
 }))
 
@@ -92,7 +93,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   }
 
   const {name, logo_url} = wallet
-  const price = Number(wallet[`${type}_sale_price`])
+  const price = +Number(wallet[`${type}_sale_price`])
 
   // Block free accounts if this server is not forked and implemented for this
   if(type === 'account' && price < process.env.MIN_ADDRESS_PRICE) {
@@ -104,14 +105,12 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
 
   let credit = 0
   if(balance.total) {
-    const bal = Number(balance.total)
+    const bal = +Number(balance.total)
     if(bal < 0) {
       credit = bal
     }
   }
-  const adjPrice = Math.round(
-    (Math.max(0, price + credit)) * 100
-  ) / 100
+  const adjPrice = Math.max(0, +Number(price + credit).toFixed(2))
 
   const result = await db.sequelize.transaction(async transaction => {
     const tr = {transaction}
@@ -157,7 +156,6 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     })
 
     const {
-      pay_status,
       event_id,
       extern_id,
       extern_status,
@@ -165,7 +163,8 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       forward_url
     } = charge
 
-    const metadata = charge.metadata && Object.keys(charge.metadata).length ? metadata : null
+    const metadata = charge.metadata && Object.keys(charge.metadata).length ?
+      charge.metadata : null
 
     const accountPay = await db.AccountPay.create({
       pay_source: process.env.PLUGIN_PAYMENT,
@@ -175,6 +174,15 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       account_id: account.id,
       forward_url
     }, tr)
+
+    let pay_status
+    if(charge.pending === false) {
+      pay_status = 'cancel'
+    } else if(charge.pending === true) {
+      pay_status = 'pending'
+    } else { // event.pending === undefined
+      pay_status = 'review'
+    }
 
     const accountPayEvent = await db.AccountPayEvent.create({
       pay_status,

@@ -55,12 +55,12 @@ async function history(publicKey, total) {
       te.created_by, te.trx_status_notes, a.address, a.domain
       --, te.*
     from account a
-    left join blockchain_trx t on t.id = (
+    join blockchain_trx t on t.id = (
       select id from blockchain_trx
-      where t.account_id = a.id and t.type = 'register'
+      where account_id = a.id and t.type = 'register'
       order by id desc limit 1
     )
-    left join blockchain_trx_event te on te.id = (
+    join blockchain_trx_event te on te.id = (
       select id from blockchain_trx_event
       where blockchain_trx_id = t.id
       order by id desc limit 1

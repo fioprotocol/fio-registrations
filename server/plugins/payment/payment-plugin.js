@@ -2,6 +2,7 @@ const debug = require('debug')('fio:payment-plugin')
 const trace = debug.extend('trace')
 
 const db = require('../../db/models')
+const transactions = require('../../db/transactions')
 const {Op} = db.Sequelize
 const {
   broadcastPaidNeedingAccounts
@@ -29,13 +30,14 @@ async function syncEvents(extern_id, events) {
 
 async function dbSyncEvents(extern_id, events) {
   const accountPay = await db.AccountPay.findOne({
-    attributes: ['id'],
+    attributes: ['id', 'buy_price', 'account_id'],
     where: {
       // unique index: pay_source, extern_id
       pay_source: process.env.PLUGIN_PAYMENT,
       extern_id,
     }
   })
+
   if(!accountPay) {
     throw new Error(`Account pay record for "${process.env.PLUGIN_PAYMENT}" extern_id ${extern_id} not found`)
   }
@@ -63,14 +65,64 @@ async function dbSyncEvents(extern_id, events) {
     if(row) {
       continue
     }
-    newEvents.push(event)
+    newEvents.push(JSON.parse(JSON.stringify(event)))
   }
 
-  newEvents.forEach(event => {
+  let balance = null
+
+  async function lookupBalance() {
+    if(balance !== null) {
+      return balance
+    }
+    const {owner_key} = await db.Account.findOne({
+      attributes: ['owner_key'], where: {id: accountPay.account_id}
+    })
+    const bal = await transactions.balance(owner_key)
+    return balance = +Number(bal.total)
+  }
+
+  const eventp = newEvents.map(async event => {
     event.account_pay_id = accountPay.id
+
+    // If the money is confirmed let the purchase go through, ignore all other
+    // status conditions (like overpay, multipay, etc.)
+    const confirmed_total = +Number(event.confirmed_total).toFixed(2)
+    const buy_price = +Number(accountPay.buy_price)
+
+    let paid = false
+    if(confirmed_total > 0) {
+      if(confirmed_total >= buy_price) {
+        paid = true
+      } else {
+        const balance = await lookupBalance()
+        if(balance > 0) {
+          paid = confirmed_total >= buy_price - balance
+        }
+      }
+    }
+
+    if(debug.enabled) {
+      debug({paid, balance, confirmed_total, buy_price,
+        account_id: accountPay.account_id})
+    }
+
+    if(paid) {
+      event.pay_status = 'success'
+    } else {
+      if(event.pending === false) {
+        event.pay_status = 'cancel'
+        event.pay_status_notes = confirmed_total > 0 ? 'Insufficient funds' : null
+      } else if(event.pending === true) {
+        event.pay_status = 'pending'
+      } else { // event.pending === undefined
+        event.pay_status = 'review'
+      }
+      delete event.pending
+    }
   })
 
   if(newEvents.length) {
+    await Promise.all(eventp)
     await db.AccountPayEvent.bulkCreate(newEvents)
   }
 

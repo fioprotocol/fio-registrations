@@ -43,7 +43,7 @@ async function history(publicKey, total) {
       order by id desc limit 1
     )
     where a.owner_key = :publicKey
-    union all
+    ${total ? '' : `union all
     select
       coalesce(t.block_time, te.created),
       'registration' as type,
@@ -65,7 +65,7 @@ async function history(publicKey, total) {
       where blockchain_trx_id = t.id
       order by id desc limit 1
     )
-    where a.owner_key = :publicKey
+    where a.owner_key = :publicKey`}
     order by 1, 2, 3
     ${sumSelect2}`, {replacements: {publicKey}}
   )

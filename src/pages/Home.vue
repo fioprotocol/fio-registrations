@@ -71,10 +71,10 @@
         </div>
       </div>
 
-      <div v-if="!buyAgain || pending">
+      <div v-if="!buyAgain">
         <div class="mb-4">
           <TrxMonitor
-            :topActive="1"
+            topActive
             :refresh="refresh"
             :publicKey="regPublicKey"
             :referralCode="referralCode"
@@ -143,8 +143,8 @@
 
       <div class="mt-3">
         <TrxMonitor
+          :afterTopActive="!buyAgain"
           :refresh="refresh"
-          :afterTopActive="1"
           :publicKey="regPublicKey"
           :referralCode="referralCode"
           @pending="pending = true"
@@ -354,8 +354,6 @@ export default {
   margin-top: 60px;
   max-width: 500px; /* or 950px */
 }
-/* .container {
-} */
 
 #logo {
   width: 300px;

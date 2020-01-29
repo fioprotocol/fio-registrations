@@ -49,8 +49,8 @@ export default {
     referralCode: String,
     address: String,
     domain: String,
-    topActive: Number,
-    afterTopActive: Number,
+    topActive: Boolean,
+    afterTopActive: Boolean,
     refresh: Number,
   },
 
@@ -76,15 +76,30 @@ export default {
     summaryFiltered() {
       const {topActive, afterTopActive, summary} = this
 
+      if(summary.list.length === 0) {
+        return []
+      }
+
       if(!topActive && !afterTopActive) {
         return summary.list
       }
 
-      if(topActive) {
-        return summary.list.slice(0, topActive)
-      }
+      const isTopActive = this.isPending(summary.list[0])
 
-      return summary.list.slice(afterTopActive, summary.length)
+      if(isTopActive) {
+        if(topActive) {
+          return summary.list.slice(0, 1)
+        } else if(afterTopActive) {
+          return summary.list.slice(1, summary.length)
+        }
+      } else {
+        if(topActive) {
+          return []
+        } else if(afterTopActive) {
+          return summary.list
+        }
+      }
+      return summary.list // eslint
     },
 
     isAnyPending() {

@@ -56,12 +56,10 @@
 </template>
 
 <script>
-import Vue from 'vue'
-
 // address:domain
 // const re = /^(?:(?=.{3,64}$)[a-zA-Z0-9]{1}(?:(?!-{2,}))[a-zA-Z0-9-]*(?:(?<!-)):[a-zA-Z0-9]{1}(?:(?!-{2,}))[a-zA-Z0-9-]*(?:(?<!-))$)/
 
-const addressRe = /^[a-z0-9]{3,64}$/
+const addressRe = /^[a-z0-9-]{3,64}$/
 // Address 3,64
 // Domain 1,62
 

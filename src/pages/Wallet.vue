@@ -108,11 +108,11 @@
       >
         <b-form-input id="tpid" v-model="form.tpid"
           placeholder="Enter tpid account name" :state="tpidValidation"
-          required minlength="7" maxlength="127"
+          minlength="7" maxlength="127"
         >
         </b-form-input>
 
-        <small class="text-muted">Enter the benificary account name (<b>account@domain</b>) that will receive fees from new registered accounts.</small>
+        <small class="text-muted">Enter the benificary account name <b>account@domain</b> (if any) that will receive fees from new registered accounts.</small>
       </b-form-group>
 
       <b-form-group id="domains-group"
@@ -417,7 +417,8 @@ export default {
     },
 
     tpidValidation() {
-      return /^[a-zA-Z0-9@-]{4,}$/.test(this.form.tpid)
+      return this.form.tpid === '' ||
+        /^[a-zA-Z0-9@-]{4,}$/.test(this.form.tpid)
     },
 
     domainsValidation() {

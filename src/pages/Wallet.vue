@@ -229,6 +229,8 @@ function formDefaults () {
 
     logo_url: '',
     domains: '',
+
+    forwardAfterSave: false
   }
 }
 
@@ -332,6 +334,9 @@ export default {
       }
 
       body.newWallet = this.newWallet
+      if(this.newWallet) {
+        this.forwardAfterSave = true
+      }
 
       this.$store.dispatch('Server/post', {
         key: 'upsertWallet', path: 'wallet', body
@@ -379,6 +384,9 @@ export default {
 
     resetUpsert() {
       this.$store.dispatch('Server/reset', {key: 'upsertWallet'})
+      if(this.forwardAfterSave) {
+        this.$router.push({name: 'wallets'})
+      }
     },
 
     focusInput() {

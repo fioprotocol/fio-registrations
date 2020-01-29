@@ -16,13 +16,13 @@ const {
 async function syncEvents(extern_id, events) {
   trace('syncEvents()')
 
-  // async to ensure the events can be recorded before function exits
+  // await to ensure the events can be recorded or let the error notify
   const newEvents = await dbSyncEvents(extern_id, events)
 
   if(newEvents.length) {
     const lastEvent = newEvents[newEvents.length - 1]
     if(lastEvent.pay_status === 'success') {
-      // non-async, don't make the caller wait on processing the events
+      // skip await, don't make the caller wait on background processing
       broadcastPaidNeedingAccounts()
     }
   }

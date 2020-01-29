@@ -3,7 +3,7 @@ import store from './store';
 
 // Non Bootstrap Vue components (saves size and load time)
 const Home = () => import(/* webpackChunkName: "registrations" */ './pages/Home.vue')
-// const Checkout = () => import(/* webpackChunkName: "registrations" */ './pages/Checkout.vue')
+const Checkout = () => import(/* webpackChunkName: "registrations" */ './pages/Checkout.vue')
 const NotFound = () => import(/* webpackChunkName: "registrations" */ './pages/404.vue')
 
 // Bootstrap Vue components
@@ -42,7 +42,7 @@ const routes = [
   { path: '/(address|ref)/:referralCode?/:defaultDomain?', component: Home, props: true },
   { path: '/(domain)/:referralCode?', component: Home, props: true },
 
-  // { path: '/page/checkout/:extern_id?', component: Checkout, name: 'checkout', props: true }, // TODO
+  { path: '/page/checkout/:extern_id?', component: Checkout, name: 'checkout', props: true },
   { path: '/page/login/:invite_email?/:email_password?', component: Login, name: 'login', props: true },
 
   {

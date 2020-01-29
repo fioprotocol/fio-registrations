@@ -352,7 +352,7 @@ export default {
   color: #2c3e50;
   margin: 0 auto;
   margin-top: 60px;
-  max-width: 500px; /* or 950px */
+  max-width: 660px; /* or 950px */
 }
 
 #logo {

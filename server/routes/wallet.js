@@ -54,6 +54,19 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
   return res.send({success: wallet});
 }))
 
+// router.get('/public-api/charge/:extern_id', handler(async (req, res) => {
+//   const {extern_id} = req.params
+//   assert(typeof extern_id === 'string', 'Required parameter: extern_id')
+//
+//   db.AccountPay.findOne({
+//     attributes: ['buy_price'],
+//     where: {extern_id},
+//     include: {
+//       model: db.AccountPayEvent, attributes: []
+//     }
+//   })
+// }))
+
 router.post('/public-api/buy-address', handler(async (req, res) => {
   const {
     address, referralCode, publicKey,
@@ -156,7 +169,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     })
 
     const {
-      event_id,
+      event_id = 0,
       extern_id,
       extern_status,
       extern_time,

@@ -114,18 +114,24 @@ export default {
   watch: {
     ['buyResult._loading']: function(loading) {
       if(loading) { return }
-
       const success = this.buyResult.success
 
       if(success.charge) {
-        // Backup the purchase incase the link or window is lost
-        localStorage.buyAddressLocation = document.location
-        localStorage.buyAddressLocationDate = new Date().toISOString()
-
-        const {forward_url} = success.charge
-        if(forward_url) {
+        // TODO
+        // if(process.env.PAYMENT_INAPP || !success.charge.forward_url) {
+        //   const { extern_id } = success.charge
+        //   const { returnUrl } = document.location
+        //
+        //   this.$router.push({name: 'checkout',
+        //     params: { extern_id }, props: { returnUrl }})
+        //
+        // } else {
+          const {forward_url} = success.charge
+          // Backup the purchase incase the link or window is lost
+          localStorage.buyAddressLocation = document.location
+          localStorage.buyAddressLocationDate = new Date().toISOString()
           window.location = forward_url
-        }
+        // }
       }
 
       if(success === true) {

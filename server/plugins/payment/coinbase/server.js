@@ -17,16 +17,16 @@ const pendingStatusMap = {
   // https://commerce.coinbase.com/docs/api/#charge-resource
   'NEW': true,
   'PENDING': true,
+  'MULTIPLE': true,
+  'UNRESOLVED': true,
 
   'COMPLETED': false,
   'EXPIRED' : false,
   'RESOLVED': false,
   'CANCELED' : false,
-  'UNRESOLVED': false,
   'UNDERPAID': false,
   'OVERPAID': false,
   'DELAYED': false,
-  'MULTIPLE': false,
   'MANUAL': false,
   'OTHER': false
 }
@@ -40,6 +40,7 @@ class Coinbase {
       request.headers['X-CC-Api-Key'] = process.env.COINBASE_API_KEY
       request.headers['X-CC-Version'] = '2018-03-22'
     }
+
     this.coinbase = new JsonFetch('https://api.commerce.coinbase.com', {req})
   }
 
@@ -59,15 +60,15 @@ class Coinbase {
     @plugin required
 
     <code>
-    {
-      pending: Boolean, // is required or payments may be stuck in "review"
+    return {
+      event_id: String = 0, // Tracks status updates, date+time is not unique
       extern_id: String, // Is a unique ID (seq 0..n) for timeline event (used to filter prior status lines and pick up new ones)
       extern_status: String, // is any status the processor returns
-      extern_time: Date // is a time stamp returned by the processor
+      extern_time: Date, // is a time stamp returned by the processor
+      forward_url: String // (optional) if provided, server be configured to ignore
     }
     </code>
-
-    @return {pending: Boolean, extern_id: String, extern_status: String, extern_time: Date}
+    @return {pending: Boolean, extern_id: String = 0, extern_status: String, extern_time: Date, forward_url: String}
   */
   async createCharge({
     name, logoUrl, price, type, address, publicKey,
@@ -105,6 +106,41 @@ class Coinbase {
     }
     throw new Error(JSON.stringify(result))
   }
+
+  /*
+    @return <code>{error: String}</code>
+    @return <code>{String}</code>
+  */
+  // async getCharge({extern_id} = {}) {
+  //   const charge = await this.coinbase.get('/charges/' + extern_id)
+  //   // const charge = require('./examples/charge.json')
+  //
+  //   if(charge.error) {
+  //     return {error: charge.error.message || charge.error}
+  //   }
+  //
+  //   const {
+  //     addresses, expires_at, hosted_url,
+  //     payments, pricing, timeline
+  //   } = charge.data
+  //
+  //   const {context, status} = timeline[timeline.length - 1]
+  //   const pending = pendingStatusMap[context ? context : status]
+  //
+  //   return {
+  //     pending,
+  //     charge: {
+  //       pricing,
+  //       addresses,
+  //       payments: payments.map(payment => {
+  //         const {network, transaction_id, status, value} = payment
+  //         const {confirmations, confirmations_required} = payment.block || {}
+  //         return {network, transaction_id, status, value,
+  //           confirmations, confirmations_required}
+  //       }),
+  //     }
+  //   }
+  // }
 
   /**
     @example res.sendStatus(200) -- A successful status code must be sent to acknowledge the request.

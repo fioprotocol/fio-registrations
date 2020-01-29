@@ -466,15 +466,14 @@ router.post('/send-invite', handler(async (req, res) => {
 
   await sendmail.send({
     to: email,
-    subject: `Account Registration Server Invite`,
-    html: `You have been invited by ${inviteBy.username} to join the Account Registration Server.
+    subject: `FIO Address Registration Server Invite`,
+    html: `<p>You have been invited by <b>${inviteBy.username}</b> to join the FIO Address Registration Server.</p>
 
-<br/>
-Click <a href="${inviteUrl}/${email_encoded}/${invite_unhashed}">Join</a>
-<br /><br />
-<small>${inviteUrl}/${email_encoded}/${invite_unhashed}<small>
+<p>Click <a href="${inviteUrl}/${email_encoded}/${invite_unhashed}">Join</a></p>
+
+<p><small>${inviteUrl}/${email_encoded}/${invite_unhashed}<small></p>
 `,
-    text: `You have been invited by ${inviteBy.username} to join the Wallet Registrations server.
+    text: `You have been invited by ${inviteBy.username} to join the FIO Address Registration Server.
 
 ${inviteUrl}/${email_encoded}/${invite_unhashed}
 `

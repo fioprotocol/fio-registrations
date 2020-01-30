@@ -26,7 +26,7 @@ module.exports = {
                 "detected_at": "2020-01-28T20:48:53Z",
                 "value": {
                     "local": {
-                        "amount": "0.3",
+                        "amount": "0.003",
                         "currency": "USDC"
                     },
                     "crypto": {
@@ -37,7 +37,7 @@ module.exports = {
                 "block": {
                     "height": 9372749,
                     "hash": "0x7ddc40002355306bc0daacd6ec19359470bbad5de4f421b0d84c73fd5cc1cb70",
-                    "confirmations": 8,
+                    "confirmations": 7,
                     "confirmations_required": 8
                 }
             }

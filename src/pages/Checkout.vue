@@ -184,7 +184,7 @@
 
             <hr/>
             <div class="mt-3 text-left">
-              <a id="back" href="#" class="btn btn-light" @click="selected = null">
+              <a id="back" href="#" class="btn btn-light" @click="back">
                 &lt;
               </a>
             </div>
@@ -196,6 +196,7 @@
 </template>
 
 <script>
+import Vue from 'vue'
 import {mapState} from 'vuex'
 import ServerMixin from '../components/ServerMixin'
 import coinName from '../assets/coinname'
@@ -207,6 +208,7 @@ export default {
 
   props: {
     extern_id: String,
+    network: String,
     returnUrl: String
   },
 
@@ -236,6 +238,7 @@ export default {
 
     this.$store.dispatch('AppInfo/load')
     this.getCharge()
+    this.setSelectedNetwork()
   },
 
   components: { TrxMonitor },
@@ -353,6 +356,26 @@ export default {
     },
 
     selectCoin(coin) {
+      this.$router.push({name: 'checkout', params: {
+        extern_id: this.extern_id,
+        network: coin.network
+      }})
+    },
+
+    setSelectedNetwork() {
+      const {network} = this
+
+      if(!network) {
+        this.selected = null
+        return
+      }
+
+      const coin = coinName.find(coin => coin.network === network)
+      if(!coin) {
+        this.selected = null
+        return
+      }
+
       this.selected = coin
     },
 
@@ -380,10 +403,22 @@ export default {
         key: 'cancelCharge',
         path: '/public-api/cancel-charge/' + extern_id
       })
+    },
+
+    back() {
+      window.history.back()
+      Vue.nextTick(() => {
+        // incase there is nothing in the "back" history
+        this.selected = null
+      })
     }
   },
 
   watch: {
+    network: function(network) {
+      this.setSelectedNetwork()
+    },
+
     ['cancelCharge._loading']: function(loading) {
       if(loading !== false) { return }
 
@@ -402,6 +437,7 @@ export default {
       if(loading !== false) { return }
 
       if(this.checkout.error) {
+        console.error(this.checkout.error)
         this.$router.push({name: 'home'})
         return
       }

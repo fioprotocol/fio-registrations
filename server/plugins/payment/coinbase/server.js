@@ -108,39 +108,70 @@ class Coinbase {
   }
 
   /*
+    @plugin required for In-app purchases (not forwarded to coinbase)
+    @return {success: string}, or {error: string} or throw error
+  */
+  async cancelCharge(extern_id) {
+    const charge = await this.coinbase.post('/charges/' + extern_id)
+
+    if(charge) {
+      if(charge.error) {
+        return {error: 'Charge ' + charge.error.message || charge.error}
+      }
+      if(charge.timeline) {
+        const line = charge.timeline[charge.timeline.length - 1]
+        return {success: line.status}
+      }
+    }
+
+    this.debug({error: 'unexpected cancel charge response'}, response)
+    return {error: 'Unknown Coinbase response'}
+  }
+
+  /*
+    @plugin required for In-app purchases (not forwarded to coinbase)
+
     @return <code>{error: String}</code>
     @return <code>{String}</code>
   */
-  // async getCharge({extern_id} = {}) {
-  //   const charge = await this.coinbase.get('/charges/' + extern_id)
-  //   // const charge = require('./examples/charge.json')
-  //
-  //   if(charge.error) {
-  //     return {error: charge.error.message || charge.error}
-  //   }
-  //
-  //   const {
-  //     addresses, expires_at, hosted_url,
-  //     payments, pricing, timeline
-  //   } = charge.data
-  //
-  //   const {context, status} = timeline[timeline.length - 1]
-  //   const pending = pendingStatusMap[context ? context : status]
-  //
-  //   return {
-  //     pending,
-  //     charge: {
-  //       pricing,
-  //       addresses,
-  //       payments: payments.map(payment => {
-  //         const {network, transaction_id, status, value} = payment
-  //         const {confirmations, confirmations_required} = payment.block || {}
-  //         return {network, transaction_id, status, value,
-  //           confirmations, confirmations_required}
-  //       }),
-  //     }
-  //   }
-  // }
+  async getCharge(extern_id) {
+    // const charge = await this.coinbase.get('/charges/' + extern_id)
+    const charge = require('./examples/charge')
+
+    if(charge.error) {
+      return {error: charge.error.message || charge.error}
+    }
+
+    const {
+      addresses, created_at, expires_at, hosted_url,
+      payments, pricing, timeline
+    } = charge.data
+
+    const {context, status} = timeline[timeline.length - 1]
+    const pending = pendingStatusMap[context ? context : status]
+    const detected = status === 'NEW' ? false : true
+
+    return {
+      pending,// Boolean
+      detected, // true after payment is detected
+      pricing,// {..., ethereum: {amount: "0.000175000", currency: "ETH"}}
+      addresses,// {..., ethereum: "0x..."}
+      expires_at,
+      hosted_url,// optional
+      payments: payments.map(payment => {// Array
+        const {network, transaction_id, status, value} = payment
+        // value = {
+        //   local: {amount: "0.014612", currency: "USDC"},
+        //   crypto: {amount, currency}
+        // }
+        const {confirmations, confirmations_required} = payment.block || {}
+        return {
+          network, transaction_id, status, value,
+          confirmations, confirmations_required
+        }
+      })
+    }
+  }
 
   /**
     @example res.sendStatus(200) -- A successful status code must be sent to acknowledge the request.
@@ -149,7 +180,7 @@ class Coinbase {
     syncEvents(extern_id, events) where events {
       pending_total: 'running total, every line must sum prior lines'
       confirmed_total: 'running total, every line must sum prior lines'
-      pending: isPending === undefined ? true : isPending,
+      pending: isPending === undefined ? true : isPending, // never null
       event_id: String(event_id), // sequence start at 0
       extern_status: processors_status,
       extern_time: time,
@@ -200,8 +231,11 @@ class Coinbase {
   }
 
   /**
-    Update charge history incase webhook events were not available.  This
-    may be linked to a refresh button in the Admin interface.
+    <p>"Refresh" button or server process that would re-refresh on certain
+    conditions.</p>
+
+    <p>Update charge history incase webhook events were not available.  This
+    may be linked to a refresh button in the Admin interface.</p>
 
     @throws {Error} "Not Implemented" if a code is not provided.  In the
     future a 'null' code could return a load of all Conbase transactions

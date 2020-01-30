@@ -1,0 +1,57 @@
+{
+    "pending": false,
+    "charge": {
+        "pricing": {
+            "local": {
+                "amount": "0.030000",
+                "currency": "USDC"
+            },
+            "bitcoincash": {
+                "amount": "0.00008158",
+                "currency": "BCH"
+            },
+            "litecoin": {
+                "amount": "0.00051103",
+                "currency": "LTC"
+            },
+            "bitcoin": {
+                "amount": "0.00000331",
+                "currency": "BTC"
+            },
+            "ethereum": {
+                "amount": "0.000175000",
+                "currency": "ETH"
+            },
+            "usdc": {
+                "amount": "0.030000",
+                "currency": "USDC"
+            }
+        },
+        "addresses": {
+            "bitcoincash": "qzf7u3s83j8mz4t208rvygstmtkls89kvylmgfapj3",
+            "litecoin": "MQ4DpbTCZuANnGe4QB5b2LVNsM8Ww7PwWK",
+            "bitcoin": "3J2MGSGSmweD6mMMCJGEwtsMXHNFJ42ueV",
+            "ethereum": "0x72f11a3274e3b92c0daf9f5f770d99e2a0d50775",
+            "usdc": "0x72f11a3274e3b92c0daf9f5f770d99e2a0d50775"
+        },
+        "payments": [
+            {
+                "network": "ethereum",
+                "transaction_id": "0x2fc0aea83fb867493df2c26cb7c48e130f080e93812be10771067d55bf99cc5f",
+                "status": "CONFIRMED",
+                "value": {
+                    "local": {
+                        "amount": "0.014612",
+                        "currency": "USDC"
+                    },
+                    "crypto": {
+                        "amount": "0.000085000",
+                        "currency": "ETH"
+                    }
+                },
+                "confirmations": 10,
+                "confirmations_required": 8
+            }
+        ]
+    }
+}

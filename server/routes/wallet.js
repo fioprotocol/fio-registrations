@@ -5,6 +5,7 @@ const handler = require('./handler')
 
 const {fio} = require('../api')
 const plugins = require('../plugins')
+const {trimKeys} = require('../db/helper')
 
 const transactions = require('../db/transactions')
 const db = require('../db/models')
@@ -53,19 +54,6 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
 
   return res.send({success: wallet});
 }))
-
-// router.get('/public-api/charge/:extern_id', handler(async (req, res) => {
-//   const {extern_id} = req.params
-//   assert(typeof extern_id === 'string', 'Required parameter: extern_id')
-//
-//   db.AccountPay.findOne({
-//     attributes: ['buy_price'],
-//     where: {extern_id},
-//     include: {
-//       model: db.AccountPayEvent, attributes: []
-//     }
-//   })
-// }))
 
 router.post('/public-api/buy-address', handler(async (req, res) => {
   const {
@@ -209,6 +197,54 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   })
 
   return res.send(result);
+}))
+
+/** For In-app Checkout.vue */
+router.post('/public-api/cancel-charge/:extern_id', handler(async (req, res) => {
+  const {extern_id} = req.params
+  assert(typeof extern_id === 'string', 'Required parameter: extern_id')
+
+  const processor = await plugins.payment
+  const {success, error} = await processor.cancelCharge(extern_id)
+  return res.send({success, error})
+}))
+
+/** For Checkout.vue */
+router.get('/public-api/charge/:extern_id', handler(async (req, res) => {
+  const {extern_id} = req.params
+  assert(typeof extern_id === 'string', 'Required parameter: extern_id')
+
+  const pay_source = plugins.payment_name
+  const processor = await plugins.payment
+  const charge = await processor.getCharge(extern_id)
+
+  if(charge.error) {
+    return res.send({error: charge.error})
+  }
+
+  let wallet = await db.Wallet.findOne({
+    raw: true,
+    attributes: ['id', 'logo_url', 'name', 'referral_code'],
+    include: {
+      model: db.Account, attributes: ['id', 'domain', 'address', 'owner_key'],
+      include: {
+        model: db.AccountPay, attributes: ['id'],
+        where: {pay_source, extern_id}
+      }
+    }
+  })
+
+  if(!wallet) {
+    return res.send({error: 'Not found'})
+  }
+
+  wallet = trimKeys(wallet)
+
+  if(!wallet.logo_url) {
+    wallet.logo_url = '/images/logo.svg'
+  }
+
+  return res.send({success: true, charge, wallet })
 }))
 
 module.exports = router;

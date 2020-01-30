@@ -26,6 +26,10 @@ const {Op} = Sequelize
 const {PublicKey} = require('@fioprotocol/fiojs').Ecc
 const {checkEncrypt, checkDecrypt} = require('../encryption-check')
 
+if(!process.env.TITLE) {
+  throw new Error('Required: process.env.TITLE')
+}
+
 router.post('/adjustment', handler(async (req, res) => {
   const {user_id, username} = res.state
   if(!user_id) {
@@ -466,14 +470,14 @@ router.post('/send-invite', handler(async (req, res) => {
 
   await sendmail.send({
     to: email,
-    subject: `FIO Address Registration Server Invite`,
-    html: `<p>You have been invited by <b>${inviteBy.username}</b> to join the FIO Address Registration Server.</p>
+    subject: `${process.env.TITLE} Invite`,
+    html: `<p>You have been invited by <b>${inviteBy.username}</b> to join the ${process.env.TITLE}.</p>
 
 <p>Click <a href="${inviteUrl}/${email_encoded}/${invite_unhashed}">Join</a></p>
 
 <p><small>${inviteUrl}/${email_encoded}/${invite_unhashed}<small></p>
 `,
-    text: `You have been invited by ${inviteBy.username} to join the FIO Address Registration Server.
+    text: `You have been invited by ${inviteBy.username} to join the ${process.env.TITLE}.
 
 ${inviteUrl}/${email_encoded}/${invite_unhashed}
 `

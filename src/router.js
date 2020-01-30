@@ -42,7 +42,7 @@ const routes = [
   { path: '/(address|ref)/:referralCode?/:defaultDomain?', component: Home, props: true },
   { path: '/(domain)/:referralCode?', component: Home, props: true },
 
-  { path: '/page/checkout/:extern_id?', component: Checkout, name: 'checkout', props: true },
+  { path: '/checkout/:extern_id?', component: Checkout, name: 'checkout', props: true },
   { path: '/page/login/:invite_email?/:email_password?', component: Login, name: 'login', props: true },
 
   {

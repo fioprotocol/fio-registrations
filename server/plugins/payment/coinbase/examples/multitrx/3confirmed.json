@@ -1,0 +1,139 @@
+{
+  "attempt_number": 1,
+  "event": {
+    "api_version": "2018-03-22",
+    "created_at": "2020-01-02T14:30:01Z",
+    "data": {
+      "id": "49c4b632-3941-4882-874e-08ceddc90640",
+      "code": "RH5JLCNC",
+      "name": "FIO Domain Registration",
+      "pricing": {
+        "usdc": {
+          "amount": "0.020000",
+          "currency": "USDC"
+        },
+        "local": {
+          "amount": "0.020000",
+          "currency": "USDC"
+        },
+        "bitcoin": {
+          "amount": "0.00000281",
+          "currency": "BTC"
+        },
+        "ethereum": {
+          "amount": "0.000155000",
+          "currency": "ETH"
+        },
+        "litecoin": {
+          "amount": "0.00048828",
+          "currency": "LTC"
+        },
+        "bitcoincash": {
+          "amount": "0.00009924",
+          "currency": "BCH"
+        }
+      },
+      "metadata": {
+        "fpk": "FIO5fnvQGmLRv5JLytqgvfWZfPyi4ousY46zdRU9MSSzJksFDZSYu"
+      },
+      "payments": [
+        {
+          "block": {
+            "hash": "00000000000000000115cfde4035cf5f583f3cdabe843c9a7235121f0187038b",
+            "height": 616059,
+            "confirmations": 0,
+            "confirmations_required": 1
+          },
+          "value": {
+            "local": {
+              "amount": "1.020010",
+              "currency": "USDC"
+            },
+            "crypto": {
+              "amount": "0.00009929",
+              "currency": "BCH"
+            }
+          },
+          "status": "CONFIRMED",
+          "network": "bitcoincash",
+          "detected_at": "2020-01-02T14:22:10Z",
+          "transaction_id": "794f858b8e317f79674e68012be714f1ca93a883397c838182dffc074f866efa"
+        },
+        {
+          "block": {
+            "hash": "00000000000000000115cfde4035cf5f583f3cdabe843c9a7235121f0187038b",
+            "height": 616059,
+            "confirmations": 0,
+            "confirmations_required": 1
+          },
+          "value": {
+            "local": {
+              "amount": "0.020010",
+              "currency": "USDC"
+            },
+            "crypto": {
+              "amount": "0.00009929",
+              "currency": "BCH"
+            }
+          },
+          "status": "CONFIRMED",
+          "network": "bitcoincash",
+          "detected_at": "2020-01-02T14:24:41Z",
+          "transaction_id": "b31d7c06e54f6a423a7da85d7b6e9cc1b628e6a9983c0e0e3ef1678f65205503"
+        }
+      ],
+      "resource": "charge",
+      "timeline": [
+        {
+          "time": "2020-01-02T14:20:48Z",
+          "status": "NEW"
+        },
+        {
+          "time": "2020-01-02T14:22:10Z",
+          "status": "PENDING",
+          "payment": {
+            "network": "bitcoincash",
+            "transaction_id": "794f858b8e317f79674e68012be714f1ca93a883397c838182dffc074f866efa"
+          }
+        },
+        {
+          "time": "2020-01-02T14:30:01Z",
+          "status": "UNRESOLVED",
+          "context": "MULTIPLE",
+          "payment": {
+            "network": "bitcoincash",
+            "transaction_id": "b31d7c06e54f6a423a7da85d7b6e9cc1b628e6a9983c0e0e3ef1678f65205503"
+          }
+        },
+        {
+          "time": "2020-01-02T14:30:01Z",
+          "status": "COMPLETED",
+          "payment": {
+            "network": "bitcoincash",
+            "transaction_id": "794f858b8e317f79674e68012be714f1ca93a883397c838182dffc074f866efa"
+          }
+        }
+      ],
+      "addresses": {
+        "usdc": "0xb49beb3120627e4bea5545aa480c43dac494e5e0",
+        "bitcoin": "3Qyqiuy8fcSWn2xtV4H5eos2KS3sCtF7u7",
+        "ethereum": "0xb49beb3120627e4bea5545aa480c43dac494e5e0",
+        "litecoin": "MB72kA6JTdEejLgsiW26eLnTU8i9BNVhoa",
+        "bitcoincash": "qz0gjtk95nlt5xmwf75tjwux6cvgf6zqxs8qz3vaw0"
+      },
+      "cancel_url": "http://localhost:8081/domain?publicKey=FIO5fnvQGmLRv5JLytqgvfWZfPyi4ousY46zdRU9MSSzJksFDZSYu",
+      "created_at": "2020-01-02T14:20:48Z",
+      "expires_at": "2020-01-02T15:20:48Z",
+      "hosted_url": "https://commerce.coinbase.com/charges/RH5JLCNC",
+      "description": "Payment for abc",
+      "confirmed_at": "2020-01-02T14:30:01Z",
+      "pricing_type": "fixed_price",
+      "redirect_url": "http://localhost:8081/domain?publicKey=FIO5fnvQGmLRv5JLytqgvfWZfPyi4ousY46zdRU9MSSzJksFDZSYu"
+    },
+    "id": "c3e3f04d-668e-4cec-bc8d-5f7a9ec49094",
+    "resource": "event",
+    "type": "charge:confirmed"
+  },
+  "id": "fcdd0c55-e3e7-4091-a8f7-73910f3bddd9",
+  "scheduled_for": "2020-01-02T14:30:01Z"
+}

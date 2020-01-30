@@ -31,7 +31,7 @@
               </span>
             </div>
             <div v-else>
-              Pay ${{priceAfterCredit}} via {{AppInfo.pay_source.name}}
+              Pay ${{priceAfterCredit}} via {{info.pay_source.name}}
               <span v-if="priceAfterCredit !== priceBeforeCredit">
                 &nbsp;(with credit)
               </span>
@@ -117,7 +117,7 @@ export default {
       const success = this.buyResult.success
 
       if(success.charge) {
-        if(process.env.PAYMENT_INAPP || !success.charge.forward_url) {
+        if(this.info.paymentInapp || !success.charge.forward_url) {
           const { extern_id } = success.charge
           const { returnUrl } = document.location
 
@@ -144,7 +144,7 @@ export default {
     ...mapState({
       Wallet: state => state.Wallet || {},
       Account: state => state.Account || {},
-      AppInfo: state => state.AppInfo.info,
+      info: state => state.AppInfo.info,
     }),
 
     domains() {

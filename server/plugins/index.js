@@ -85,6 +85,7 @@ if(process.env.PLUGIN_PAYMENT) {
     regWebhook('payment', name, plugin.webhook.bind(plugin), pdebug)
   }
   plugins.payment = initOnce(plugin, pdebug)
+  plugins.payment_name = name
 }
 
 /** public hosted uploads, used for wallet logo */

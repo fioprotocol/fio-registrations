@@ -106,7 +106,13 @@
                 </template>
 
                 <template v-slot:cell(owner_key)="data">
-                  <small class="text-muted">{{data.value}}</small>
+                  <small class="text-muted">
+                    <router-link href :to="
+                      {name: 'find', params: {search: row.item.owner_key}}
+                    ">
+                      {{data.value}}
+                    </router-link>
+                  </small>
                 </template>
 
                 <template v-slot:cell(extern_id)="data">

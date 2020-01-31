@@ -83,13 +83,13 @@
         </div>
       </div>
 
-      <div v-if="pending && !buyAgain">
+      <div v-if="pending === true && !buyAgain">
         <button class="btn btn-success" @click="buyAgainClick()">
           Buy Again
         </button>
       </div>
 
-      <div v-if="!pending || buyAgain">
+      <div v-if="pending === false || buyAgain">
         <div class="container">
           <div>
             <div class="row">
@@ -211,7 +211,7 @@ export default {
       inputPublicKey: null,
       href: '',
       buyAgain: false,
-      pending: false,
+      pending: null,
       validPublicKey: null,
       accountRegPending: false,
       refresh: null

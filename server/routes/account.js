@@ -47,11 +47,6 @@ router.post('/public-api/summary', handler(async (req, res) => {
 
   if(domain) {
     const {user_id} = res.state
-    if(!user_id) {
-      // so far, only the admin needs to query using address domain
-      return res.status(401).send({error: 'Unauthorized'})
-    }
-
     accountWhere = { address, domain }
   } else {
     if(!PublicKey.isValid(publicKey)) {

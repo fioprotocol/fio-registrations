@@ -12,12 +12,12 @@
         </div>
 
         <div class="mt-3">
-          <span v-if="checkout.wallet.address">
+          <span v-if="wallet.address">
             <b class="select-all"
-              >{{checkout.wallet.address}}@{{checkout.wallet.domain}}</b>
+              >{{wallet.address}}@{{wallet.domain}}</b>
           </span>
           <span v-else>
-            <b class="select-all">{{checkout.wallet.domain}}</b>
+            <b class="select-all">{{wallet.domain}}</b>
           </span>
           <br/>
           <span class="text-info select-all">{{charge.pricing.local.amount}}</span>&nbsp;
@@ -26,7 +26,29 @@
       </div>
 
       <div class="card-body">
-        <div v-if="!selected">
+        <div v-if="complete">
+          <h5>Payment Complete</h5>
+          <div class="check-large text-info">
+            &check;
+          </div>
+
+          <div class="mt-3">
+            <h5>Blockchain Registration</h5>
+          </div>
+          <div class="mt-2 mb-4">
+            <TrxMonitor
+              :address="wallet.address"
+              :domain="wallet.domain"
+            />
+          </div>
+
+          <div v-if="returnUrl">
+            <hr/>
+            <a :href="returnUrl">Done</a>
+          </div>
+        </div>
+
+        <div v-if="!complete && !selected">
           <div class="card-title mb-3">
             <h5>{{info.title}}</h5>
           </div>
@@ -64,28 +86,7 @@
             <img :src="selected.logo"/>
           </div> -->
 
-          <div v-if="allConfirmed && paidEnough">
-            <h5>Payment Complete</h5>
-            <div class="check-large text-info">
-              &check;
-            </div>
-
-            <h5>Registration</h5>
-            <div class="mt-2 mb-4">
-              <TrxMonitor
-                topActive
-                :publicKey="wallet.owner_key"
-                :referral="wallet.referral_code"
-              />
-            </div>
-
-            <div v-if="returnUrl">
-              <hr/>
-              <a :href="returnUrl">Done</a>
-            </div>
-          </div>
-
-          <div v-if="(!paidEnough || !allConfirmed) && detected" class="mt-3">
+          <div v-if="!complete && detected" class="mt-3">
             <div v-if="paidEnough">
               <h5>Verifying Payment</h5>
             </div>
@@ -98,8 +99,8 @@
               <table class="table">
                 <thead>
                   <tr>
-                    <th scope="col">Crypto</th>
-                    <th scope="col">Local</th>
+                    <th scope="col">Crypto Price</th>
+                    <th scope="col">Local Price</th>
                     <th scope="col">Verify</th>
                   </tr>
                 </thead>
@@ -269,15 +270,20 @@ export default {
       return this.$router.push({name: 'home'})
     }
 
-    clearInterval(window.nowInterval) // dev hot load fix
+    clearInterval(window.nowInterval)
     window.nowInterval = setInterval(() => this.now = Date.now(), 1000)
 
-    clearInterval(window.chargeInterval) // dev hot load fix
+    clearInterval(window.chargeInterval)
     window.chargeInterval = setInterval(() => this.getCharge(), 3000)
 
     this.$store.dispatch('AppInfo/load')
     this.getCharge()
     this.setSelectedNetwork()
+  },
+
+  beforeDestroy() {
+    clearInterval(window.chargeInterval)
+    clearInterval(window.nowInterval)
   },
 
   components: { TrxMonitor },
@@ -368,11 +374,15 @@ export default {
       const unconf = payments.find(payment => !this.isConfirmed(payment))
       const complete = unconf === undefined
 
-      if(complete) {
+      if(complete && payments.length) {
         clearInterval(window.chargeInterval)
       }
 
       return complete
+    },
+
+    complete() {
+      return this.allConfirmed && this.paidEnough
     },
 
     payAddressStart() {
@@ -496,7 +506,7 @@ export default {
     // },
 
     back() {
-      window.history.back()
+      this.$router.go(-1)
       this.paymentQr = null
       this.payAddressShow = false
 
@@ -548,7 +558,7 @@ export default {
   color: #2c3e50;
   margin: 0 auto;
   margin-top: 60px;
-  width: 22rem; /* or 950px */
+  width: 23rem; /* or 950px */
 }
 
 #logo {

@@ -182,6 +182,15 @@
               </small>
             </div>
 
+            <div v-if="!paymentQr && selected.qrdata" class="text-center">
+              <div class="btn btn-light mt-3" @click="updatePaymentQr">
+                Show QR Code
+              </div>
+            </div>
+            <div v-if="paymentQr" class="text-center">
+              <img :src="paymentQr" />
+            </div>
+
             <hr/>
             <div class="mt-3 text-left">
               <a id="back" href="#" class="btn btn-light" @click="back">
@@ -199,9 +208,10 @@
 import Vue from 'vue'
 import {mapState} from 'vuex'
 import ServerMixin from '../components/ServerMixin'
-import coinName from '../assets/coinname'
+import coinName from '../plugins/payment/coinname'
 import TrxMonitor from '../components/TrxMonitor'
 import '../assets/custom.scss'
+import qrcode from 'qrcode'
 
 export default {
   name: 'Checkout',
@@ -215,7 +225,8 @@ export default {
   data() {
     return {
       selected: null,
-      now: Date.now()
+      now: Date.now(),
+      paymentQr: null
     }
   },
 
@@ -396,6 +407,13 @@ export default {
       return payment.confirmations >= payment.confirmations_required
     },
 
+    async updatePaymentQr() {
+      const {payAddress, payAmount} = this
+      const {qrdata} = this.selected
+      const data = qrdata(payAddress, payAmount)
+      this.paymentQr = await qrcode.toDataURL(data)
+    },
+
     cancel() {
       const {extern_id} = this
 
@@ -407,6 +425,7 @@ export default {
 
     back() {
       window.history.back()
+      this.paymentQr = null
       Vue.nextTick(() => {
         // incase there is nothing in the "back" history
         this.selected = null
@@ -415,7 +434,7 @@ export default {
   },
 
   watch: {
-    network: function(network) {
+    network: function() {
       this.setSelectedNetwork()
     },
 

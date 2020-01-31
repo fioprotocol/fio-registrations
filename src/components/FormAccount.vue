@@ -56,12 +56,7 @@
 </template>
 
 <script>
-// address:domain
-// const re = /^(?:(?=.{3,64}$)[a-zA-Z0-9]{1}(?:(?!-{2,}))[a-zA-Z0-9-]*(?:(?<!-)):[a-zA-Z0-9]{1}(?:(?!-{2,}))[a-zA-Z0-9-]*(?:(?<!-))$)/
-
-const addressRe = /^[a-z0-9-]{3,64}$/
-// Address 3,64
-// Domain 1,62
+const addressRe = /^[a-z0-9-]{1,62}$/
 
 export default {
   name: "FormAccount",
@@ -92,24 +87,48 @@ export default {
       type: String
     }
   },
+
   data() {
     return {
       localAddress: '',
       selectedDomain: null
     };
   },
+
   computed: {
     validAddress() {
       if(!this.localAddress) {
         return null
       }
-      return this.localAddress.length >= 3 ? addressRe.test(this.localAddress) : null
+
+      if(this.buyAddress) {
+        if(!this.selectedDomain) {
+          return false
+        }
+      }
+
+      const combinedLength = this.buyAddress ?
+        this.localAddress.length + this.selectedDomain.length + 1 :
+        this.localAddress.length
+
+      if(combinedLength > 64)  {
+        return false
+      }
+
+      const dashSplit = this.localAddress.split('-')
+      if(dashSplit.find(part => part === '') === '') {
+        return false // two dashes in a row
+        // also covers: a-z0-9 is required on either side of any dash
+      }
+
+      return addressRe.test(this.localAddress)
     },
 
     type() {
       return this.buyAddress ? 'address' : 'domain'
     }
   },
+
   created() {
     this.localAddress = this.value;
     if(this.defaultDomain) {
@@ -130,6 +149,7 @@ export default {
         this.$emit("input", null);
       }
     });
+
     this.$watch("selectedDomain", newValue => {
       if(this.validAddress) {
         this.$emit("input", `${this.localAddress}@${newValue}`);
@@ -137,6 +157,7 @@ export default {
         this.$emit("input", null);
       }
     });
+
     this.$watch("domains", newValue => {
       if(newValue !== null) {
         if(this.defaultDomain) {

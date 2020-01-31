@@ -13,14 +13,15 @@
 
         <div class="mt-3">
           <span v-if="checkout.wallet.address">
-            <b>{{checkout.wallet.address}}@{{checkout.wallet.domain}}</b>
+            <b class="select-all"
+              >{{checkout.wallet.address}}@{{checkout.wallet.domain}}</b>
           </span>
           <span v-else>
-            <b>{{checkout.wallet.domain}}</b>
+            <b class="select-all">{{checkout.wallet.domain}}</b>
           </span>
           <br/>
-          <span class="text-info">{{charge.pricing.local.amount}}</span>&nbsp;
-          <span class="text-muted">{{charge.pricing.local.currency}}</span>
+          <span class="text-info select-all">{{charge.pricing.local.amount}}</span>&nbsp;
+          <span class="text-muted select-all">{{charge.pricing.local.currency}}</span>
         </div>
       </div>
 
@@ -105,12 +106,12 @@
                 <tbody>
                   <tr v-for="(payment, i) in charge.payments" :key="i">
                     <th scope="row">
-                      <span class="text-info">{{payment.value.crypto.amount}}</span>&nbsp;
-                      {{networkName(payment)}}
+                      <div class="text-info nowrap">{{payment.value.crypto.amount}}</div>
+                      <div class="nowrap">{{networkName(payment)}}</div>
                     </th>
                     <td>
-                      <span class="text-info">{{payment.value.local.amount}}</span>&nbsp;
-                      {{networkName(payment.value.local.currency)}}
+                      <div class="text-info nowrap">{{payment.value.local.amount}}</div>
+                      <div class="nowrap">{{networkName(payment.value.local.currency)}}</div>
                     </td>
                     <td>
                       <div v-if="isConfirmed(payment)" class="check-medium text-dark">
@@ -134,24 +135,40 @@
 
           <div class="text-left" v-if="!paidEnough">
             <div class="mt-3">
-              <label for="payAddress">
+              <label for="pay-address">
                 <span><img :src="selected.logo"/></span>&nbsp;
                 <span>{{selected.name}} Payment Address</span>
               </label>
-
-              <div id="payAddress" aria-describedby="payHelp"
-                class="rounded-lg border-secondary bg-light border pl-2 pr-2"
+              <br/>
+              <div id="pay-address" aria-describedby="payHelp"
+                :class="{['clipboard-left']: !payAddressShow}"
+                class="rounded-left border-secondary bg-light border pl-2 pr-2"
               >
-                <div v-if="remaining">
-                  <samp :class="{['text-danger']: expiring}">{{payAddress}}</samp>
-                </div>
-                <div v-if="!remaining">
-                  <samp class="text-danger">{{payAddress}}</samp>
-                  <div class="text-danger">
-                    &Chi; Expired
-                  </div>
+                <samp class="pointer"
+                  :class="{['text-danger']: expiring || !remaining}"
+                  @mousedown="payAddressClick"
+                >
+                  <span
+                    :class="{['select-all']: payAddressEnd === null}"
+                  >{{payAddressStart}}</span>
+                  <span v-if="payAddressEnd">&hellip;</span>
+                  <span v-if="payAddressEnd">{{payAddressEnd}}</span>
+                </samp>
+              </div>
+              <div
+                v-if="!payAddressShow"
+                class="clipboard-right border-secondary btn btn-sm btn-light mb-1"
+                @click="copyAddress"
+              >
+                &#x1f4cb; <!-- clipboard -->
+              </div>
+
+              <div v-if="!remaining">
+                <div class="text-danger">
+                  &Chi; Expired
                 </div>
               </div>
+
               <small v-if="expiring" class="text-danger">
                 Payment address expiring&hellip;
               </small>
@@ -160,16 +177,25 @@
               </small>
             </div>
 
-            <div class="mt-3">
-              <label for="payAmount">
+            <div class="">
+              <label for="pay-amount" class="mt-3">
                 <span><img :src="selected.logo"/></span>&nbsp;
                 <span>Amount</span>
               </label>
-
-              <div id="payAmount" aria-describedby="payHelp"
-                class="rounded-lg border-secondary bg-light border pl-2 pr-2"
+              <br/>
+              <div id="pay-amount" aria-describedby="payHelp"
+                class="clipboard-left rounded-left border-secondary bg-light border pl-2 pr-2"
               >
-                <samp>{{payAmount}} {{selected.symbol.toUpperCase()}}</samp>
+                <samp>
+                  <span class="select-all">{{payAmount}}</span>
+                  &nbsp;
+                  <span class="select-all">{{selected.symbol.toUpperCase()}}</span>
+                </samp>
+              </div>
+              <div class="clipboard-right border-secondary btn btn-sm btn-light mb-1"
+                @click="copyAmount"
+              >
+                &#x1f4cb; <!-- clipboard -->
               </div>
             </div>
 
@@ -212,6 +238,7 @@ import coinName from '../plugins/payment/coinname'
 import TrxMonitor from '../components/TrxMonitor'
 import '../assets/custom.scss'
 import qrcode from 'qrcode'
+import copy from 'clipboard-copy'
 
 export default {
   name: 'Checkout',
@@ -226,7 +253,8 @@ export default {
     return {
       selected: null,
       now: Date.now(),
-      paymentQr: null
+      paymentQr: null,
+      payAddressShow: false
     }
   },
 
@@ -245,7 +273,7 @@ export default {
     window.nowInterval = setInterval(() => this.now = Date.now(), 1000)
 
     clearInterval(window.chargeInterval) // dev hot load fix
-    window.chargeInterval = setInterval(() => this.getCharge(), 6000)
+    window.chargeInterval = setInterval(() => this.getCharge(), 3000)
 
     this.$store.dispatch('AppInfo/load')
     this.getCharge()
@@ -272,12 +300,12 @@ export default {
     },
 
     expire() {
-      // return new Date(this.charge.expires_at).getTime()
+      return new Date(this.charge.expires_at).getTime()
 
       // Remaining expiring, expired test cases
       // return new Date().getTime() + (1000 * 60 * 60 * 24) + 4000
       // return new Date().getTime() + (1000 * 60 * 60) + 4000
-      return new Date().getTime() + (1000 * 60) + 4000
+      // return new Date().getTime() + (1000 * 60) + 4000
       // return new Date().getTime() + (1000) + 4000
     },
 
@@ -338,11 +366,22 @@ export default {
     allConfirmed() {
       const {payments} = this.charge || []
       const unconf = payments.find(payment => !this.isConfirmed(payment))
-      return unconf === undefined
+      const complete = unconf === undefined
+
+      if(complete) {
+        clearInterval(window.chargeInterval)
+      }
+
+      return complete
     },
 
-    payAddressShort() {
-      const {payAddress} = this
+    payAddressStart() {
+      const {payAddress, payAddressShow} = this
+
+      if(payAddressShow) {
+        return payAddress
+      }
+
       if(!payAddress) {
         return null
       }
@@ -351,8 +390,25 @@ export default {
         return payAddress
       }
 
-      return payAddress.substring(0, 6) + '..' +
-        payAddress.substring(payAddress.length - 7, payAddress.length - 1)
+      return payAddress.substring(0, 6)
+    },
+
+    payAddressEnd() {
+      const {payAddress, payAddressShow} = this
+
+      if(payAddressShow) {
+        return null
+      }
+
+      if(!payAddress) {
+        return null
+      }
+
+      if(payAddress.length < 15) {
+        return null
+      }
+
+      return payAddress.substring(payAddress.length - 6, payAddress.length)
     }
   },
 
@@ -403,6 +459,22 @@ export default {
       return ''
     },
 
+    copyAmount() {
+      copy(this.payAmount)
+    },
+
+    copyAddress() {
+      copy(this.payAddress)
+    },
+
+    payAddressClick() {
+      this.payAddressShow = true
+      // Vue.nextTick(() => {
+      //   console.log(this.$refs.payAddress)
+      //   // this.$refs.payAddress.select()
+      // })
+    },
+
     isConfirmed(payment) {
       return payment.confirmations >= payment.confirmations_required
     },
@@ -426,6 +498,8 @@ export default {
     back() {
       window.history.back()
       this.paymentQr = null
+      this.payAddressShow = false
+
       Vue.nextTick(() => {
         // incase there is nothing in the "back" history
         this.selected = null
@@ -482,6 +556,29 @@ export default {
   height: 50px;
 }
 
+.pointer {
+  cursor: pointer;
+}
+
+.select-all {
+  user-select: all;
+  cursor: pointer;
+}
+
+.clipboard-left {
+  float: left;
+  width: 238px;
+  border-right: none !important;
+  height: 29px;
+}
+
+.clipboard-right {
+  height: 29px;
+  border-left: none !important;
+  border-top-left-radius: 0rem;
+  border-bottom-left-radius: 0rem;
+}
+
 .check-large {
   font-size: 100px;
   position: relative;
@@ -499,5 +596,9 @@ export default {
 
 .wide {
   width: 250px;
+}
+
+.pull-left {
+  float: left;
 }
 </style>

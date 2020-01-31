@@ -135,8 +135,8 @@ class Coinbase {
     @return <code>{String}</code>
   */
   async getCharge(extern_id) {
-    // const charge = await this.coinbase.get('/charges/' + extern_id)
-    const charge = require('./examples/charge')
+    const charge = await this.coinbase.get('/charges/' + extern_id)
+    // const charge = require('./examples/charge')
 
     if(charge.error) {
       return {error: charge.error.message || charge.error}

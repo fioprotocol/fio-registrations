@@ -31,7 +31,12 @@
               </span>
             </div>
             <div v-else>
-              Pay ${{priceAfterCredit}} via {{info.pay_source.name}}
+              <span>Pay ${{priceAfterCredit}}</span>
+
+              <span v-if="!info.paymentInapp">
+                 via {{info.pay_source.name}}
+               </span>
+
               <span v-if="priceAfterCredit !== priceBeforeCredit">
                 &nbsp;(with credit)
               </span>

@@ -88,7 +88,7 @@ export default {
     summaryFiltered() {
       const {topActive, afterTopActive, summary} = this
 
-      if(summary.list.length === 0) {
+      if(!summary || summary.list.length === 0) {
         return []
       }
 
@@ -215,7 +215,16 @@ export default {
 
     refresh() {
       this.updateBlockchainTrx()
-    }
+    },
+
+    ['summary._loading']: function(loading) {
+      if(loading !== false) { return }
+
+      const found = this.summary &&
+        this.summary.list.find(row => this.isPending(row))
+
+      this.$emit('pending', found !== undefined)
+    },
   },
 
   beforeDestroy () {

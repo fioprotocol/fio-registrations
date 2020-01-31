@@ -358,12 +358,12 @@ export default {
     },
 
     paidEnough() {
-      const price = +this.charge.pricing.local.amount
+      const price = +Number(this.charge.pricing.local.amount)
       const {payments} = this.charge || []
 
       let paid = 0
       payments.forEach(payment => {
-        paid += Math.round( +payment.value.local.amount * 100) / 100
+        paid += +Number(payment.value.local.amount).toFixed(2)
       })
 
       return paid >= price
@@ -374,7 +374,7 @@ export default {
       const unconf = payments.find(payment => !this.isConfirmed(payment))
       const complete = unconf === undefined
 
-      if(complete && payments.length) {
+      if(complete && payments.length && this.paidEnough) {
         clearInterval(window.chargeInterval)
       }
 

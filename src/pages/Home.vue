@@ -78,7 +78,7 @@
             :refresh="refresh"
             :publicKey="regPublicKey"
             :referralCode="referralCode"
-            @pending="pending = true"
+            @pending="setPending($event)"
           />
         </div>
       </div>
@@ -147,7 +147,7 @@
           :refresh="refresh"
           :publicKey="regPublicKey"
           :referralCode="referralCode"
-          @pending="pending = true"
+          @pending="setPending($event)"
         >
 
           <template v-slot:header-if-showing>
@@ -219,6 +219,13 @@ export default {
   },
 
   methods: {
+    setPending(pending) {
+      this.pending = pending
+      if(this.pending === null) {
+        this.buyAgain = true
+      }
+    },
+
     buyAgainClick() {
       this.buyAgain = true
       this.accountReg = false

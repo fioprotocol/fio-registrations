@@ -22,6 +22,7 @@ export default {
       state.info = result
       if(result.paymentInapp) {
         delete localStorage.buyAddressLocation
+        delete localStorage.buyAddressLocationDate
       }
 
       loading.done(state)

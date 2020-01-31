@@ -590,10 +590,10 @@ export default {
 }
 
 .check-large {
-  font-size: 100px;
+  font-size: 50px;
   position: relative;
-  bottom: 50px;
-  height: 80px;
+  bottom: 25px;
+  height: 40px;
 }
 
 .check-medium {

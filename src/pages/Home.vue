@@ -85,7 +85,7 @@
 
       <div v-if="pending === true && !buyAgain">
         <button class="btn btn-success" @click="buyAgainClick()">
-          Buy Again
+          Buy Another Name
         </button>
       </div>
 

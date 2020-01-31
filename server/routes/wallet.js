@@ -200,14 +200,14 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
 }))
 
 /** For In-app Checkout.vue */
-router.post('/public-api/cancel-charge/:extern_id', handler(async (req, res) => {
-  const {extern_id} = req.params
-  assert(typeof extern_id === 'string', 'Required parameter: extern_id')
-
-  const processor = await plugins.payment
-  const {success, error} = await processor.cancelCharge(extern_id)
-  return res.send({success, error})
-}))
+// router.post('/public-api/cancel-charge/:extern_id', handler(async (req, res) => {
+//   const {extern_id} = req.params
+//   assert(typeof extern_id === 'string', 'Required parameter: extern_id')
+//
+//   const processor = await plugins.payment
+//   const {success, error} = await processor.cancelCharge(extern_id)
+//   return res.send({success, error})
+// }))
 
 /** For Checkout.vue */
 router.get('/public-api/charge/:extern_id', handler(async (req, res) => {

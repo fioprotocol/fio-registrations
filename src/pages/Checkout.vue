@@ -46,17 +46,17 @@
             </li>
           </ul>
 
-          <div v-if="cancelCharge.error" role="alert"
+          <!-- <div v-if="cancelCharge.error" role="alert"
             class="alert alert-danger mt-3"
             >
             {{cancelCharge.error}}
-          </div>
+          </div> -->
 
-          <div class="mt-3">
+          <!-- <div class="mt-3">
             <a id="cancel" href="#" class="btn btn-warning wide" @click="cancel">
               Cancel
             </a>
-          </div>
+          </div> -->
         </div>
 
         <div v-if="selected">
@@ -260,7 +260,7 @@ export default {
 
   mixins: [
     ServerMixin('checkout'),
-    ServerMixin('cancelCharge'),
+    // ServerMixin('cancelCharge'),
   ],
 
   created() {
@@ -486,14 +486,14 @@ export default {
       this.paymentQr = await qrcode.toDataURL(data)
     },
 
-    cancel() {
-      const {extern_id} = this
-
-      this.$store.dispatch('Server/post', {
-        key: 'cancelCharge',
-        path: '/public-api/cancel-charge/' + extern_id
-      })
-    },
+    // cancel() {
+    //   const {extern_id} = this
+    //
+    //   this.$store.dispatch('Server/post', {
+    //     key: 'cancelCharge',
+    //     path: '/public-api/cancel-charge/' + extern_id
+    //   })
+    // },
 
     back() {
       window.history.back()
@@ -512,19 +512,19 @@ export default {
       this.setSelectedNetwork()
     },
 
-    ['cancelCharge._loading']: function(loading) {
-      if(loading !== false) { return }
-
-      if(this.returnUrl) {
-        document.location = this.returnUrl
-        return
-      }
-
-      if(this.cancelCharge.success) {
-        this.$router.push({name: 'home'})
-        return
-      }
-    },
+    // ['cancelCharge._loading']: function(loading) {
+    //   if(loading !== false) { return }
+    //
+    //   if(this.returnUrl) {
+    //     document.location = this.returnUrl
+    //     return
+    //   }
+    //
+    //   if(this.cancelCharge.success) {
+    //     this.$router.push({name: 'home'})
+    //     return
+    //   }
+    // },
 
     ['checkout._loading']: function(loading) {
       if(loading !== false) { return }

@@ -20,6 +20,10 @@ export default {
   mutations: {
     load(state, result) {
       state.info = result
+      if(result.paymentInapp) {
+        delete localStorage.buyAddressLocation
+      }
+
       loading.done(state)
     }
   }

@@ -314,14 +314,6 @@ router.post('/wallet', handler(async (req, res) => {
       'An account sale price is required to enable an account sale'
     )
 
-    assert(
-      update.tpid != null || !(
-        update.domain_sale_active ||
-        update.account_sale_active
-      ),
-      'A Transaction processor ID is required before making a domain or account sale active'
-    )
-
     if(update.webhook_enabled != null) {
       assert.equal(typeof update.webhook_enabled, 'boolean', 'webhook_enabled')
       assert(

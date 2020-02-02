@@ -39,7 +39,8 @@ async function dbSyncEvents(extern_id, events) {
   })
 
   if(!accountPay) {
-    throw new Error(`Account pay record for "${process.env.PLUGIN_PAYMENT}" extern_id ${extern_id} not found`)
+    debug(`Account pay record for "${process.env.PLUGIN_PAYMENT}" extern_id ${extern_id} not found`)
+    return [] // non-error avoids lots of webhook retry attempts
   }
 
   const dbEvents = await db.AccountPayEvent.findAll({

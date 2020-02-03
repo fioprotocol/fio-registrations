@@ -1,6 +1,6 @@
 <template>
   <div id="checkout" class="container-fluid">
-    <div v-if="!info.title || !checkout.wallet">
+    <div v-if="!info.title || !wallet">
       <div class="mb-1 spinner-grow spinner-grow-sm text-light"
       role="status" aria-hidden="true"/>
     </div>
@@ -260,7 +260,7 @@ export default {
   },
 
   mixins: [
-    ServerMixin('checkout'),
+    ServerMixin('getWallet'),
     // ServerMixin('cancelCharge'),
   ],
 
@@ -270,6 +270,11 @@ export default {
       return this.$router.push({name: 'home'})
     }
 
+    this.$store.dispatch('Server/get', {
+      key: 'getWallet',
+      path: '/public-api/wallet/' + extern_id,
+    })
+
     clearInterval(window.nowInterval)
     window.nowInterval = setInterval(() => this.now = Date.now(), 1000)
 
@@ -277,6 +282,7 @@ export default {
     window.chargeInterval = setInterval(() => this.getCharge(), 3000)
 
     this.$store.dispatch('AppInfo/load')
+
     this.getCharge()
     this.setSelectedNetwork()
   },
@@ -284,25 +290,23 @@ export default {
   beforeDestroy() {
     clearInterval(window.chargeInterval)
     clearInterval(window.nowInterval)
+    this.$store.dispatch('Payment/reset')
   },
 
   components: { TrxMonitor },
 
   computed: {
     ...mapState({
-      info: state => state.AppInfo.info
+      info: state => state.AppInfo.info,
+      charge: state => state.Payment.charge
     }),
 
     coinName() {
       return coinName
     },
 
-    charge() {
-      return this.checkout.charge
-    },
-
     wallet() {
-      return this.checkout.wallet
+      return this.getWallet.wallet
     },
 
     expire() {
@@ -426,10 +430,7 @@ export default {
     getCharge() {
       const {extern_id} = this
 
-      this.$store.dispatch('Server/get', {
-        key: 'checkout',
-        path: '/public-api/charge/' + extern_id
-      })
+      this.$store.dispatch('Payment/getCharge', {extern_id} )
     },
 
     selectCoin(coin) {
@@ -536,11 +537,21 @@ export default {
     //   }
     // },
 
-    ['checkout._loading']: function(loading) {
+    ['getWallet._loading']: function(loading) {
       if(loading !== false) { return }
 
-      if(this.checkout.error) {
-        console.error(this.checkout.error)
+      if(this.getWallet.error) {
+        console.error(this.getWallet.error)
+        this.$router.push({name: 'home'})
+        return
+      }
+    },
+
+    ['charge._loading']: function(loading) {
+      if(loading !== false) { return }
+
+      if(this.charge.error) {
+        console.error(this.charge.error)
         this.$router.push({name: 'home'})
         return
       }

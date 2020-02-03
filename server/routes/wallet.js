@@ -210,17 +210,11 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
 // }))
 
 /** For Checkout.vue */
-router.get('/public-api/charge/:extern_id', handler(async (req, res) => {
+router.get('/public-api/wallet/:extern_id', handler(async (req, res) => {
   const {extern_id} = req.params
   assert(typeof extern_id === 'string', 'Required parameter: extern_id')
 
   const pay_source = plugins.payment_name
-  const processor = await plugins.payment
-  const charge = await processor.getCharge(extern_id)
-
-  if(charge.error) {
-    return res.send({error: charge.error})
-  }
 
   let wallet = await db.Wallet.findOne({
     raw: true,
@@ -244,7 +238,7 @@ router.get('/public-api/charge/:extern_id', handler(async (req, res) => {
     wallet.logo_url = '/images/logo.svg'
   }
 
-  return res.send({success: true, charge, wallet })
+  return res.send({success: true, wallet })
 }))
 
 module.exports = router;

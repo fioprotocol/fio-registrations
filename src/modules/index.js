@@ -2,7 +2,7 @@ import Login from './Login'
 import Wallet from './Wallet'
 import Account from './Account'
 import Server from './Server'
-// import Upload from './Upload'
+import Payment from './Payment'
 import AppInfo from './AppInfo'
 
 export default {
@@ -10,6 +10,6 @@ export default {
   Wallet,
   Account,
   Server,
-  // Upload,
+  Payment,
   AppInfo
 }

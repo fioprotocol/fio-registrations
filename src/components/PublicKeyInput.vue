@@ -11,13 +11,13 @@
           autofocus
           required
         />
-        <span class="input-group-btn mt-3">
-          <button class="btn btn-secondary" type="submit">
+        <span class="input-group-btn">
+          <button class="btn btn-secondary public-key-check ml-2" type="submit">
             <div v-if="validPublicKey">
-              Check &mdash; Valid!
+              Valid!
             </div>
             <div v-else>
-              Check
+              Submit
             </div>
           </button>
         </span>
@@ -73,3 +73,9 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.public-key-check .public-key-input {
+  height: 40px;
+}
+</style>

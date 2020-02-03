@@ -142,7 +142,7 @@ export default {
 
       if(pay_status) {
         if(pay_status === 'pending') { return 'Pending: Awaiting Payment' }
-        if(pay_status === 'success') { return 'Pending: Awaiting blockchain finality' }
+        if(pay_status === 'success') { return 'Pending: Registering on blockchain' }
         if(pay_status === 'review') { return 'Failed' }
         if(pay_status === 'cancel') { return 'Cancelled' }
       } else {

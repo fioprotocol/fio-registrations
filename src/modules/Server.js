@@ -1,5 +1,5 @@
 import Vue from 'vue'
-import {server} from '../api'
+import {server, fio} from '../api'
 import Loading from './loading'
 
 const loading = Loading()
@@ -39,13 +39,15 @@ export default {
       dispatch('fetch', payload)
     },
 
-    async fetch({commit, state}, {key, path = key, method, body}) {
-      if(!path) {
-        throw new Error('missing: path')
-      }
+    async fetch({commit, state}, {
+      key, path = key, method, body, api = 'server' // or 'fio'
+    }) {
+      if(!path) { throw new Error('missing: path') }
 
-      if(!key) {
-        throw new Error(`Unknown key ${key}`)
+      if(!key) { throw new Error(`Unknown key ${key}`) }
+
+      if(!/^fio$|^server$/.test(api)) {
+        throw new Error(`api parameter should be: fio or server`)
       }
 
       let data = state[key]
@@ -54,9 +56,15 @@ export default {
       }
 
       loading(data, async () => {
-        const baseUrl = path.startsWith('/public-api/') ? '' : '/api/'
-        const result = await server.fetch[method](baseUrl + path, body)
-        commit('result', {key, result})
+        if(api === 'server') {
+          const baseUrl = path.startsWith('/public-api/') ? '' : '/api/'
+          const result = await server.fetch[method](baseUrl + path, body)
+          commit('result', {key, result})
+
+        } else if(api === 'fio') {
+          const result = await fio.chain[method](path, body)
+          commit('result', {key, result})
+        }
       })
     },
 
@@ -75,6 +83,7 @@ export default {
         Vue.delete(data, key)
       })
 
+      // turn loading boolean off
       const defaults = loading.defaults()
       for (var def in defaults) {
         Vue.set(data, def, defaults[def])

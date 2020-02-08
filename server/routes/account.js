@@ -46,7 +46,6 @@ router.post('/public-api/summary', handler(async (req, res) => {
   let walletWhere = {}
 
   if(domain) {
-    const {user_id} = res.state
     accountWhere = { address, domain }
   } else {
     if(!PublicKey.isValid(publicKey)) {

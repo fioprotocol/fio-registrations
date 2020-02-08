@@ -22,8 +22,10 @@ class Sendgrid {
   }
   */
   async send(message) {
-    this.debug('Waring: re-enable production check "Don\'t log in production, that compromises password links"')
-    this.debug(JSON.stringify(message))
+    if(process.env.NODE_ENV === 'development') {
+      this.debug('development', JSON.stringify(message))
+      return
+    }
 
     if(message.from == null) {
       message.from = process.env.EMAIL_FROM

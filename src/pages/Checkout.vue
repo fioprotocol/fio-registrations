@@ -309,6 +309,10 @@ export default {
       return this.getWallet.wallet
     },
 
+    detected() {
+      return this.charge.detected
+    },
+
     expire() {
       return new Date(this.charge.expires_at).getTime()
 
@@ -317,10 +321,6 @@ export default {
       // return new Date().getTime() + (1000 * 60 * 60) + 4000
       // return new Date().getTime() + (1000 * 60) + 4000
       // return new Date().getTime() + (1000) + 4000
-    },
-
-    detected() {
-      return this.charge.detected
     },
 
     remaining() {

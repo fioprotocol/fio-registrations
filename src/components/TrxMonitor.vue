@@ -35,10 +35,22 @@
             </span>
           </span>
 
-          <span v-if="isPending(row)">
-            &nbsp;
-            <span class="mb-1 spinner-grow spinner-grow-sm"
-            role="status" aria-hidden="true"></span>
+          <span v-if="row.trx_status === 'pending'">
+            <Elapsed :expires_at="expiresAt(row)" >
+              <template v-slot:prefix>&nbsp;&mdash;&nbsp;</template>
+              <template v-slot:expired>
+                &nbsp;
+                <span class="mb-1 spinner-grow spinner-grow-sm"
+                role="status" aria-hidden="true"></span>
+              </template>
+            </Elapsed>
+          </span>
+          <span v-else>
+            <span v-if="isPending(row)">
+              &nbsp;
+              <span class="mb-1 spinner-grow spinner-grow-sm"
+              role="status" aria-hidden="true"></span>
+            </span>
           </span>
         </div>
       </div>
@@ -48,9 +60,10 @@
 
 <script>
 import {mapState} from 'vuex'
+import Elapsed from './Elapsed'
 
 // allows for a summary per account
-let uid = 1
+let uid = 0
 
 export default {
   name: 'TrxMonitor',
@@ -64,13 +77,28 @@ export default {
     refresh: Number,
   },
 
+  components: { Elapsed },
+
+  data() {
+    return {
+      expireAtCache: {}
+    }
+  },
+
   beforeCreate() {
-    this.uid = uid++
+    this.$store.dispatch('AppInfo/load')
+
+    this.uid = ++uid
     this.$store.dispatch('Server/init', {
       key: 'summary' + this.uid,
       data: {list: []}
     })
-    this.$store.dispatch('AppInfo/load')
+
+    this.$store.dispatch('Server/init', {
+      key: 'fio_chain_info',
+      data: {}
+    })
+
   },
 
   created() {
@@ -82,13 +110,14 @@ export default {
       summary (state) {
         return state.Server['summary' + this.uid]
       },
-      info: state => state.AppInfo.info
+      info: state => state.AppInfo.info,
+      fio_chain_info: state => state.Server.fio_chain_info
     }),
 
     summaryFiltered() {
       const {topActive, afterTopActive, summary} = this
 
-      if(!summary || summary.list.length === 0) {
+      if(!summary || !summary.list || summary.list.length === 0) {
         return []
       }
 
@@ -111,13 +140,12 @@ export default {
           return summary.list
         }
       }
-      return summary.list // eslint
+
+      return summary.list // eslint needed dead code
     },
 
     isAnyPending() {
-      const found = this.summary &&
-        this.summary.list.find(row => this.isPending(row))
-
+      const found = this.summaryFiltered.find(row => this.isPending(row))
       return found !== undefined
     },
   },
@@ -189,6 +217,24 @@ export default {
       })
     },
 
+    expiresAt(row) {
+      if(this.expireAtCache[row.block_num]) {
+        return this.expireAtCache[row.block_num]
+      }
+
+      if( ! this.fio_chain_info.last_irreversible_block_num) {
+        return
+      }
+
+      const lib = this.fio_chain_info.last_irreversible_block_num
+      const {block_num} = row
+
+      const blockTimeMs = 500
+      const expireAt = Date.now() + ((block_num - lib) * blockTimeMs)
+      this.expireAtCache[row.block_num] = expireAt
+      return expireAt
+    },
+
     accountType(row) {
       return row.address ? 'address' : 'domain'
     },
@@ -220,10 +266,21 @@ export default {
     ['summary._loading']: function(loading) {
       if(loading !== false) { return }
 
-      const found = this.summary &&
-        this.summary.list.find(row => this.isPending(row))
+      const found = this.summaryFiltered.find(row => this.isPending(row))
 
       this.$emit('pending', found !== undefined)
+
+      const trxPending = this.summaryFiltered.find(
+        row => row.trx_status === 'pending')
+
+      // only grab this once, or the counter jumps around
+      if(trxPending && this.expireAtCache[trxPending.block_num] === undefined) {
+        // for estimating irreversibility
+        this.$store.dispatch('Server/get', {
+          api: 'fio', key: 'fio_chain_info',
+          path: '/get_info',
+        })
+      }
     },
   },
 

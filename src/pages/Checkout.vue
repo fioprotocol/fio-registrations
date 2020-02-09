@@ -48,7 +48,51 @@
           </div>
         </div>
 
-        <div v-if="!complete && !selected">
+        <div v-if="!complete && detected" class="mt-3">
+          <div v-if="paidEnough">
+            <h5>Verifying Payment</h5>
+          </div>
+
+          <div v-if="!paidEnough">
+            <h5>Insufficient Payment</h5>
+          </div>
+
+          <small>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">Crypto Price</th>
+                  <th scope="col">Local Price</th>
+                  <th scope="col">Verify</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(payment, i) in charge.payments" :key="i">
+                  <th scope="row">
+                    <div class="text-info nowrap">{{payment.value.crypto.amount}}</div>
+                    <div class="nowrap">{{networkName(payment)}}</div>
+                  </th>
+                  <td>
+                    <div class="text-info nowrap">{{payment.value.local.amount}}</div>
+                    <div class="nowrap">{{networkName(payment.value.local.currency)}}</div>
+                  </td>
+                  <td>
+                    <div v-if="isConfirmed(payment)" class="check-medium text-dark">
+                      &check;
+                    </div>
+                    <div v-else class="nowrap">
+                      <span class="text-info">{{payment.confirmations}}</span> of
+                      <span class="text-info">{{payment.confirmations_required}}</span>
+                      <br/>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </small>
+        </div>
+
+        <div v-if="!complete && !selected && !paidEnough">
           <div class="card-title mb-3">
             <h5>{{info.title}}</h5>
           </div>
@@ -82,50 +126,6 @@
         </div>
 
         <div v-if="selected">
-          <div v-if="!complete && detected" class="mt-3">
-            <div v-if="paidEnough">
-              <h5>Verifying Payment</h5>
-            </div>
-
-            <div v-if="!paidEnough">
-              <h5>Insufficient Payment</h5>
-            </div>
-
-            <small>
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th scope="col">Crypto Price</th>
-                    <th scope="col">Local Price</th>
-                    <th scope="col">Verify</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(payment, i) in charge.payments" :key="i">
-                    <th scope="row">
-                      <div class="text-info nowrap">{{payment.value.crypto.amount}}</div>
-                      <div class="nowrap">{{networkName(payment)}}</div>
-                    </th>
-                    <td>
-                      <div class="text-info nowrap">{{payment.value.local.amount}}</div>
-                      <div class="nowrap">{{networkName(payment.value.local.currency)}}</div>
-                    </td>
-                    <td>
-                      <div v-if="isConfirmed(payment)" class="check-medium text-dark">
-                        &check;
-                      </div>
-                      <div v-else class="nowrap">
-                        <span class="text-info">{{payment.confirmations}}</span> of
-                        <span class="text-info">{{payment.confirmations_required}}</span>
-                        <br/>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </small>
-          </div>
-
           <div class="text-left" v-if="!paidEnough">
             <div class="mt-3">
               <label for="pay-address">
@@ -192,14 +192,16 @@
               </div>
             </div>
 
-            <div v-if="remaining">
-              <small>
-                <span v-if="hours">{{hours}}:</span>
-                <span>{{minutes}}:</span>
-                <span>{{seconds}}</span>
+            <Elapsed
+              :expires_at="expire"
+              :expiring_at="expiring_at"
+              @remaining="remaining = $event"
+              @expiring="expiring = $event"
+            >
+              <template v-slot:suffix>
                 Awaiting payment&hellip;
-              </small>
-            </div>
+              </template>
+            </Elapsed>
 
             <div v-if="!paymentQr && selected.qrdata" class="text-center">
               <div class="btn btn-light mt-3" @click="updatePaymentQr">
@@ -219,10 +221,10 @@
           </div>
         </div>
 
-        <div class="text-left" v-if="paidEnough && !complete">
+        <div class="text-left" v-if="paidEnough && !allConfirmed">
           <small>
             Payment collected, your {{wallet.address ? 'address' : 'domain'}}
-            will be registered.  You may return at any time for status updates.
+            will be registered.  You may return at any time for an update.
           </small>
         </div>
       </div>
@@ -236,6 +238,7 @@ import {mapState} from 'vuex'
 import ServerMixin from '../components/ServerMixin'
 import coinName from '../plugins/payment/coinname'
 import TrxMonitor from '../components/TrxMonitor'
+import Elapsed from '../components/Elapsed'
 import '../assets/custom.scss'
 import qrcode from 'qrcode'
 import copy from 'clipboard-copy'
@@ -252,11 +255,14 @@ export default {
   data() {
     return {
       selected: null,
-      now: Date.now(),
       paymentQr: null,
-      payAddressShow: false
+      payAddressShow: false,
+      remaining: true,
+      expiring: false
     }
   },
+
+  components: { TrxMonitor, Elapsed },
 
   mixins: [
     ServerMixin('getWallet'),
@@ -274,9 +280,6 @@ export default {
       path: '/public-api/wallet/' + extern_id,
     })
 
-    clearInterval(window.nowInterval)
-    window.nowInterval = setInterval(() => this.now = Date.now(), 1000)
-
     clearInterval(window.chargeInterval)
     window.chargeInterval = setInterval(() => this.getCharge(), 3000)
 
@@ -288,11 +291,8 @@ export default {
 
   beforeDestroy() {
     clearInterval(window.chargeInterval)
-    clearInterval(window.nowInterval)
     this.$store.dispatch('Payment/reset')
   },
-
-  components: { TrxMonitor },
 
   computed: {
     ...mapState({
@@ -313,43 +313,25 @@ export default {
     },
 
     expire() {
-      return new Date(this.charge.expires_at).getTime()
-
       // Remaining expiring, expired test cases
       // return new Date().getTime() + (1000 * 60 * 60 * 24) + 4000
       // return new Date().getTime() + (1000 * 60 * 60) + 4000
       // return new Date().getTime() + (1000 * 60) + 4000
       // return new Date().getTime() + (1000) + 4000
-    },
 
-    remaining() {
       if(!this.charge.expires_at) {
-        return true
+        return
       }
 
-      return this.now < this.expire
+      return new Date(this.charge.expires_at).getTime()
     },
 
-    expiring() {
-      return this.remaining && this.hours === 0 && Number(this.minutes) === 0
-    },
+    expiring_at() {
+      if(!this.expire) {
+        return
+      }
 
-    hours() {
-      const seconds = Math.round((this.expire - this.now) / 1000)
-      const val = Math.floor(seconds / (60 * 60))
-      return val
-    },
-
-    minutes() {
-      const seconds = Math.round((this.expire - this.now) / 1000)
-      const val = Math.floor((seconds / 60) % 60)
-      return `${val < 10 ? '0' : ''}${val}`
-    },
-
-    seconds() {
-      const seconds = Math.round((this.expire - this.now) / 1000)
-      const val = seconds % 60
-      return `${val < 10 ? '0' : ''}${val}`
+      return this.expire - 60000 // 1 minute
     },
 
     payAddress() {
@@ -391,13 +373,13 @@ export default {
 
       const {payments} = this.charge
       const unconf = payments.find(payment => !this.isConfirmed(payment))
-      const complete = unconf === undefined
+      const confirmed = unconf === undefined
 
-      if(complete && payments.length && this.paidEnough) {
+      if(confirmed && this.paidEnough) {
         clearInterval(window.chargeInterval)
       }
 
-      return complete
+      return confirmed
     },
 
     complete() {
@@ -494,10 +476,6 @@ export default {
 
     payAddressClick() {
       this.payAddressShow = true
-      // Vue.nextTick(() => {
-      //   console.log(this.$refs.payAddress)
-      //   // this.$refs.payAddress.select()
-      // })
     },
 
     isConfirmed(payment) {

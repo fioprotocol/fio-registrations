@@ -8,6 +8,10 @@
       <span v-if="hours">{{hours}}:</span>
       <span>{{minutes}}:</span>
       <span>{{seconds}}</span>
+
+      <span>
+        <slot name="suffix"></slot>
+      </span>
     </span>
     <span v-else>
       <slot name="expired"></slot>
@@ -62,7 +66,7 @@ export default {
     }
 
     if(this.expiring !== undefined) {
-      this.$emit('expiring')
+      this.$emit('expiring', this.expiring)
     }
   },
 
@@ -90,7 +94,7 @@ export default {
         return
       }
 
-      return this.expire - this.now <= this.expiring_at
+      return this.now >= this.expiring_at && this.now < this.expire
     },
 
     hours() {
@@ -121,7 +125,7 @@ export default {
 
     expiring: function(val) {
       if(val !== undefined) {
-        this.$emit('expiring')
+        this.$emit('expiring', val)
       }
     }
   },

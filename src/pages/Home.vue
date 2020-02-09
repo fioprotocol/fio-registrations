@@ -147,9 +147,8 @@
           :refresh="refresh"
           :publicKey="regPublicKey"
           :referralCode="referralCode"
-          @pending="setPending($event)"
+          @pending="buyAgain ? setPending($event) : () => {}"
         >
-
           <template v-slot:header-if-showing>
             <div class="mt-4">
               <hr/>
@@ -229,6 +228,7 @@ export default {
     buyAgainClick() {
       this.buyAgain = true
       this.accountReg = false
+      this.refresh = Date.now()
     }
   },
 

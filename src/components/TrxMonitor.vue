@@ -62,7 +62,7 @@
 import {mapState} from 'vuex'
 import Elapsed from './Elapsed'
 
-// allows for a summary per account
+// used for a summary per account
 let uid = 0
 
 export default {
@@ -81,18 +81,13 @@ export default {
 
   data() {
     return {
-      expireAtCache: {}
+      expireAtCache: {},
+      uid: ''
     }
   },
 
   beforeCreate() {
     this.$store.dispatch('AppInfo/load')
-
-    this.uid = ++uid
-    this.$store.dispatch('Server/init', {
-      key: 'summary' + this.uid,
-      data: {list: []}
-    })
 
     this.$store.dispatch('Server/init', {
       key: 'fio_chain_info',
@@ -102,6 +97,12 @@ export default {
   },
 
   created() {
+    this.uid = this.generateUid()
+    this.$store.dispatch('Server/init', {
+      key: 'summary' + this.uid,
+      data: {list: []}
+    })
+
     this.updateBlockchainTrx()
   },
 
@@ -247,6 +248,11 @@ export default {
       clearInterval(this['polling' + this.uid])
       this['polling' + this.uid] = setInterval(() => {this.updateBlockchainTrx()}, 2500)
     },
+
+    generateUid() {
+      const perAccount = this.domain !== undefined
+      return perAccount ? ++uid : ''
+    }
   },
 
   watch: {

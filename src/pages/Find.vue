@@ -60,7 +60,7 @@
         <div v-if="type.items.length">
           <h2>{{type.title}}</h2>
 
-          <b-table
+          <b-table sticky-header class="account-table"
             :items="type.items" :fields="type.fields" :primary-key="'account_id'"
             :outlined="true" :hover="false" :small="true" :ref="type.ref"
             @row-selected="onRowSelected" selectable select-mode="single"
@@ -549,3 +549,9 @@ export default {
   },
 }
 </script>
+
+<style scoped>
+.account-table {
+  max-height: 700px;
+}
+</style>

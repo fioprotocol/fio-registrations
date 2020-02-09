@@ -11,7 +11,7 @@
           <div class="nowrap mt-4">{{info.title}}</div>
         </div>
 
-        <div class="mt-3">
+        <div class="mt-3" v-if="charge.pricing">
           <span v-if="wallet.address">
             <b class="select-all"
               >{{wallet.address}}@{{wallet.domain}}</b>
@@ -82,10 +82,6 @@
         </div>
 
         <div v-if="selected">
-          <!-- <div class="text-center">
-            <img :src="selected.logo"/>
-          </div> -->
-
           <div v-if="!complete && detected" class="mt-3">
             <div v-if="paidEnough">
               <h5>Verifying Payment</h5>
@@ -122,10 +118,6 @@
                         <span class="text-info">{{payment.confirmations}}</span> of
                         <span class="text-info">{{payment.confirmations_required}}</span>
                         <br/>
-                        <!-- <div
-                          class="mb-1 spinner-border spinner-border-sm text-dark"
-                          role="status" aria-hidden="true"
-                        ></div> -->
                       </div>
                     </td>
                   </tr>
@@ -225,6 +217,13 @@
               </a>
             </div>
           </div>
+        </div>
+
+        <div class="text-left" v-if="paidEnough && !complete">
+          <small>
+            Payment collected, your {{wallet.address ? 'address' : 'domain'}}
+            will be registered.  You may return at any time for status updates.
+          </small>
         </div>
       </div>
     </div>
@@ -354,16 +353,28 @@ export default {
     },
 
     payAddress() {
+      if(!this.charge.addresses) {
+        return
+      }
+
       return this.charge.addresses[this.selected.network]
     },
 
     payAmount() {
+      if(!this.charge.pricing) {
+        return
+      }
+
       return this.charge.pricing[this.selected.network].amount
     },
 
     paidEnough() {
+      if(!this.charge.pricing) {
+        return
+      }
+
       const price = +Number(this.charge.pricing.local.amount)
-      const {payments} = this.charge || []
+      const {payments} = this.charge
 
       let paid = 0
       payments.forEach(payment => {
@@ -374,7 +385,11 @@ export default {
     },
 
     allConfirmed() {
-      const {payments} = this.charge || []
+      if(!this.charge.payments) {
+        return []
+      }
+
+      const {payments} = this.charge
       const unconf = payments.find(payment => !this.isConfirmed(payment))
       const complete = unconf === undefined
 
@@ -429,7 +444,6 @@ export default {
   methods: {
     getCharge() {
       const {extern_id} = this
-
       this.$store.dispatch('Payment/getCharge', {extern_id} )
     },
 

@@ -154,7 +154,9 @@ export default {
   methods: {
     routerPush(row) {
       const {extern_id} = row
-      this.$router.push({name: 'checkout', params: {extern_id}})
+      if(extern_id !== null) {
+        this.$router.push({name: 'checkout', params: {extern_id}})
+      }
     },
 
     status(row) {
@@ -231,7 +233,9 @@ export default {
       const {block_num} = row
 
       const blockTimeMs = 500
-      const expireAt = Date.now() + ((block_num - lib) * blockTimeMs)
+      // Block producers create 12 blocks in a row
+      const blockProducerTime = 12 * blockTimeMs
+      const expireAt = Date.now() + ((block_num - lib) * blockTimeMs) + blockProducerTime
       this.expireAtCache[row.block_num] = expireAt
       return expireAt
     },

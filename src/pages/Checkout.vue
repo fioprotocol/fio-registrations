@@ -92,7 +92,13 @@
           </small>
         </div>
 
-        <div v-if="!complete && !selected && !paidEnough">
+        <div v-if="expired" class="container">
+          <div class="alert alert-danger" role="alert">
+            Expired
+          </div>
+        </div>
+
+        <div v-if="!complete && !selected && !paidEnough && !expired">
           <div class="card-title mb-3">
             <h5>{{info.title}}</h5>
           </div>
@@ -326,6 +332,18 @@ export default {
       return new Date(this.charge.expires_at).getTime()
     },
 
+    expired() {
+      if(!this.charge.expires_at) {
+        return
+      }
+
+      if(this.paidEnough) {
+        return false
+      }
+
+      return Date.now() > this.expire
+    },
+
     expiring_at() {
       if(!this.expire) {
         return
@@ -368,7 +386,7 @@ export default {
 
     allConfirmed() {
       if(!this.charge.payments) {
-        return []
+        return
       }
 
       const {payments} = this.charge

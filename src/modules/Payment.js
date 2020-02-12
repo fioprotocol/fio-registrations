@@ -6,16 +6,18 @@ import CoinbasePluginClient from '../../server/plugins/payment/coinbase/client.j
 const loading = Loading()
 const coinbase = new CoinbasePluginClient()
 
-const defaultState = {
-  charge: {
-    ...loading.defaults()
+function defaultState() {
+  return {
+    charge: {
+      ...loading.defaults()
+    }
   }
 }
 
 export default {
   namespaced: true,
 
-  state: defaultState,
+  state: defaultState(),
 
   actions: {
     async getCharge({commit, state}, {extern_id}) {
@@ -26,7 +28,7 @@ export default {
     },
 
     async reset({state}) {
-      const data = JSON.parse(JSON.stringify(defaultState))
+      const data = defaultState()
       const keys = Object.keys(data)
       keys.forEach(key => {
         Vue.set(state, key, data[key])

@@ -160,31 +160,37 @@ export default {
     },
 
     status(row) {
-      const {trx_status, pay_status} = row
+      let ret
+      try {
+        const {trx_status, pay_status} = row
 
-      if(trx_status) {
-        if(trx_status === 'pending') { return 'Pending: Awaiting blockchain finality' }
-        if(trx_status === 'retry') { return 'Pending: Retrying' }
-        if(trx_status === 'success') { return 'Registered' }
-        if(trx_status === 'expire') { return 'Failed' }
-        if(trx_status === 'cancel') { return 'Cancelled' }
-        // leaves: null, review
-      }
-
-      if(pay_status) {
-        if(pay_status === 'pending') { return 'Pending: Awaiting Payment' }
-        if(pay_status === 'success') { return 'Pending: Registering on blockchain' }
-        if(pay_status === 'review') { return 'Failed' }
-        if(pay_status === 'cancel') { return 'Cancelled' }
-      } else {
-        if(trx_status === 'review') {
-          return 'Failed'
-        } else {
-          return 'Pending: Awaiting Payment'
+        if(trx_status) {
+          if(trx_status === 'pending') { return ret = 'Pending: Awaiting blockchain finality' }
+          if(trx_status === 'retry') { return ret = 'Pending: Retrying' }
+          if(trx_status === 'success') { return ret = 'Registered' }
+          if(trx_status === 'expire') { return ret = 'Failed' }
+          if(trx_status === 'cancel') { return ret = 'Cancelled' }
+          // leaves: null, review
         }
-      }
 
-      return ''
+        if(pay_status) {
+          if(pay_status === 'pending') { return ret = 'Pending: Awaiting Payment' }
+          if(pay_status === 'success') { return ret = 'Pending: Registering on blockchain' }
+          if(pay_status === 'review') { return ret = 'Failed' }
+          if(pay_status === 'cancel') { return ret = 'Cancelled' }
+        } else {
+          if(trx_status === 'review') {
+            return ret = 'Failed'
+          } else {
+            return ret = 'Pending: Awaiting Payment'
+          }
+        }
+
+        return ret = null
+
+      } finally {
+        this.$emit('status', ret)
+      }
     },
 
     isPending(row) {
@@ -301,6 +307,8 @@ export default {
     this.$store.dispatch('Server/clear', {
       key: 'summary' + this.uid
     })
+
+    this.$emit('status', null)
   }
 }
 </script>

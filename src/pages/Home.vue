@@ -79,7 +79,17 @@
             :publicKey="regPublicKey"
             :referralCode="referralCode"
             @pending="setPending($event)"
+            @status="status = $event"
           />
+        </div>
+      </div>
+
+      <div
+        v-if="/^Registred$|Awaiting blockchain finality/.test(status)"
+        class="mb-4 container"
+      >
+        <div class="alert alert-success" role="alert">
+          You can now close this window
         </div>
       </div>
 
@@ -213,7 +223,8 @@ export default {
       pending: null,
       validPublicKey: null,
       accountRegPending: false,
-      refresh: null
+      refresh: null,
+      status: null
     }
   },
 

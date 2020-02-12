@@ -253,6 +253,8 @@
 </template>
 
 <script>
+// If updating, you may need to re-test partial and multi-coin payments
+
 import Vue from 'vue'
 import {mapState} from 'vuex'
 import ServerMixin from '../components/ServerMixin'

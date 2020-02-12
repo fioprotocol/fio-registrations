@@ -25,7 +25,11 @@
         </div>
       </div>
 
-      <div class="card-body">
+      <div v-if="loading">
+        <div class="mt-5 mb-5 spinner-border spinner-border"
+          role="status" aria-hidden="true"/>
+      </div>
+      <div v-else class="card-body">
         <div v-if="complete">
           <h5>Payment Complete</h5>
           <div class="check-large text-info">
@@ -305,6 +309,19 @@ export default {
       info: state => state.AppInfo.info,
       charge: state => state.Payment.charge
     }),
+
+    loading() {
+      if(!this.extern_id) {
+        return false
+      }
+
+      // once false this should not go false again during polling
+      if(this.charge.expires_at) {
+        return false
+      }
+
+      return true
+    },
 
     coinName() {
       return coinName

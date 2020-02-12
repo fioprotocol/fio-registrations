@@ -92,6 +92,11 @@ Example **fio-registration** webhook server.  Replace with a wallet's webhook si
 node server/webhook-example.js 3690 phjz6nQob7FlhlsUZNGCDJwtaLUeb0XHiFd23hCPtRY
 ```
 
+If you don't have inbound Coinbase webhooks setup that should be fine.  You'll
+need to use the Admin interface to "Find" your account (usually by public key)
+and click to open your account or domain and click the "refresh" link.  That
+will pull the latest data from Coinbase.
+
 ### Compiles and hot-reloads for development
 
 Remove the `./dist` directory if you did a build..

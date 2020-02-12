@@ -43,6 +43,7 @@
             <TrxMonitor
               :address="wallet.address"
               :domain="wallet.domain"
+              @status="status = $event"
             />
           </div>
 
@@ -237,6 +238,15 @@
             will be registered.  You may return at any time for an update.
           </small>
         </div>
+
+        <div
+          v-if="/^Registered$|Awaiting blockchain finality/.test(status)"
+          class="mb-4 container"
+        >
+          <div class="alert alert-success" role="alert">
+            You can now close this window
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -268,7 +278,8 @@ export default {
       paymentQr: null,
       payAddressShow: false,
       remaining: true,
-      expiring: false
+      expiring: false,
+      status: null
     }
   },
 

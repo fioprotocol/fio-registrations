@@ -85,7 +85,7 @@
       </div>
 
       <div
-        v-if="/^Registred$|Awaiting blockchain finality/.test(status)"
+        v-if="/^Registered$|Awaiting blockchain finality/.test(status)"
         class="mb-4 container"
       >
         <div class="alert alert-success" role="alert">

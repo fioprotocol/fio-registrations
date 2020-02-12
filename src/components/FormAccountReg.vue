@@ -176,7 +176,7 @@ export default {
 
     regAccountAlert() {
       if(this.registrationPending) {
-        return {success: 'Registration pending'}
+        return {} // TrxMonitor shows a message in this case
       }
 
       if(this.validAddress === null) {

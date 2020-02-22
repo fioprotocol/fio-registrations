@@ -13,11 +13,21 @@ const {Sequelize, sequelize} = db
 const {Op} = Sequelize
 
 const {PublicKey} = require('@fioprotocol/fiojs').Ecc
+const {isValidAddress} = require('../../src/validate')
 
 if(process.env.MIN_ADDRESS_PRICE == null) {
   throw new Error('Required: process.env.MIN_ADDRESS_PRICE')
 }
 
+/**
+  @api {get} /public-api/check-public-key/:publicKey check-public-key
+  @apiGroup Registration
+  @apiName CheckPublicKey
+  @apiDescription
+  Check a FIO public key <b>FIO5fnvQ&hellip;ZSYu</b>
+
+  @apiSampleRequest /public-api/check-public-key/FIO6x12sCzAMVSMPM2KAFGiQ6bfLzYPcNQmUyxJ5nkzgj8WESL2qK
+*/
 router.get('/public-api/check-public-key/:publicKey', handler(async (req, res) => {
   const isPublicKey = PublicKey.isValid(req.params.publicKey)
   return res.send({success: isPublicKey})
@@ -55,6 +65,113 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
   return res.send({success: wallet});
 }))
 
+/**
+  @api {post} /public-api/buy-address buy-address
+  @apiGroup Registration
+  @apiName PostBuyAddress
+  @apiDescription
+  Open a payment / charge with the payment provider then return the blockchain
+  <b>payment addresses</b> and <b>payment amounts</b>.  The registration server
+  will monitor for payment(s) then register the address or domain on the
+  blockchain.
+
+  If an account or domain was over or under paid, the <b>payment amounts</b>
+  will reflect this reduced amount on the next purchase.  Balances may be
+  viewed and adjusted in the admin interface.
+
+  @apiParamExample {json} POST-Example:
+  {
+    address: String, // Address 'address@domain' or domain without @ symbol 'newdomain'
+    referralCode: String, // Wallet referral code, from admin interface
+    publicKey: String, // Full FIO public key (like: FIO5fnv..DZSYu)
+    redirectUrl: String // [OPTIONAL] Re-direct URL sent to payment processor
+  }
+
+  @apiSuccessExample Success-Response: (one of the examples)
+  // User had enough credit to cover the purchase, or this server added wallet
+  // provider API security and made the account free in this API call.
+  HTTP/1.1 200 OK
+  {
+    success: true,
+    account_id: Number,
+    error: false
+  }
+
+  .. or ..
+
+  // A payment is required
+  HTTP/1.1 200 OK
+  {
+    success: {
+      charge: {
+        event_id = 0, // Always zero on create, incremental event IDs used in webhook
+        pending: true, // Pending as defined in the payment plugin after inspecting the initial charge status (extern_status).
+        extern_id: String, // Payment processor's ID 'L3WFJJTC'
+        extern_status: String, // Payment processor's status 'NEW'
+        extern_time: String, // Payment processor's ISO time '2020-02-22T14:07:40Z'
+        metadata: null, // JSON string if processor provides extra info (webhook provides this later)
+        pay_source: String, // 'coinbase', 'free', future payment processor
+        forward_url: String, // Processor's public URL for payment screen 'https://commerce.coinbase.com/charges/L3WFJJTC'
+        pricing: { // Amount due in full or less credit (if any)
+          local: {
+            amount: "0.030000",
+            currency: "USDC"
+          },
+          bitcoincash: {
+            amount: "0.00008158",
+            currency: "BCH"
+          }
+          // litecoin, bitcoin, ethereum, usdc, etc.
+        }
+        addresses: { // Payment addresses
+          bitcoincash: "qzf7u3s83j8mz4t208rvygstmtkls89kvylmgfapj3",
+          litecoin: "MQ4DpbTCZuANnGe4QB5b2LVNsM8Ww7PwWK",
+          bitcoin: "3J2MGSGSmweD6mMMCJGEwtsMXHNFJ42ueV",
+          ethereum: "0x72f11a3274e3b92c0daf9f5f770d99e2a0d50775",
+          usdc: "0x72f11a3274e3b92c0daf9f5f770d99e2a0d50775"
+          // Note: future coins may be added and will still work but may not appear this server's in-app checkout..
+        }
+      }
+    },
+    account_id: Number, // Unique account ID for this registration server
+    error: false
+  }
+
+  @apiError ReferralCodeNotFound A wallet with this referral does not exist
+  @apiErrorExample {json} ReferralCodeNotFound
+  HTTP/1.1 404 Not Found
+  {
+    error: 'Referral code not found',
+    success: false
+  }
+
+  @apiError NothingForSale Account or domain sale has no price or is not active
+  @apiErrorExample {json} NothingForSale
+  HTTP/1.1 400 Bad Request
+  {
+    error: `This referral code is not selling ${type}s.` // type = domain|account
+    success: false
+  }
+
+  @apiError InvalidAddress Account or domain format is invalid
+  @apiErrorExample {json} InvalidAddress
+  HTTP/1.1 400 Bad Request
+  {
+    error: `Invalid ${type}`, // type = domain|account
+    success: false
+  }
+
+  @apiError PriceTooLow The server administrator has set a MIN_ADDRESS_PRICE
+  that is higher than the wallet's <b>account</b> sale price.  This is a safety feature.
+  This server may be configured for free accounts (price = 0) but it would
+  require a feature that adds authentication to this API call.
+  @apiErrorExample {json} PriceTooLow
+  HTTP/1.1 400 Bad Request
+  {
+    error: `Price is too low`,
+    success: false
+  }
+*/
 router.post('/public-api/buy-address', handler(async (req, res) => {
   const {
     address, referralCode, publicKey,
@@ -81,7 +198,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   })
 
   if(!wallet) {
-    return res.status(400).send({error: 'Referral code not found'})
+    return res.status(404).send({error: 'Referral code not found'})
   }
 
   const addressArray = address.split('@')
@@ -90,6 +207,12 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   if(!wallet[`${type}_sale_active`]) {
     return res.status(400).send(
       {error: `This referral code is not selling ${type}s.`}
+    )
+  }
+
+  if(!isValidAddress(address)) {
+    return res.status(400).send(
+      {error: `Invalid ${type}`}
     )
   }
 
@@ -155,6 +278,8 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       name, logoUrl: logo_url, price: adjPrice, type, address, publicKey,
       accountId: account.id, redirectUrl
     })
+
+    charge.pay_source = process.env.PLUGIN_PAYMENT
 
     const {
       event_id = 0,

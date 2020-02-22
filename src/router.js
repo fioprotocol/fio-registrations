@@ -37,7 +37,6 @@ const beforeEnter = (to, from, next) => {
   next()
 }
 
-
 const routes = [
   { path: '/(address|ref)/:referralCode?/:defaultDomain?', component: Home, props: true },
   { path: '/(domain)/:referralCode?', component: Home, props: true },

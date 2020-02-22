@@ -127,7 +127,7 @@
             {{saveUser.success}}
           </b-alert>
 
-          <b-alert :show="saveUser.error != null" variant="danger" dismissible>
+          <b-alert :show="saveUser.error" variant="danger" dismissible>
             {{saveUser.error}}
           </b-alert>
         </div>

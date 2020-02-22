@@ -2,7 +2,7 @@
   "watch": [
     "server",
     "src/api",
-    "./.env",
+    "./.env-server",
     "./nodemon.js"
   ]
 }

@@ -11,10 +11,12 @@
     "start": "node server/index.js",
     "ngrok": "node ./server/ngrok",
     "serve": "nodemon --exec 'node server' & vue-cli-service serve",
-    "build": "vue-cli-service build",
+    "apidoc": "apidoc -i server/routes/ -o public/docs/api",
+    "build": "vue-cli-service build && npm run apidoc",
     "migrate": "sequelize-cli db:migrate",
     "sync": "node ./server/db/sync.js",
     "seed": "sequelize-cli db:seed:all",
+    "apidoc-watch": "nodemon -w server/routes/ --exec 'apidoc -i server/routes/ -o public/docs/api'",
     "postinstall": "npm run sync && npm run seed"
   },
   "dependencies": {
@@ -22,6 +24,7 @@
     "@fioprotocol/fiosdk": "^0.5.3",
     "@sendgrid/mail": "^6.5.1",
     "abort-controller": "^3.0.0",
+    "apidoc": "^0.20.0",
     "aws-sdk": "^2.609.0",
     "bcryptjs": "^2.4.3",
     "bootstrap-vue": "^2.1.0",

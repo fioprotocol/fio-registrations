@@ -12,7 +12,7 @@
 
     <br />
     <div>
-      <b-alert :show="apiUpdateRequest.error != null" variant="danger" dismissible>
+      <b-alert :show="apiUpdateRequest.error" variant="danger" dismissible>
         {{apiUpdateRequest.error}}
       </b-alert>
 

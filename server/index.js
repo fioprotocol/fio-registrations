@@ -110,10 +110,10 @@ app.use(function(req, res, next) {
   res.send = function(body) {
     if(typeof body === 'object') {
       if(body.success !== undefined && body.error === undefined) {
-        body.error = null
+        body.error = !body.success
       }
       if(body.error !== undefined && body.success === undefined) {
-        body.success = null
+        body.success = !body.error
       }
     }
     return send(body)
@@ -133,6 +133,8 @@ app.use('/', require('./routes/mfa'));
 app.use('/api/', require('./routes/admin'));
 app.use('/api/', require('./routes/admin-api'));
 app.use('/api/', require('./routes/webhook'));
+
+app.use('/docs/api', express.static('./public/api'));
 
 app.use(function(err, req, res, next) {
   let state = null

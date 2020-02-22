@@ -63,7 +63,7 @@
             accept="image/*"
           ></b-form-file>
 
-          <b-alert :show="uploadImage.error != null" variant="danger" dismissible>
+          <b-alert :show="uploadImage.error" variant="danger" dismissible>
             {{uploadImage.error}}
           </b-alert>
         </div>

@@ -54,7 +54,7 @@
       </div>
 
       <div class="mt-4">
-        <b-alert :show="deleteUser.error != null" variant="danger" dismissible>
+        <b-alert :show="deleteUser.error" variant="danger" dismissible>
           {{deleteUser.error}}
         </b-alert>
       </div>

@@ -60,7 +60,7 @@
 
       <div class="mb-3"></div>
 
-      <b-alert :show="webhookTest.error != null" variant="danger" dismissible>
+      <b-alert :show="webhookTest.error" variant="danger" dismissible>
         {{webhookTest.error}}
       </b-alert>
 

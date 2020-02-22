@@ -20,7 +20,7 @@
       </b-form-group>
 
       <div class="mt-2">
-        <b-alert :show="find.error != null" variant="danger" dismissible>
+        <b-alert :show="find.error" variant="danger" dismissible>
           {{find.error}}
         </b-alert>
       </div>
@@ -165,7 +165,7 @@
               <div class="row">
                 <b-col cols="auto" class="ml-auto">
                   <b-alert variant="danger" dismissible class="mt-3"
-                    :show="serverUpdateTrx(row).error != null"
+                    :show="serverUpdateTrx(row).error"
                   >
                     {{serverUpdateTrx(row).error}}
                   </b-alert>

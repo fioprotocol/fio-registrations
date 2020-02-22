@@ -73,7 +73,7 @@
           ></b-form-input>
         </b-form-group>
 
-        <b-alert :show="mfaUpdateRequest.error != null" variant="danger" dismissible>
+        <b-alert :show="mfaUpdateRequest.error" variant="danger" dismissible>
           {{mfaUpdateRequest.error}}
         </b-alert>
 

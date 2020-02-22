@@ -35,7 +35,7 @@ class Coinbase {
   }
 
   /**
-    Open a payment transaction at coinbase.
+    Open a payment transaction at the payment provider.
 
     @plugin required
 
@@ -46,6 +46,24 @@ class Coinbase {
       extern_status: String, // is any status the processor returns
       extern_time: Date, // is a time stamp returned by the processor
       forward_url: String // (optional) if provided, server be configured to ignore
+      addresses: Object = { // 3rd party payment interface
+        bitcoincash: "qzf7u3s83j8mz4t208rvygstmtkls89kvylmgfapj3",
+        litecoin: "MQ4DpbTCZuANnGe4QB5b2LVNsM8Ww7PwWK",
+        bitcoin: "3J2MGSGSmweD6mMMCJGEwtsMXHNFJ42ueV",
+        ethereum: "0x72f11a3274e3b92c0daf9f5f770d99e2a0d50775",
+        usdc: "0x72f11a3274e3b92c0daf9f5f770d99e2a0d50775"
+      },
+      pricing: Object = { // 3rd party payment interface
+        local: {
+          amount: "0.030000",
+          currency: "USDC"
+        },
+        bitcoincash: {
+          amount: "0.00008158",
+          currency: "BCH"
+        }
+        // etc
+      }
     }
     </code>
     @return {pending: Boolean, extern_id: String = 0, extern_status: String, extern_time: Date, forward_url: String}
@@ -82,6 +100,11 @@ class Coinbase {
       const update = timelineUpdate(0, timeline[0])
       update.extern_id = code
       update.forward_url = hosted_url
+
+      // 3rd party payment interface
+      update.pricing = result.data.pricing
+      update.addresses = result.data.addresses
+
       return update
     }
     throw new Error(JSON.stringify(result))

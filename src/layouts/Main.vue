@@ -12,7 +12,7 @@
       </div>
 
       <div v-if="Login.loggedIn">
-        <b-card-header header-tag="nav" class="pt-1">
+        <b-card-header header-tag="nav" class="pt-1" footer-tag="footer">
           <b-nav card-header tabs>
             <b-nav-item :to="{name: 'find'}"
               exact exact-active-class="active"
@@ -44,6 +44,10 @@
       <b-card-body class="pt-2">
         <slot></slot>
       </b-card-body>
+
+      <template v-slot:footer v-if="!Login.loggedIn">
+        <a href="/docs/api/index.html" class="pull-right">API</a>
+      </template>
     </b-card>
   </div>
 </template>

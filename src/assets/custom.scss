@@ -10,18 +10,22 @@
 .hidden {
   visibility: hidden;
 }
+
 .alert.info {
   @extend .alert;
   @extend .alert-info;
 }
+
 .alert.success {
   @extend .alert;
   @extend .alert-success;
 }
+
 .alert.error {
   @extend .alert;
   @extend .alert-danger;
 }
+
 .wallet-logo {
   width: 300px;
   height: 100px;
@@ -29,4 +33,8 @@
 
 .dim {
   opacity: .3
+}
+
+.pull-right {
+  float: right;
 }

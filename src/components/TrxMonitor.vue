@@ -170,7 +170,10 @@ export default {
           if(trx_status === 'success') { return ret = 'Registered' }
           if(trx_status === 'expire') { return ret = 'Failed' }
           if(trx_status === 'cancel') { return ret = 'Cancelled' }
-          // leaves: null, review
+          if(pay_status === 'success' && trx_status === 'review') {
+            return ret = 'Failed'
+          }
+          // leaves: null
         }
 
         if(pay_status) {

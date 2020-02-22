@@ -56,7 +56,7 @@
 </template>
 
 <script>
-const addressRe = /^[a-z0-9-]{1,62}$/
+import {isValidAddress} from '../validate'
 
 export default {
   name: "FormAccount",
@@ -107,21 +107,9 @@ export default {
         }
       }
 
-      const combinedLength = this.buyAddress ?
-        this.localAddress.length + this.selectedDomain.length + 1 :
-        this.localAddress.length
-
-      if(combinedLength > 64)  {
-        return false
-      }
-
-      const dashSplit = this.localAddress.split('-')
-      if(dashSplit.find(part => part === '') === '') {
-        return false // two dashes in a row
-        // also covers: a-z0-9 is required on either side of any dash
-      }
-
-      return addressRe.test(this.localAddress)
+      return this.buyAddress ?
+        isValidAddress(`${this.localAddress}@${this.selectedDomain}`) :
+        isValidAddress(this.localAddress)
     },
 
     type() {

@@ -14,7 +14,7 @@
         <b-alert :show="sendInvite.success != null" variant="info" dismissible>
           Invitation Sent!
         </b-alert>
-        <b-alert :show="sendInvite.error != null" variant="danger" dismissible>
+        <b-alert :show="sendInvite.error" variant="danger" dismissible>
           {{sendInvite.error}}
         </b-alert>
       </div>

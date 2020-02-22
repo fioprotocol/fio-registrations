@@ -83,6 +83,14 @@ Add a postgres add-on and configure the Database URL.  Comment
 out the PLUGIN_UPLOAD variable, Heroku does not provide persistent
 disk storage.
 
+It may be necessary to force a full npm non-cache build.  Turn caching off,
+redeploy, then re-enable.
+
+```
+heroku config:set NODE_MODULES_CACHE=false
+git push heroku
+heroku config:set NODE_MODULES_CACHE=true
+```
 
 ## Development
 

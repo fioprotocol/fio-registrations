@@ -1,6 +1,6 @@
 const logBind = require('debug')('sequelize:sql:bind')
 
-// Seeding needs contfig
+// Seeding needs config
 require('dotenv').config({
   path: require('path').resolve(process.cwd(), '.env-server')
 });

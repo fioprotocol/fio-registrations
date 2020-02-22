@@ -17,8 +17,7 @@ const {Sequelize, sequelize} = db
 const {Op} = Sequelize
 
 /**
-  Create a successful payment in the system.  A domain or address purchase
-  will immediately follow.
+  Create or update a payment in the system.  A pay_status of `success` will trigger a domain registration.
 */
 router.post('/buy', handler(async (req, res) => {
   const {username, user_id} = res.state

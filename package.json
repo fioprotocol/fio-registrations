@@ -24,7 +24,6 @@
     "@fioprotocol/fiosdk": "^0.5.3",
     "@sendgrid/mail": "^6.5.1",
     "abort-controller": "^3.0.0",
-    "apidoc": "^0.20.0",
     "aws-sdk": "^2.609.0",
     "bcryptjs": "^2.4.3",
     "bootstrap-vue": "^2.1.0",
@@ -73,7 +72,8 @@
     "sequelize-cli": "^5.5.1",
     "ts-node": "^8.5.4",
     "typescript": "^3.7.3",
-    "vue-template-compiler": "^2.6.10"
+    "vue-template-compiler": "^2.6.10",
+    "apidoc": "^0.20.0"
   },
   "eslintConfig": {
     "root": true,

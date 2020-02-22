@@ -31,6 +31,14 @@ const hourlyLimit = (max, key = '') => limit({
   Check the balance for a public key.  This may be non-zero if a user
   over-pays or under-pays.
 
+  @apiError InvalidPublicKey Invalid Public Key
+  @apiErrorExample {json} InvalidPublicKey
+  HTTP/1.1 400 Bad Request
+  {
+    "error": "Invalid public key",
+    "success": false
+  }
+
   @apiSampleRequest /public-api/balance/FIO6x12sCzAMVSMPM2KAFGiQ6bfLzYPcNQmUyxJ5nkzgj8WESL2qK
 
   @apiSuccessExample No Payment
@@ -93,9 +101,13 @@ const hourlyLimit = (max, key = '') => limit({
     "error": false
   }
 */
-router.get('/public-api/balance/:publicKey', hourlyLimit(20), handler(async (req, res) => {
+router.get('/public-api/balance/:publicKey', hourlyLimit(200), handler(async (req, res) => {
   const {publicKey} = req.params
-  assert(PublicKey.isValid(publicKey), 'Invalid public key')
+
+  if(!PublicKey.isValid(publicKey)) {
+    return res.status(400).send({error: 'Invalid public key'})
+  }
+
   const balance = await transactions.balance(publicKey)
   return res.send({success: true, balance})
 }))

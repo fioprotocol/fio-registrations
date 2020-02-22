@@ -4,8 +4,7 @@ const {sequelize} = db
 async function history(publicKey, total) {
   const sumSelect1 = total ? `select
     sum(total) as total,
-    sum(confirmed_amount) as confirmed_amount,
-    sum(pending_amount) as pending_amount from (` : ''
+    sum(pending) as pending from (` : ''
 
   const sumSelect2 = total ? `) balance` : ''
 
@@ -13,7 +12,7 @@ async function history(publicKey, total) {
     ${sumSelect1}
     select
       a.created, 'purchase' as type, ap.id as source_id, ap.extern_id,
-      ap.buy_price as total, ap.buy_price as confirmed_amount, 0 as pending_amount,
+      ap.buy_price as total, ap.buy_price as due, 0.00 as pending,
       null as created_by, null as notes, a.address, a.domain
       --, ape.*
     from account a
@@ -22,16 +21,16 @@ async function history(publicKey, total) {
     union all
     select
       created, 'adjustment' as type, adj.id as source_id, '' as extern_id,
-      amount as total, amount as confirmed_amount, cast(0 as numeric) as pending_amount,
+      amount as total, amount as due, cast(0.00 as numeric) as pending,
       created_by, notes, null as address, null as domain
     from account_adj adj
     where owner_key = :publicKey
     union all
     select -- credit / payment total
       coalesce(ape.extern_time, ape.created), 'payment' as type, ape.id as source_id, extern_id,
-      coalesce(ape.confirmed_total * -1, 0) as total,
-      coalesce(ape.confirmed_total * -1, 0) as confirmed_amount,
-      coalesce(ape.pending_total * -1, 0) as pending_amount,
+      coalesce(ape.confirmed_total * -1, 0.00) as total,
+      coalesce(ape.confirmed_total * -1, 0.00) as due,
+      coalesce(ape.pending_total * -1, 0.00) as pending,
       ape.created_by, ape.pay_status_notes,
       a.address, a.domain
       --, ape.*
@@ -49,9 +48,9 @@ async function history(publicKey, total) {
       'registration' as type,
       te.id as source_id,
       trx_id as extern_id,
-      0 as total,
-      0 as confirmed_amount,
-      0 as pending_amount,
+      0.00 as total,
+      0.00 as due,
+      0.00 as pending,
       te.created_by, te.trx_status_notes, a.address, a.domain
       --, te.*
     from account a

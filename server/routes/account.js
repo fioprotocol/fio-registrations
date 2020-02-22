@@ -22,7 +22,77 @@ const hourlyLimit = (max, key = '') => limit({
   }
 })
 
-/** Credit Balance for purchases.  Home.vue */
+// @see Home.vue Credit Balance for purchases.
+/**
+  @api {get} /public-api/balance/:publicKey balance
+  @apiGroup Registration
+  @apiName Balance
+  @apiDescription
+  Check the balance for a public key.  This may be non-zero if a user
+  over-pays or under-pays.
+
+  @apiSampleRequest /public-api/balance/FIO6x12sCzAMVSMPM2KAFGiQ6bfLzYPcNQmUyxJ5nkzgj8WESL2qK
+
+  @apiSuccessExample No Payment
+  {
+    "success": true,
+    "balance": {
+        "total": null,
+        "pending": null
+    },
+    "error": false
+  }
+
+  @apiSuccessExample New
+  {
+    "success": true,
+    "balance": {
+        "total": "0.03",
+        "pending": "0.00"
+    },
+    "error": false
+  }
+
+  @apiSuccessExample Pending
+  {
+    "success": true,
+    "balance": {
+        "total": "0.03",
+        "pending": "-0.03"
+    },
+    "error": false
+  }
+
+  @apiSuccessExample Confirmed (exact)
+  {
+    "success": true,
+    "balance": {
+        "total": "0.00",
+        "pending": "0.00"
+    },
+    "error": false
+  }
+
+  @apiSuccessExample Overpaid Pending
+  {
+    "success": true,
+    "balance": {
+        "total": "0.03",
+        "pending": "-0.06"
+    },
+    "error": false
+  }
+
+  @apiSuccessExample Overpaid Confirmed
+  {
+    "success": true,
+    "balance": {
+        "total": "-0.03",
+        "pending": "0.00"
+    },
+    "error": false
+  }
+*/
 router.get('/public-api/balance/:publicKey', hourlyLimit(20), handler(async (req, res) => {
   const {publicKey} = req.params
   assert(PublicKey.isValid(publicKey), 'Invalid public key')
@@ -39,20 +109,19 @@ router.get('/public-api/balance/:publicKey', hourlyLimit(20), handler(async (req
   @apiDescription
   Check the status of a account or domain registration
   @apiParamExample {json} POST-Example:
-  HTTP/1.1 200 OK
   {
     publicKey: String, // Full FIO public key (like: FIO5fnv..DZSYu)
   }
 
   .. or ..
 
-  HTTP/1.1 200 OK
   {
     address: String, // before the '@'
     domain: String // after the '@'
   }
 
   @apiSuccessExample Success-Response
+  HTTP/1.1 200 OK
   [
     {
       address: null,
@@ -62,7 +131,6 @@ router.get('/public-api/balance/:publicKey', hourlyLimit(20), handler(async (req
       trx_id: '1fb666a590d8d6a0334b0ad7147c8eb65a83de8932dbc75bbcf158c0ecfaaa23',
       expiration: '2020-02-22T17:27:33.500Z',
       block_num: 1531052,
-      'BlockchainTrxEvents.id': 5,
       trx_status: 'success',
       trx_status_notes: 'irreversible',
       pay_source: 'free',
@@ -70,7 +138,6 @@ router.get('/public-api/balance/:publicKey', hourlyLimit(20), handler(async (req
       buy_price: '0.03',
       pay_metadata: null,
       extern_id: null,
-      'AccountPayEvents.id': 9,
       pay_status: 'success',
       pay_status_notes: null,
       extern_time: null,
@@ -84,7 +151,6 @@ router.get('/public-api/balance/:publicKey', hourlyLimit(20), handler(async (req
       trx_id: '4cdb133aa17a2bde2fd4b4fca05b6d6737397ab8a3906b51f7f6dd3376bf4316',
       expiration: '2020-02-22T15:15:52.500Z',
       block_num: null,
-      'BlockchainTrxEvents.id': 2,
       trx_status: 'review',
       trx_status_notes: 'FIO Domain is not public. Only owner can create FIO Addresses.',
       pay_source: 'free',
@@ -92,7 +158,6 @@ router.get('/public-api/balance/:publicKey', hourlyLimit(20), handler(async (req
       buy_price: '0.03',
       pay_metadata: null,
       extern_id: null,
-      'AccountPayEvents.id': 8,
       pay_status: 'success',
       pay_status_notes: null,
       extern_time: null,
@@ -209,7 +274,12 @@ router.post('/public-api/summary', handler(async (req, res) => {
     ]
   })
 
-  return res.send(result.map(r => trimKeys(r)))
+  return res.send(result.map(r => {
+    const trim = trimKeys(r)
+    delete trim['BlockchainTrxEvents.id']
+    delete trim['AccountPayEvents.id']
+    return trim
+  }))
 }))
 
 module.exports = router

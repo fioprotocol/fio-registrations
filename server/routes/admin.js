@@ -30,6 +30,7 @@ if(!process.env.TITLE) {
   throw new Error('Required: process.env.TITLE')
 }
 
+/** Debit or credit a public key's balance */
 router.post('/adjustment', handler(async (req, res) => {
   const {user_id, username} = res.state
   if(!user_id) {
@@ -246,11 +247,12 @@ router.post('/update-trx-status', handler(async (req, res) => {
   })
 }))
 
-router.get('/update-payment/:extern_id', handler(async (req, res) => {
+router.post('/update-payment/:extern_id', handler(async (req, res) => {
   const {user_id} = res.state
   if(!user_id) {
     return res.status(401).send({error: 'Unauthorized'})
   }
+
   const {extern_id} = req.params
   assert(extern_id, 'Required: extern_id')
 

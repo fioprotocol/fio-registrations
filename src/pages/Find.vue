@@ -448,7 +448,7 @@ export default {
     },
 
     refreshPayment(extern_id) {
-      this.$store.dispatch('Server/get', {
+      this.$store.dispatch('Server/post', {
         key: 'refreshPaymentResult',
         path: 'update-payment/' + extern_id
       })

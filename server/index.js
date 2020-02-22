@@ -134,8 +134,6 @@ app.use('/api/', require('./routes/admin'));
 app.use('/api/', require('./routes/admin-api'));
 app.use('/api/', require('./routes/webhook'));
 
-app.use('/docs/api', express.static('./public/api'));
-
 app.use(function(err, req, res, next) {
   let state = null
   if(res.state) {
@@ -154,6 +152,16 @@ app.use(function(err, req, res, next) {
     return next(err);
   }
 });
+
+if(fs.existsSync('./public/docs/api')) {
+  console.log(`Serving API docs from ./public/docs/api`)
+
+  app.use('/docs/api', express.static('public/docs/api'))
+
+  app.get('/docs/api/index.html', (req, res) => {
+    res.sendFile(resolve('./public/docs/api/index.html'));
+  })
+}
 
 if(fs.existsSync('./dist')) {
   console.log(`Serving web files from ./dist`)

@@ -2,24 +2,22 @@ const aws = require('aws-sdk');
 const s3blobs = require('s3-blob-store')
 const getMimeType = require('../mime-type')
 
-if(!process.env.S3_ACCESS_KEY) {
-  throw new Error('Required: process.env.S3_ACCESS_KEY')
+const s3config = {}
+
+if(process.env.S3_ACCESS_KEY) {
+  s3config.accessKeyId = process.env.S3_ACCESS_KEY
 }
 
-if(!process.env.S3_SECRET_KEY) {
-  throw new Error('Required: process.env.S3_SECRET_KEY')
+if(process.env.S3_SECRET_KEY) {
+  s3config.secretAccessKey = process.env.S3_SECRET_KEY
 }
 
 if(!process.env.S3_BUCKET) {
   throw new Error('Required: process.env.S3_BUCKET')
 }
 
-const s3client = new aws.S3({
-  accessKeyId: process.env.S3_ACCESS_KEY,
-  secretAccessKey: process.env.S3_SECRET_KEY
-})
+const s3client = new aws.S3(s3config)
 
-// createReadStream
 const s3store = s3blobs({client: s3client, bucket: process.env.S3_BUCKET})
 
 /**

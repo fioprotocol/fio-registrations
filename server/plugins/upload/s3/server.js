@@ -52,7 +52,7 @@ class S3 {
       const stream = s3store.createWriteStream(key, (error, metadata) => {
         if (error) { reject(error) } else { resolve(metadata) }
       })
-      stream.write(data)
+      stream.write(Buffer.from(data, 'binary'))
       stream.end()
     })
   }

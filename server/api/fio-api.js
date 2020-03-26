@@ -74,7 +74,7 @@ class FioApi extends FioClient {
 
     if(this.options.chainId) {
       if(this.options.chainId !== info.chain_id) {
-        throw new Error(`chain_id does not match`)
+        throw new Error(`Configured chain_id does not match blockchain: ${info.chain_id}`)
       }
       this.chainId = info.chain_id
     }

@@ -131,9 +131,25 @@ async function broadcastNewAccount({
     await regaddress( account, owner_key, tpid ) :
     await regdomain( domain, owner_key, tpid )
 
-  const transaction = await fio.transaction([regAction])
-  const trx_id = await fio.transactionId(transaction)
-  const {expiration} = transaction
+  let transaction, trx_id, expiration
+
+  try {
+    transaction = await fio.transaction([regAction])
+    trx_id = await fio.transactionId(transaction)
+    expiration = transaction.expiration
+  } catch(error) {
+    const dbTrx = await db.BlockchainTrx.create({
+      type: 'register',
+      account_id
+    })
+
+    await db.BlockchainTrxEvent.create({
+      trx_status: 'review',
+      blockchain_trx_id: dbTrx.id,
+      trx_status_notes: error.message
+    })
+    return
+  }
 
   if(debug.enabled) {
     debug({trx_id, expiration})

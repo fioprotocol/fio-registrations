@@ -329,7 +329,8 @@ export default {
         return false
       }
 
-      // once false this should not go false again during polling
+      // Once false this should not go false again to prevent
+      // a loop that re-creates the TrxMonitor component.
       if(this.charge.expires_at) {
         return false
       }

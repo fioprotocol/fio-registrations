@@ -1,3 +1,5 @@
+const debug = require('debug')('fio:fio-api')
+
 const FioClient = require('../../src/api/fio-client')
 
 const { Fio, Ecc } = require('@fioprotocol/fiojs');
@@ -81,7 +83,9 @@ class FioApi extends FioClient {
       if(this.options.chainId !== info.chain_id) {
         throw new Error(`Configured chain_id ${this.options.chainId} does not match blockchain: ${info.chain_id}`)
       }
-      this.chainId = info.chain_id
+    } else {
+      debug(`WARNING: Accepted unverified CHAIN_ID ${info.chain_id}`)
+      this.options.chainId = info.chain_id
     }
 
     const blockInfo = await this.chain.post('/get_block', {block_num_or_id: info.last_irreversible_block_num})

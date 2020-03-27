@@ -69,6 +69,8 @@ Navigating to [Settings](https://commerce.coinbase.com/dashboard/settings) and
 
 * Subscribe this server for webhook notifications by adding an endpoint to the Webhook subscriptions section on your Settings page within Coinbase Commerce.  The endpoint path on this server is `https://example.com/webhook/payment/coinbase`.
 
+* You may send all Coinbase events.  If an event is not used it will log a message and return a succesfull response.
+
 * If you’re using a service like ngrok for the forwarding URL. You can
 whitelist localhost by adding http://localhost:8081 as a whitelisted
 domain.  The endpoint will look like `https://ad4a36d3.ngrok.io/webhook/payment/coinbase`.

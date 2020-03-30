@@ -261,6 +261,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     ) {
       const accountPay = await db.AccountPay.create({
         pay_source: 'free',
+        extern_id: String(Date.now()),
         buy_price: price,
         account_id: account.id,
       }, tr)

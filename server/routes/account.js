@@ -193,7 +193,7 @@ router.post('/public-api/summary', handler(async (req, res) => {
   let walletWhere = {}
 
   if(domain) {
-    accountWhere = { address, domain }
+    accountWhere = { address, domain, owner_key: publicKey }
   } else {
     if(!PublicKey.isValid(publicKey)) {
       return res.status(400).send({error: 'Invalid public key'})

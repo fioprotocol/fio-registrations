@@ -157,6 +157,7 @@
                   <TrxMonitor
                     :address="row.item.address"
                     :domain="row.item.domain"
+                    :publicKey="row.item.owner_key"
                     @pending="pending"
                   />
                 </b-col>

@@ -1,6 +1,6 @@
 {
   "name": "fio-registrations",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "FIO Account and Domain Registrations",
   "main": "index.js",
   "keywords": [

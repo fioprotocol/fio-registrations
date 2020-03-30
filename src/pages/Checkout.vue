@@ -43,6 +43,7 @@
             <TrxMonitor
               :address="wallet.address"
               :domain="wallet.domain"
+              :publicKey="wallet.owner_key"
               @status="status = $event"
             />
           </div>

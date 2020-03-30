@@ -1,3 +1,5 @@
+const debug = require('debug')('fio:fio-api')
+
 const FioClient = require('../../src/api/fio-client')
 
 const { Fio, Ecc } = require('@fioprotocol/fiojs');
@@ -25,12 +27,15 @@ class FioApi extends FioClient {
   constructor(chainEndpoint, options = {}) {
     super(chainEndpoint, options)
     this.options = options
+
     if(!this.options.expireIn) {
       this.options.expireIn = 60 // seconds, no longer than needed
     }
+
     if(this.options.broadcast === undefined) {
       this.options.broadcast = true
     }
+
     this.abiMap = new Map()
   }
 
@@ -68,15 +73,19 @@ class FioApi extends FioClient {
     }
   }
 
-  async transaction(actions = []) {
+  async transaction(actions = [], {
+    privateKeys = null
+  } = {}) {
     const {expireIn} = this.options
     const info = await this.chain.get('/get_info')
 
     if(this.options.chainId) {
       if(this.options.chainId !== info.chain_id) {
-        throw new Error(`Configured chain_id does not match blockchain: ${info.chain_id}`)
+        throw new Error(`Configured chain_id ${this.options.chainId} does not match blockchain: ${info.chain_id}`)
       }
-      this.chainId = info.chain_id
+    } else {
+      debug(`WARNING: Accepted unverified CHAIN_ID ${info.chain_id}`)
+      this.options.chainId = info.chain_id
     }
 
     const blockInfo = await this.chain.post('/get_block', {block_num_or_id: info.last_irreversible_block_num})
@@ -92,7 +101,11 @@ class FioApi extends FioClient {
       actions
     }
 
-    return transaction
+    if(!this.options.broadcast) {
+      return transaction
+    }
+
+    return this.broadcast(transaction, {privateKeys})
   }
 
   async transactionId(transaction) {
@@ -128,9 +141,15 @@ class FioApi extends FioClient {
     return trxId
   }
 
-  async broadcast(transaction, url = '/push_transaction') {
+  async broadcast(transaction, {
+    url = '/push_transaction',
+    privateKeys = null
+  } = {}) {
     if(!transaction.signatures) {
-      transaction = await this.prepareTransaction(transaction)
+      transaction = await this.prepareTransaction(
+        transaction,
+        {privateKeys}
+      )
     }
     const trx = await this.chain.post(url, transaction)
     if (trx.processed && trx.processed.except) {
@@ -139,14 +158,19 @@ class FioApi extends FioClient {
     return trx
   }
 
-  async prepareTransaction(transaction) {
+  async prepareTransaction(transaction, {privateKeys}) {
     if(this.options.logging) {
       this.options.logging(transaction)
     }
 
     await this.abiActions(transaction.actions)
 
-    return await Fio.prepareTransaction({transaction, chainId: this.options.chainId, privateKeys: this.options.privateKeys, abiMap: this.abiMap, textDecoder, textEncoder})
+    return await Fio.prepareTransaction({
+      transaction,
+      chainId: this.options.chainId,
+      privateKeys: privateKeys || this.options.privateKeys,
+      abiMap: this.abiMap, textDecoder, textEncoder
+    })
   }
 
   async abiActions(actions, force = false) {

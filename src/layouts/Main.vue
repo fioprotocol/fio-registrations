@@ -45,8 +45,8 @@
         <slot></slot>
       </b-card-body>
 
-      <template v-slot:footer v-if="!Login.loggedIn">
-        <a href="/docs/api/index.html" class="pull-right">API</a>
+      <template v-slot:footer>
+        <a href="/docs/api/index.html" target="_blank" class="pull-right">API</a>
       </template>
     </b-card>
   </div>

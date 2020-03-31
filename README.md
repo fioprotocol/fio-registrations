@@ -124,17 +124,18 @@ The `serve` target proxies API requests with a matching URL pattern to the
 express server (from port 8081 to 5000).  See `vue.config.js {devServer: proxy}`.
 The proxy is not needed when serving pre-built files and `npm start`.
 
-### API Bearer Token
+### Curl API examples
 
-Under the Admin's **My Profile** page you can setup and enable a
-**API Bearer Token**.
+Under the Admin **My Profile** page you can setup and enable a
+**API Bearer Token**.  Each Admin user has a different token.
 
 ```
 # Get your profile
-curl -H "Authorization: Bearer I8vu0hBaG4jUeydjn6Anh4jrME5G72PsiIwmgtwesh1PM" http://localhost:5000/api/user
+curl -H "Authorization: Bearer I8v...1PM" http://localhost:5000/api/user
 
+# Start the buying process where 'address' is an account or domain
+curl --request POST -H "Content-Type: application/json" --data '{"referralCode":"fio","publicKey":"FIO6jN...ZbQ","address":"testing2@pubdomain"}' http://localhost:5000/public-api/buy-address
 
-# Purchase a domain or account
-curl --request POST -H "Authorization: Bearer I8vu0hBaG4jUeydjn6Anh4jrME5G72PsiIwmgtwesh1PM" -H "Content-Type: application/json" --data '{"referral_code":"fio","buy_price":"0.03","owner_key":"FIO5fnvQGmLRv5JLytqgvfWZfPyi4ousY46zdRU9MSSzJksFDZSYu","address":"donttreadonme","domain":"fio", "pay_status": "success"}' http://localhost:5000/api/buy
-
+# Auto-buy an account or domain where the Wallet's referralCode sale price is configured to $0 (free)
+curl --request POST -H "Authorization: Bearer I8v...1PM" -H "Content-Type: application/json" --data '{"referralCode":"fio","publicKey":"FIO6jN...ZbQ","address":"testing2@pubdomain"}' http://localhost:5000/public-api/buy-address
 ```

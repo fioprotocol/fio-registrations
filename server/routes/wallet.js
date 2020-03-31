@@ -161,6 +161,15 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
     success: false
   }
 
+  @apiError Unauthorized The Wallet is configured with a $0 account or domain
+  price and this API call did not provide a user API Bearer Token header.
+  @apiErrorExample {json} Unauthorized
+  HTTP/1.1 400 Bad Request
+  {
+    error: `Due to the referral code (account|domain) sale price, a user API Bearer Token is required`,
+    success: false
+  }
+
   @apiError PriceTooLow The server administrator has set a MIN_ADDRESS_PRICE
   that is higher than the wallet's <b>account</b> sale price.  This is a safety feature.
   This server may be configured for free accounts (price = 0) but it would
@@ -218,6 +227,12 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
 
   const {name, logo_url} = wallet
   const price = +Number(wallet[`${type}_sale_price`])
+
+  if(price === 0) {
+    if(!res.state.user_id) {
+      return res.status(401).send({error: `Unauthorized: Due to the referral code ${type} sale price, a user API Bearer Token is required`})
+    }
+  }
 
   // Block free accounts if this server is not forked and implemented for this
   if(type === 'account' && price < process.env.MIN_ADDRESS_PRICE) {

@@ -123,13 +123,15 @@ router.get('/public-api/balance/:publicKey', hourlyLimit(200), handler(async (re
   @apiParamExample {json} POST-Example:
   {
     publicKey: String, // Full FIO public key (like: FIO5fnv..DZSYu)
+    referralCode: String? // if omitted, default referralCode is used
   }
 
   .. or ..
 
   {
     address: String, // before the '@'
-    domain: String // after the '@'
+    domain: String, // after the '@'
+    publicKey: String? // purchase attempts may have different owner keys
   }
 
   @apiSuccessExample Success-Response
@@ -193,7 +195,15 @@ router.post('/public-api/summary', handler(async (req, res) => {
   let walletWhere = {}
 
   if(domain) {
-    accountWhere = { address, domain, owner_key: publicKey }
+    accountWhere = { address, domain }
+
+    if(publicKey) {
+      if(!PublicKey.isValid(publicKey)) {
+        return res.status(400).send({error: 'Invalid public key'})
+      }
+
+      accountWhere.owner_key = publicKey
+    }
   } else {
     if(!PublicKey.isValid(publicKey)) {
       return res.status(400).send({error: 'Invalid public key'})

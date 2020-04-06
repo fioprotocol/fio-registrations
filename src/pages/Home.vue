@@ -165,6 +165,13 @@
       </div>
     </div>
 
+    <div class="footer text-center py-3">
+      <br/>
+      <div class="container">
+        <span class="text-muted">fioprotocol.io</span>
+      </div>
+    </div>
+
     <!-- <div v-if="inputPublicKey">
       <div class="alert alert-info mt-3 container" role="alert">
         Public key accepted
@@ -180,12 +187,8 @@
       </ul>
     </div> -->
   </div>
-  <footer class="footer mt-auto py-3">
-    <div class="container">
-      <span class="text-muted">fioprotocol.io</span>
-    </div>
-  </footer>
 </template>
+
 
 <script>
 import '../assets/custom.scss'

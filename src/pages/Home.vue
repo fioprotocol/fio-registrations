@@ -4,13 +4,6 @@
       <img v-if="Wallet.wallet" :src="logo" id="logo">
     </div>
 
-    <div class="mt-5">
-      <h1>{{Wallet.wallet && Wallet.wallet.name}} Registrations</h1>
-    </div>
-
-    <h5>username@domain</h5>
-    <br/>
-
     <div v-if="!regPublicKey && !inputPublicKey">
       <div class="container text-center">
         <div class="card mx-auto">
@@ -104,7 +97,8 @@
           <div>
             <div class="row">
               <div v-if="regAddress" class="col-sm">
-                <h4>Address</h4>
+                <h4>Register FIO Address</h4>
+                <p class="h5"><strong>username</strong>@domain</p>
                 <br/>
                 <FormAccountReg
                   :referralCode="referralCode"
@@ -128,7 +122,8 @@
               </div>
 
               <div v-if="regDomain" class="col-sm">
-                <h4>Domain</h4>
+                <h4>Register FIO Domain</h4>
+                <p class="h5">username@<strong>domain</strong></p>
                 <br/>
                 <FormAccountReg
                   :referralCode="referralCode"
@@ -185,6 +180,11 @@
       </ul>
     </div> -->
   </div>
+  <footer class="footer mt-auto py-3">
+    <div class="container">
+      <span class="text-muted">fioprotocol.io</span>
+    </div>
+  </footer>
 </template>
 
 <script>

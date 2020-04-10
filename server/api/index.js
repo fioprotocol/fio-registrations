@@ -41,5 +41,6 @@ class FioApiDefaults extends FioApi {
 }
 
 module.exports = {
-  FioApi: FioApiDefaults
+  FioApi: FioApiDefaults,
+  fio: new FioApiDefaults()
 }

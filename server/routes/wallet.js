@@ -161,12 +161,20 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
     success: false
   }
 
+  @apiError AlreadyRegistered Account or domain is already register on the blockchain
+  @apiErrorExample {json} AlreadyRegistered
+  HTTP/1.1 400 Bad Request
+  {
+    error: 'Already registered',
+    success: false
+  }
+
   @apiError Unauthorized The Wallet is configured with a $0 account or domain
   price and this API call did not provide a user API Bearer Token header.
   @apiErrorExample {json} Unauthorized
   HTTP/1.1 400 Bad Request
   {
-    error: `Due to the referral code (account|domain) sale price, a user API Bearer Token is required`,
+    error: `Due to the referral code sale price, a user API Bearer Token is required`,
     success: false
   }
 
@@ -186,7 +194,6 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     address, referralCode, publicKey,
     redirectUrl
   } = req.body
-
   const processor = await plugins.payment
 
   const ref = referralCode ? referralCode : process.env.DEFAULT_REFERRAL_CODE
@@ -213,6 +220,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   const addressArray = address.split('@')
   const buyAccount = addressArray.length === 2
   const type = buyAccount ? 'account' : 'domain'
+
   if(!wallet[`${type}_sale_active`]) {
     return res.status(400).send(
       {error: `This referral code is not selling ${type}s.`}
@@ -225,12 +233,16 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     )
   }
 
+  if(await fio.isAccountRegistered(address)) {
+    return res.status(404).send({error: `Already registered`})
+  }
+
   const {name, logo_url} = wallet
   const price = +Number(wallet[`${type}_sale_price`])
 
   if(price === 0) {
     if(!res.state.user_id) {
-      return res.status(401).send({error: `Unauthorized: Due to the referral code ${type} sale price, a user API Bearer Token is required`})
+      return res.status(401).send({error: `Unauthorized: Due to the referral code sale price, a user API Bearer Token is required`})
     }
   }
 

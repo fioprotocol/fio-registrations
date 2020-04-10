@@ -119,7 +119,7 @@ router.get('/public-api/balance/:publicKey', hourlyLimit(200), handler(async (re
   @apiName Summary
 
   @apiDescription
-  Check the status of a account or domain registration
+  Check the status of an account or domain registration
   @apiParamExample {json} POST-Example:
   {
     publicKey: String, // Full FIO public key (like: FIO5fnv..DZSYu)

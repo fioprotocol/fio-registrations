@@ -551,8 +551,16 @@ export default {
 }
 </script>
 
-<style scoped>
+<style scope>
 .account-table {
   max-height: 700px;
+}
+
+.credit {
+  color: red;
+}
+
+code {
+  color: black;
 }
 </style>

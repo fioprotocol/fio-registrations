@@ -18,11 +18,21 @@
         by <b>{{data.item.created_by}}</b>:
       </span>
       &nbsp;
+
       <b>{{address(data.item.address, data.item.domain)}}</b>
-      {{externId(data.item.extern_id)}}
-      <span v-if="data.item.notes">
+
+      <small v-if="data.item.notes">
         &nbsp;{{data.item.notes}}
-      </span>
+      </small>
+
+      <small v-if="data.item.extern_id"
+        id="data.item.extern_id"
+        v-b-tooltip.hover title="Click to Copy"
+        @click="copyExternId(data.item.extern_id)"
+        class="pointer"
+      >
+        {{externId(data.item.extern_id)}}
+      </small>
     </template>
     </b-table>
 
@@ -41,6 +51,7 @@
 import ServerMixin from './ServerMixin'
 import AccountAdjEntry from './AccountAdjEntry'
 import Amount from './Amount'
+import copy from 'clipboard-copy'
 
 export default {
   name: 'Transactions',
@@ -139,9 +150,10 @@ export default {
     },
 
     address(address, domain) {
-      if(!domain) {
-        return address
+      if(!address) {
+        return domain
       }
+
       return `${address}@${domain}`
     },
 
@@ -149,13 +161,25 @@ export default {
       if(!value) {
         return null
       }
+
       if(value.length < 15) {
         return value
       }
+
       // Blockchain transaction ID
       return value.substring(0, 6) + '..' +
         value.substring(value.length - 6, value.length)
+    },
+
+    copyExternId(id) {
+      copy(id)
     }
   }
 }
 </script>
+
+<style scoped>
+.pointer {
+  cursor: pointer;
+}
+</style>

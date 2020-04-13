@@ -1,10 +1,10 @@
 <template>
   <div>
     <span v-if="value < 0">
-      (<code>{{ Math.abs(value).toFixed(2) }}</code>)
+      (<code class="credit">{{ Math.abs(value).toFixed(2) }}</code>)
     </span>
     <span v-else>
-      {{ Math.abs(value).toFixed(2) }}
+      <code>{{ Math.abs(value).toFixed(2) }}</code>
     </span>
   </div>
 </template>

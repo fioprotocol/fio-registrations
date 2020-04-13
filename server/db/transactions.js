@@ -3,8 +3,7 @@ const {sequelize} = db
 
 async function history(publicKey, total) {
   const sumSelect1 = total ? `select
-    sum(total) as total,
-    sum(pending) as pending from (` : ''
+    sum(total) as total from (` : ''
 
   const sumSelect2 = total ? `) balance` : ''
 
@@ -12,24 +11,27 @@ async function history(publicKey, total) {
     ${sumSelect1}
     select
       a.created, 'purchase' as type, ap.id as source_id, ap.extern_id,
-      ap.buy_price as total, ap.buy_price as due, 0.00 as pending,
+      ap.buy_price as total, 0.00 as pending,
       null as created_by, null as notes, a.address, a.domain
       --, ape.*
     from account a
     join account_pay ap on ap.account_id = a.id
     where a.owner_key = :publicKey
+
     union all
+
     select
       created, 'adjustment' as type, adj.id as source_id, '' as extern_id,
-      amount as total, amount as due, cast(0.00 as numeric) as pending,
+      amount as total, cast(0.00 as numeric) as pending,
       created_by, notes, null as address, null as domain
     from account_adj adj
     where owner_key = :publicKey
+
     union all
-    select -- credit / payment total
+
+    select -- payment credit / payment total
       coalesce(ape.extern_time, ape.created), 'payment' as type, ape.id as source_id, extern_id,
       coalesce(ape.confirmed_total * -1, 0.00) as total,
-      coalesce(ape.confirmed_total * -1, 0.00) as due,
       coalesce(ape.pending_total * -1, 0.00) as pending,
       ape.created_by, ape.pay_status_notes,
       a.address, a.domain
@@ -49,7 +51,6 @@ async function history(publicKey, total) {
       te.id as source_id,
       trx_id as extern_id,
       0.00 as total,
-      0.00 as due,
       0.00 as pending,
       te.created_by, te.trx_status_notes, a.address, a.domain
       --, te.*

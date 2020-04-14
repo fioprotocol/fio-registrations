@@ -10,12 +10,17 @@ async function history(publicKey, total) {
   const [result] = await sequelize.query(`
     ${sumSelect1}
     select
-      a.created, 'purchase' as type, ap.id as source_id, ap.extern_id,
+      ae.created, 'purchase' as type, ae.id as source_id, ap.extern_id,
       ap.buy_price as total, 0.00 as pending,
-      null as created_by, null as notes, a.address, a.domain
+      ae.created_by, ae.pay_status as notes, a.address, a.domain
       --, ape.*
     from account a
     join account_pay ap on ap.account_id = a.id
+    join account_pay_event ae on ae.id = (
+      select id from account_pay_event
+      where account_pay_id = ap.id
+      order by id asc limit 1 -- 1st / oldest event
+    )
     where a.owner_key = :publicKey
 
     union all
@@ -29,7 +34,7 @@ async function history(publicKey, total) {
 
     union all
 
-    select -- payment credit / payment total
+    select -- payment
       coalesce(ape.extern_time, ape.created), 'payment' as type, ape.id as source_id, extern_id,
       coalesce(ape.confirmed_total * -1, 0.00) as total,
       coalesce(ape.pending_total * -1, 0.00) as pending,
@@ -66,7 +71,7 @@ async function history(publicKey, total) {
       order by id desc limit 1
     )
     where a.owner_key = :publicKey`}
-    order by 1, 2, 3
+    order by 1, 3
     ${sumSelect2}`, {replacements: {publicKey}}
   )
 

@@ -195,7 +195,7 @@
 
                     <b-col cols="auto" v-if="canCancel(row)">
                       <b-button size="sm" v-b-modal.cancel-modal varient="danger">
-                        Cancel
+                        Cancel Registration
                       </b-button>
                       <b-modal id="cancel-modal" @ok="updateTrxStatus('cancel')"
                         title="Cancel" cancel-title="Abort" ok-title="OK, Cancel"
@@ -372,7 +372,8 @@ export default {
         body: {account_id, new_status}
       })
 
-      this.rowSelect.item.trx_status = new_status
+      // this can change the balance
+      this.lookup()
     },
 
     serverUpdateTrx(row) {
@@ -406,14 +407,12 @@ export default {
     },
 
     pending(pending) {
-      // console.log('pending', pending)
       if( ! pending) {
         this.refreshRowSelect()
       }
     },
 
     canRetry(row) {
-      // trx_status ! /pending|retry|success|cancel/
       return (
         row.item.trx_status === null ||
         /expire|review/.test(row.item.trx_status)
@@ -421,8 +420,6 @@ export default {
     },
 
     canCancel(row) {
-      // trx_status ! /pending|retry|success|cancel/
-      // pay_status ! /pending|success|cancel/
       return (
         row.item.trx_status === null ||
         /expire|review/.test(row.item.trx_status) && (
@@ -433,10 +430,6 @@ export default {
     },
 
     onRowSelected([row]) {
-      // cross-from table to table is problematic
-      // this.$refs['domain-table'][0].clearSelected()
-      // this.$refs['address-table'][0].clearSelected()
-
       if(row) {
         if(this.rowSelect.item) {
           this.rowSelect.item._showDetails = false

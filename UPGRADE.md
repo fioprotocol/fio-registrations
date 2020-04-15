@@ -16,3 +16,15 @@ CREATE UNIQUE INDEX account_domain_owner_key
   USING btree
   (domain COLLATE pg_catalog."default", owner_key COLLATE pg_catalog."default");
 ```
+
+# Upgrading from 0.1.0 to 0.3.0
+
+```sql
+DROP INDEX account_domain_owner_key;
+
+CREATE UNIQUE INDEX account_domain_owner_key
+  ON public.account
+  USING btree
+  (domain COLLATE pg_catalog."default", owner_key COLLATE pg_catalog."default")
+  WHERE address IS NULL;
+```

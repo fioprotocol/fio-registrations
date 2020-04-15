@@ -153,7 +153,7 @@
               </b-table>
 
               <div class="row mt-3" v-if="monitorStatus">
-                <b-col cols="auto" class="ml-auto">
+                <b-col cols="auto">
                   <TrxMonitor
                     :address="row.item.address"
                     :domain="row.item.domain"
@@ -164,7 +164,7 @@
               </div>
 
               <div class="row">
-                <b-col cols="auto" class="ml-auto">
+                <b-col cols="auto">
                   <b-alert variant="danger" dismissible class="mt-3"
                     :show="serverUpdateTrx(row).error"
                   >
@@ -180,7 +180,7 @@
               </div>
 
               <div class="row mt-3">
-                <b-col cols="auto" class="ml-auto">
+                <b-col cols="auto">
                   <div class="row">
                     <b-col cols="auto" v-if="canRetry(row)">
                       <b-button size="sm" v-b-modal.retry-modal>
@@ -421,13 +421,13 @@ export default {
     },
 
     canCancel(row) {
-      // trx_status ! /pending|retry|success|cancel
+      // trx_status ! /pending|retry|success|cancel/
       // pay_status ! /pending|success|cancel/
       return (
         row.item.trx_status === null ||
         /expire|review/.test(row.item.trx_status) && (
           row.item.pay_status === null ||
-          /review/.test(row.item.pay_status)
+          /review|success/.test(row.item.pay_status)
         )
       )
     },

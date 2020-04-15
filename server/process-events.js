@@ -193,7 +193,7 @@ async function broadcastNewAccount({
       })
 
       await db.BlockchainTrxEvent.create({
-        trx_status: 'success',
+        trx_status: 'review',
         trx_status_notes: notes,
         blockchain_trx_id: dbTrx.id
       })

@@ -9,7 +9,7 @@ if(!process.env.COINBASE_WEBHOOK_SECRET) {
   throw new Error('Required: process.env.COINBASE_WEBHOOK_SECRET');
 }
 
-const {pendingStatusMap} = require('./common')
+const {pollingStatusMap} = require('./common')
 
 class Coinbase {
   constructor({syncEvents, debug}) {
@@ -255,7 +255,7 @@ function timelineUpdate(event_id, line, payments) {
   const {status, time, context} = line
   const metadata = {}
 
-  const isPending = pendingStatusMap[context ? context : status]
+  const isPending = pollingStatusMap[context ? context : status]
   if(isPending === undefined) {
     const err = `Unknown status ${status} or context ${context}`
     console.error(`[Coinbase plugin] ${err}`)

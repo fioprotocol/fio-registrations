@@ -1,0 +1,133 @@
+{
+  "data": {
+    "addresses": {
+      "bitcoincash": "qzuk3fj2qsf2va7whdjz8djtzu60lv75lsa5v8e6wh",
+      "litecoin": "MQJT6DD9eWoUf6t5iW9jrqdNNKZgNYuFAC",
+      "bitcoin": "3PLchp853fbromBgrUczSGEwJ65ULhqfd1",
+      "ethereum": "0x53e5f0a87dee52f75f65244b81de1753b648be2c",
+      "usdc": "0x53e5f0a87dee52f75f65244b81de1753b648be2c",
+      "dai": "0x53e5f0a87dee52f75f65244b81de1753b648be2c"
+    },
+    "cancel_url": "http://localhost:8080/ref/fio?publicKey=FIO6jNEi6uJmxtjPANEDz53Ne3Tavmq4eNLAsShVbGB5oDvEA2ZbQ",
+    "code": "KK6T8A52",
+    "created_at": "2020-04-17T12:03:34Z",
+    "description": "Payment for newbie9@pubdomain",
+    "expires_at": "2020-04-17T13:03:34Z",
+    "hosted_url": "https://commerce.coinbase.com/charges/KK6T8A52",
+    "id": "b007efaf-fd26-4602-8be5-a2aab1f64a66",
+    "metadata": {
+      "fpk": "FIO6jNEi6uJmxtjPANEDz53Ne3Tavmq4eNLAsShVbGB5oDvEA2ZbQ"
+    },
+    "name": "FIO Account Registration",
+    "payments": [
+      {
+        "network": "ethereum",
+        "transaction_id": "0x571adc4be30c6d304d73135f9d4c5ee82450a2442cfa22283de6085dc6ad2153",
+        "status": "CONFIRMED",
+        "detected_at": "2020-04-17T12:04:21Z",
+        "value": {
+          "local": {
+            "amount": "0.010217",
+            "currency": "USDC"
+          },
+          "crypto": {
+            "amount": "0.000060000",
+            "currency": "ETH"
+          }
+        },
+        "block": {
+          "height": 9889791,
+          "hash": "0x6e57439cda6cf935b2033e69103a546b64644c2d34ddfb0e034becd8adffa74e",
+          "confirmations": 17,
+          "confirmations_required": 8
+        }
+      },
+      {
+        "network": "ethereum",
+        "transaction_id": "0x768f5c6b130025c90c92208af09726489dbc5f1af76ad3b9058685738dc41a4c",
+        "status": "PENDING",
+        "detected_at": "2020-04-17T12:06:28Z",
+        "value": {
+          "local": {
+            "amount": "0.008514",
+            "currency": "USDC"
+          },
+          "crypto": {
+            "amount": "0.000050000",
+            "currency": "ETH"
+          }
+        },
+        "block": {
+          "height": 9889804,
+          "hash": "0x95d576666c0eef2123f9a8c744cb96eb2545458ee93ad0cebbff8ef5ef27ca5c",
+          "confirmations": 4,
+          "confirmations_required": 8
+        }
+      }
+    ],
+    "pricing": {
+      "local": {
+        "amount": "0.020000",
+        "currency": "USDC"
+      },
+      "bitcoincash": {
+        "amount": "0.00008581",
+        "currency": "BCH"
+      },
+      "litecoin": {
+        "amount": "0.00047450",
+        "currency": "LTC"
+      },
+      "bitcoin": {
+        "amount": "0.00000282",
+        "currency": "BTC"
+      },
+      "ethereum": {
+        "amount": "0.000117000",
+        "currency": "ETH"
+      },
+      "usdc": {
+        "amount": "0.020000",
+        "currency": "USDC"
+      },
+      "dai": {
+        "amount": "0.019596296691851174",
+        "currency": "DAI"
+      }
+    },
+    "pricing_type": "fixed_price",
+    "redirect_url": "http://localhost:8080/ref/fio?publicKey=FIO6jNEi6uJmxtjPANEDz53Ne3Tavmq4eNLAsShVbGB5oDvEA2ZbQ",
+    "resource": "charge",
+    "timeline": [
+      {
+        "status": "NEW",
+        "time": "2020-04-17T12:03:34Z"
+      },
+      {
+        "status": "PENDING",
+        "time": "2020-04-17T12:04:21Z",
+        "payment": {
+          "network": "ethereum",
+          "transaction_id": "0x571adc4be30c6d304d73135f9d4c5ee82450a2442cfa22283de6085dc6ad2153",
+          "value": {
+            "amount": "0.000060000",
+            "currency": "ETH"
+          }
+        }
+      },
+      {
+        "status": "UNRESOLVED",
+        "context": "UNDERPAID",
+        "time": "2020-04-17T12:05:41Z",
+        "payment": {
+          "network": "ethereum",
+          "transaction_id": "0x571adc4be30c6d304d73135f9d4c5ee82450a2442cfa22283de6085dc6ad2153",
+          "value": {
+            "amount": "0.000060000",
+            "currency": "ETH"
+          }
+        }
+      }
+    ]
+  }
+}

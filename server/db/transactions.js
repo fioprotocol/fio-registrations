@@ -19,7 +19,7 @@ async function history(publicKey, type = null) {
       'payment' as type, ape.id as source_id, extern_id,
       coalesce(ape.confirmed_total * -1, 0.00) as total,
       coalesce(ape.pending_total * -1, 0.00) as pending,
-      ape.created_by, coalesce(ape.extern_status, ape.pay_status) as notes,
+      ape.created_by, coalesce(ape.extern_status, ap.pay_source) as notes,
       a.address, a.domain, a.owner_key
       --, ape.*
     from account a

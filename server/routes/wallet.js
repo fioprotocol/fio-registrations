@@ -286,7 +286,6 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       adjPrice === 0
     ) {
       const pay_source = price === 0 ? 'free' : 'credit'
-      const now = String(Date.now())
 
       const accountPay = await db.AccountPay.create({
         pay_source,

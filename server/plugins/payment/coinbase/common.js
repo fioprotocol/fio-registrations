@@ -10,6 +10,7 @@ const pollingStatusMap = {
   'UNRESOLVED': true,
   'UNDERPAID': true,
 
+  'REFUNDED': false,
   'COMPLETED': false,
   'EXPIRED' : false,
   'RESOLVED': false,

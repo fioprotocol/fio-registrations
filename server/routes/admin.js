@@ -84,9 +84,9 @@ router.get('/find/:search', handler(async (req, res) => {
     return res.status(401).send({error: 'Missing url parameter: search'})
   }
 
-  if(search === 'credits') {
-    const credits = await transactions.credits()
-    return res.send({success: {credits}})
+  if(search === 'balances') {
+    const balances = await transactions.balances()
+    return res.send({success: {balances}})
   }
 
   let accountWhere = {}, accountPayWhere = {}

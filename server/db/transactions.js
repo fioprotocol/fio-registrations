@@ -6,12 +6,12 @@ async function history(publicKey, type = null, options = {}) {
 
   const sumSelect1 =
     type === 'total' ? 'select sum(total) as total from (' :
-    type === 'balances' ? 'select sum(total) as total, owner_key from (' :
+    type === 'credits' ? 'select sum(total) as total, owner_key from (' :
     ''
 
   const sumSelect2 =
     type === 'total' ? `) balance` :
-    type === 'balances' ? `) balance group by owner_key having sum(total) <> 0` :
+    type === 'credits' ? `) balance group by owner_key having sum(total) < 0` :
     ''
 
   const [result] = await sequelize.query(`
@@ -108,7 +108,7 @@ async function history(publicKey, type = null, options = {}) {
     return result[0]
   }
 
-  if(type === 'balances') {
+  if(type === 'credits') {
     return result
   }
 
@@ -118,5 +118,5 @@ async function history(publicKey, type = null, options = {}) {
 module.exports = {
   history: (publicKey, options) => history(publicKey, null, options),
   balance: (publicKey, options) => history(publicKey, 'total', options),
-  balances: (publicKey, options) => history(null, 'balances', options),
+  credits: (publicKey, options) => history(null, 'credits', options),
 }

@@ -14,7 +14,7 @@
             <router-link :to="{name: 'find', params: {search: 'expire'}}">expire</router-link>,
             <router-link :to="{name: 'find', params: {search: 'retry'}}">retry</router-link>,
             <router-link :to="{name: 'find', params: {search: 'cancel'}}">cancel</router-link>,
-            <router-link :to="{name: 'find', params: {search: 'balances'}}">balances</router-link>
+            <router-link :to="{name: 'find', params: {search: 'credits'}}">credits</router-link>
           <br/>
           OR Public Key, Address, Domain, Payment Processor ID
         </small>
@@ -227,9 +227,9 @@
       </div>
     </div>
 
-    <div v-if="balances" class="mb-4">
+    <div v-if="credits" class="mb-4">
       <b-table
-        :fields="['owner_key', 'total']" :items="balances"
+        :fields="['owner_key', 'total']" :items="credits"
       >
         <template v-slot:cell(owner_key)="data">
           <router-link href :to="{name: 'find', params: {search: data.value}}">
@@ -504,7 +504,7 @@ export default {
           return false
         }
 
-        if(this.find.success.balances && this.find.success.balances.length > 0) {
+        if(this.find.success.credits && this.find.success.credits.length > 0) {
           return false
         }
       }
@@ -526,11 +526,11 @@ export default {
       return this.find.success.filter(row => row.address === null)
     },
 
-    balances() {
-      if(!this.find.success || !this.find.success.balances) {
+    credits() {
+      if(!this.find.success || !this.find.success.credits) {
         return null
       }
-      return this.find.success.balances
+      return this.find.success.credits
     },
 
     monitorStatus() {

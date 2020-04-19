@@ -441,7 +441,7 @@ export default {
         row.item.trx_status === null ||
         /expire|review/.test(row.item.trx_status) && (
           row.item.pay_status === null ||
-          /review|success/.test(row.item.pay_status)
+          /review|cancel|success/.test(row.item.pay_status)
         )
       )
     },

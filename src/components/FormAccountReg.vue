@@ -24,21 +24,21 @@
             </div>
           </div>
           <div v-if="validatedAddress">
-            <div v-if="freeSale || priceAfterAdjustment === 0">
+            <div v-if="freeSale || priceAfterCredit === 0">
               Register
-              <span v-if="priceAfterAdjustment !== priceBeforeAdjustment">
-                &nbsp;{{freeSale ? '' : '(with credit)'}}
+              <span v-if="priceAfterCredit !== priceBeforeCredit">
+                &nbsp;(with credit)
               </span>
             </div>
             <div v-else>
-              <span>Pay ${{priceAfterAdjustment}}</span>
+              <span>Pay ${{priceAfterCredit}}</span>
 
               <span v-if="!info.paymentInapp">
                  via {{info.pay_source.name}}
                </span>
 
-              <span v-if="priceAfterAdjustment !== priceBeforeAdjustment">
-                &nbsp;(with {{priceAfterAdjustment > priceBeforeAdjustment ? 'debit' : 'credit'}})
+              <span v-if="priceAfterCredit !== priceBeforeCredit">
+                &nbsp;(with credit)
               </span>
             </div>
           </div>
@@ -157,11 +157,11 @@ export default {
     },
 
     freeSale() {
-      return Number(this.priceBeforeAdjustment) === 0
+      return Number(this.priceBeforeCredit) === 0
     },
 
-    adjustment() {
-      return this.Account.adjustment
+    credit() {
+      return this.Account.credit
     },
 
     validatedAddress() {
@@ -201,20 +201,20 @@ export default {
         if(this.freeSale) {
           return {success: `${type} "${this.address}" is available`}
         }
-        return {success: `${type} "${this.address}" is available for $${this.priceBeforeAdjustment}/year`}
+        return {success: `${type} "${this.address}" is available for $${this.priceBeforeCredit}/year`}
       }
       return {}
     },
 
-    priceBeforeAdjustment() {
+    priceBeforeCredit() {
       return this.buyAddress ?
         +Number(this.Wallet.wallet.account_sale_price) :
         +Number(this.Wallet.wallet.domain_sale_price)
     },
 
-    priceAfterAdjustment() {
+    priceAfterCredit() {
       // Math.max will not let the price go negative
-      return +Number(this.priceBeforeAdjustment + this.adjustment).toFixed(2)
+      return +Math.max(0, this.priceBeforeCredit + this.credit).toFixed(2)
     },
   },
 

@@ -112,7 +112,7 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
         metadata: null, // JSON string if processor provides extra info (webhook provides this later)
         pay_source: String, // 'coinbase', 'free', future payment processor
         forward_url: String, // Processor's public URL for payment screen 'https://commerce.coinbase.com/charges/L3WFJJTC'
-        pricing: { // Adjusted amount due (adjustment applied if any)
+        pricing: { // Amount due in full or less credit (if any)
           local: {
             amount: "0.030000",
             currency: "USDC"
@@ -250,16 +250,17 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     return res.status(400).send({error: `Price is too low`})
   }
 
-  // apply adjustment
+  // apply credit
   const balance = await transactions.balance(publicKey)
 
-  let adjustment = 0
+  let credit = 0
   if(balance.total) {
     const bal = +Number(balance.total)
-    adjustment = bal
+    if(bal < 0) {
+      credit = bal
+    }
   }
-
-  const adjPrice = +Number(price + adjustment).toFixed(2)
+  const adjPrice = Math.max(0, +Number(price + credit).toFixed(2))
 
   const result = await db.sequelize.transaction(async transaction => {
     const tr = {transaction}

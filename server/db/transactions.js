@@ -31,7 +31,7 @@ async function history(publicKey, type = null, options = {}) {
 
     union all
 
-    select -- "hold payment" / offset payment until registration or payment finality
+    select -- "hold payment" until registration starts or payment expires
       coalesce(ape.extern_time, ape.created) as created,
       'payment' as type, ape.id as source_id, extern_id,
       coalesce(ape.confirmed_total, 0.00) as total,
@@ -49,16 +49,8 @@ async function history(publicKey, type = null, options = {}) {
         select 1
         from blockchain_trx t
         join blockchain_trx_event e on e.blockchain_trx_id = t.id
-        join blockchain_trx_event le on le.id = (
-          select le.id
-          from blockchain_trx lt
-          join blockchain_trx_event le on le.blockchain_trx_id = lt.id
-          where lt.account_id = t.account_id
-          order by le.id desc limit 1
-        )
         where
-          t.account_id = a.id and
-          (e.trx_status = 'success' or le.trx_status = 'cancel')
+          t.account_id = a.id
       ) and not exists (
         select 1
         from account_pay ja
@@ -82,10 +74,11 @@ async function history(publicKey, type = null, options = {}) {
       'registration' as type,
       te.id as source_id,
       trx_id as extern_id,
-      case
-        when te.trx_status = 'success' then ap.buy_price
-        when te.trx_status = 'cancel' then 0.00
-        else 0.00
+      case -- offset payments and adjustments until reg success or cancel
+        when te.id = le.id and te.trx_status = 'success' then ap.buy_price
+        when te.id = le.id and te.trx_status = 'cancel' then 0.00
+        when te.id = le.id then ap.buy_price -- hold at every last step unless success or cancel
+        else 0.00 -- prior steps do not create a hold (hold only once)
       end as total,
       0.00 as pending,
       te.created_by, te.trx_status || coalesce(': ' || te.trx_status_notes, ''),
@@ -99,9 +92,15 @@ async function history(publicKey, type = null, options = {}) {
     )
     join blockchain_trx t on t.account_id = a.id and t.type = 'register'
     join blockchain_trx_event te on te.blockchain_trx_id = t.id
+    join blockchain_trx_event le on le.id = (
+      select max(le.id)
+      from blockchain_trx lt
+      join blockchain_trx_event le on le.blockchain_trx_id = lt.id
+      where lt.account_id = a.id
+    )
     ${publicKey ? 'where a.owner_key = :publicKey' : ''}
 
-    order by created, source_id, total asc, pending asc
+    order by owner_key, created, source_id, total asc, pending asc
     ${sumSelect2}`, options
   )
 

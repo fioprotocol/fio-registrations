@@ -10,7 +10,7 @@ export default {
   state: {
     availableAccount: null,
     registeredAccount: null,
-    credit: 0,
+    adjustment: 0,
     loading: loading.defaults([
       'isAddressRegistered',
       'isDomainRegistered',
@@ -20,7 +20,7 @@ export default {
   actions: {
     /**
       @arg address format: "address@domain" or just "domain"
-      @arg publicKey is used to check for a credit
+      @arg publicKey is used to check for an adjustment
     */
     async isAccountRegistered({commit, state}, {address, publicKey}) {
       const type = address.indexOf('@') === -1 ? 'Domain' : 'Address'
@@ -33,27 +33,25 @@ export default {
 
         const [result, balanceRes] = await Promise.all([resultReq, balanceReq])
 
-        let credit = 0
+        let adjustment = 0
         if(balanceRes.success) {
           const bal = +Number(balanceRes.balance.total)
-          if(bal < 0) {
-            credit = bal
-          }
+          adjustment = bal
         }
 
         commit('isAccountRegistered', {
-          isRegistered: result, address, credit
+          isRegistered: result, address, adjustment
         })
       })
     },
   },
 
   mutations: {
-    isAccountRegistered(state, {isRegistered, address, credit}) {
+    isAccountRegistered(state, {isRegistered, address, adjustment}) {
       const type = address.indexOf('@') === -1 ? 'Domain' : 'Address'
       loading.done(state.loading[`is${type}Registered`])
 
-      state.credit = credit
+      state.adjustment = adjustment
 
       if(isRegistered) {
         state.registeredAccount = address

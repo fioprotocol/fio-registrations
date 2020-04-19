@@ -80,9 +80,7 @@ async function dbSyncEvents(extern_id, events) {
           paid = true
         } else {
           const balance = await lookupBalance(transaction)
-          if(balance < 0) {
-            paid = confirmed_total >= Number(buy_price + balance).toFixed(2)
-          }
+          paid = confirmed_total >= Number(buy_price + balance).toFixed(2)
         }
       }
 

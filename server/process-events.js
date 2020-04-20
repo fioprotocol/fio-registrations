@@ -78,34 +78,31 @@ async function broadcastPaidNeedingAccounts() {
 
 async function getPaidNeedingAccounts() {
   const [newRegs] = await sequelize.query(`
-    select
+    select distinct
       a.id as account_id,
       a.address,
       a.domain,
       a.owner_key,
       w.tpid
-      --, te.trx_status, ape.pay_status
+      --, a.created, le.trx_status, ae.pay_status
     from account a
     join wallet w on w.id = a.wallet_id
-    join account_pay ap on ap.id = (
-      select max(id) from account_pay
-      where account_id = a.id
-    )
-    join account_pay_event ape on ape.id = (
-      select max(id) from account_pay_event
-      where account_pay_id = ap.id
+    join account_pay ap on ap.account_id = a.id
+    join account_pay_event ae on ae.id = (
+      select max(le.id) from account_pay_event le
+      where le.account_pay_id = ap.id
     )
     left join blockchain_trx t on t.id = (
-      select max(id) from blockchain_trx
-      where account_id = a.id
-    )
-    left join blockchain_trx_event te on te.id = (
-      select max(id) from blockchain_trx_event
-      where blockchain_trx_id = t.id
+      select max(lt.id) from blockchain_trx lt
+      where lt.account_id = a.id
+    ) and t.type = 'register'
+    left join blockchain_trx_event le on le.id = (
+      select max(te.id) from blockchain_trx_event te
+      where te.blockchain_trx_id = t.id
     )
     where
-      (ape.pay_status = 'success' AND te.trx_status IS NULL) OR
-      te.trx_status = 'retry'
+      (ae.pay_status = 'success' AND le.trx_status IS NULL) OR
+      le.trx_status = 'retry'
     order by
       a.id
   `)

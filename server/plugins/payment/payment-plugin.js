@@ -76,7 +76,7 @@ async function dbSyncEvents(extern_id, events) {
       }
 
       if(debug.enabled) {
-        debug({paid, balance, confirmed_total, buy_price,
+        debug('running total = ', {paid, balance, confirmed_total, buy_price,
           account_id: accountPay.account_id})
       }
 

@@ -156,6 +156,7 @@
               <div class="row mt-3" v-if="monitorStatus">
                 <b-col cols="auto">
                   <TrxMonitor
+                    :externId="row.item.extern_id"
                     :address="row.item.address"
                     :domain="row.item.domain"
                     :publicKey="row.item.owner_key"

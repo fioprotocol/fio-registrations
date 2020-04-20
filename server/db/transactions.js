@@ -31,31 +31,37 @@ async function history(publicKey, type = null, options = {}) {
 
     union all
 
-    select -- "hold payment" until registration starts or payment expires
-      coalesce(ape.extern_time, ape.created) as created,
-      'payment' as type, ape.id as source_id, extern_id,
-      coalesce(ape.confirmed_total, 0.00) as total,
-      coalesce(ape.pending_total, 0.00) as pending,
-      ape.created_by, 'hold payment' as notes,
+    select -- "hold" until registration starts or payment expires
+      coalesce(ae.extern_time, ae.created) as created,
+      'payment' as type, ae.id as source_id, extern_id,
+      coalesce(ap.buy_price, 0.00) as total,
+      0.00 as pending,
+      ae.created_by, 'hold' as notes,
       a.address, a.domain, a.owner_key
       --, ape.*
     from account a
     join account_pay ap on ap.account_id = a.id
-    join account_pay_event ape on ape.account_pay_id = ap.id
+    join account_pay_event ae on ae.id = (
+      select max(le.id)
+      from account_pay_event le
+      where le.account_pay_id = ap.id
+    )
     where
       ${publicKey ? 'a.owner_key = :publicKey and' : ''}
-      ape.confirmed_total is not null and
       not exists (
         select 1
         from blockchain_trx t
         join blockchain_trx_event e on e.blockchain_trx_id = t.id
-        where
-          t.account_id = a.id
-      ) and not exists (
+        where t.account_id = a.id
+      ) and not exists ( -- has any pending payments
         select 1
-        from account_pay ja
-        join account_pay_event je on je.account_pay_id = ja.id
-        where ja.account_id = a.id and je.pay_status = 'cancel'
+        from account_pay ap
+        join account_pay_event ae on ae.id = (
+          select max(le.id)
+          from account_pay_event le
+          where le.account_pay_id = ap.id
+        )
+        where ap.account_id = a.id and ae.pay_status = 'cancel'
       )
 
     union all
@@ -100,7 +106,7 @@ async function history(publicKey, type = null, options = {}) {
     )
     ${publicKey ? 'where a.owner_key = :publicKey' : ''}
 
-    order by owner_key, created, source_id, total asc, pending asc
+    order by created, source_id, total asc, pending asc
     ${sumSelect2}`, options
   )
 

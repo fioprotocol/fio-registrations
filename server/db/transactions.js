@@ -1,11 +1,16 @@
 const db = require('./models')
 const {sequelize} = db
 
-async function history(publicKey, total) {
-  const sumSelect1 = total ? `select
-    sum(total) as total from (` : ''
+async function history(publicKey, type = null) {
+  const sumSelect1 =
+    type === 'total' ? 'select sum(total) as total from (' :
+    type === 'credits' ? 'select sum(total) as total, owner_key from (' :
+    ''
 
-  const sumSelect2 = total ? `) balance` : ''
+  const sumSelect2 =
+    type === 'total' ? `) balance` :
+    type === 'credits' ? `) balance group by owner_key having sum(total) < 0` :
+    ''
 
   const [result] = await sequelize.query(`
     ${sumSelect1}
@@ -15,12 +20,12 @@ async function history(publicKey, total) {
       coalesce(ape.confirmed_total * -1, 0.00) as total,
       coalesce(ape.pending_total * -1, 0.00) as pending,
       ape.created_by, coalesce(ape.extern_status, ape.pay_status) as notes,
-      a.address, a.domain
+      a.address, a.domain, a.owner_key
       --, ape.*
     from account a
     join account_pay ap on ap.account_id = a.id
     join account_pay_event ape on ape.account_pay_id = ap.id
-    where a.owner_key = :publicKey
+    ${publicKey ? 'where a.owner_key = :publicKey' : ''}
 
     union all
 
@@ -30,13 +35,13 @@ async function history(publicKey, total) {
       coalesce(ape.confirmed_total, 0.00) as total,
       coalesce(ape.pending_total, 0.00) as pending,
       ape.created_by, 'hold payment' as notes,
-      a.address, a.domain
+      a.address, a.domain, a.owner_key
       --, ape.*
     from account a
     join account_pay ap on ap.account_id = a.id
     join account_pay_event ape on ape.account_pay_id = ap.id
     where
-      a.owner_key = :publicKey and
+      ${publicKey ? 'a.owner_key = :publicKey and' : ''}
       ape.confirmed_total is not null and
       not exists (
         select 1
@@ -64,9 +69,9 @@ async function history(publicKey, total) {
     select
       created, 'adjustment' as type, adj.id as source_id, '' as extern_id,
       amount as total, cast(0.00 as numeric) as pending,
-      created_by, notes, null as address, null as domain
+      created_by, notes, null as address, null as domain, owner_key
     from account_adj adj
-    where owner_key = :publicKey
+    ${publicKey ? 'where owner_key = :publicKey' : ''}
 
     union all
 
@@ -82,7 +87,7 @@ async function history(publicKey, total) {
       end as total,
       0.00 as pending,
       te.created_by, te.trx_status || coalesce(': ' || te.trx_status_notes, ''),
-      a.address, a.domain
+      a.address, a.domain, a.owner_key
       --, te.*
     from account a
     join account_pay ap on ap.id = (
@@ -92,20 +97,25 @@ async function history(publicKey, total) {
     )
     join blockchain_trx t on t.account_id = a.id and t.type = 'register'
     join blockchain_trx_event te on te.blockchain_trx_id = t.id
-    where a.owner_key = :publicKey
+    ${publicKey ? 'where a.owner_key = :publicKey' : ''}
 
     order by created, source_id, total asc, pending asc
     ${sumSelect2}`, {replacements: {publicKey}}
   )
 
-  if(total) {
+  if(type === 'total') {
     return result[0]
+  }
+
+  if(type === 'credits') {
+    return result
   }
 
   return result
 }
 
 module.exports = {
-  history: publicKey => history(publicKey, false),
-  balance: publicKey => history(publicKey, true),
+  history: publicKey => history(publicKey),
+  balance: publicKey => history(publicKey, 'total'),
+  credits: publicKey => history(null, 'credits'),
 }

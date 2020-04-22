@@ -246,7 +246,6 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     }
   }
 
-  // Block free accounts if this server is not forked and implemented for this
   if(type === 'account' && price < process.env.MIN_ADDRESS_PRICE) {
     return res.status(400).send({error: `Price is too low`})
   }
@@ -286,9 +285,11 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       (type === 'account' && price === 0) ||
       adjPrice === 0
     ) {
+      const pay_source = price === 0 ? 'free' : 'credit'
+
       const accountPay = await db.AccountPay.create({
-        pay_source: 'free',
-        extern_id: String(Date.now()),
+        pay_source,
+        extern_id: null,
         buy_price: price,
         account_id: account.id,
       }, tr)

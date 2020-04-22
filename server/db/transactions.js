@@ -1,7 +1,9 @@
 const db = require('./models')
 const {sequelize} = db
 
-async function history(publicKey, type = null) {
+async function history(publicKey, type = null, options = {}) {
+  options.replacements = {publicKey}
+
   const sumSelect1 =
     type === 'total' ? 'select sum(total) as total from (' :
     type === 'credits' ? 'select sum(total) as total, owner_key from (' :
@@ -19,7 +21,7 @@ async function history(publicKey, type = null) {
       'payment' as type, ape.id as source_id, extern_id,
       coalesce(ape.confirmed_total * -1, 0.00) as total,
       coalesce(ape.pending_total * -1, 0.00) as pending,
-      ape.created_by, coalesce(ape.extern_status, ape.pay_status) as notes,
+      ape.created_by, coalesce(ape.extern_status, ap.pay_source) as notes,
       a.address, a.domain, a.owner_key
       --, ape.*
     from account a
@@ -100,7 +102,7 @@ async function history(publicKey, type = null) {
     ${publicKey ? 'where a.owner_key = :publicKey' : ''}
 
     order by created, source_id, total asc, pending asc
-    ${sumSelect2}`, {replacements: {publicKey}}
+    ${sumSelect2}`, options
   )
 
   if(type === 'total') {
@@ -115,7 +117,7 @@ async function history(publicKey, type = null) {
 }
 
 module.exports = {
-  history: publicKey => history(publicKey),
-  balance: publicKey => history(publicKey, 'total'),
-  credits: publicKey => history(null, 'credits'),
+  history: (publicKey, options) => history(publicKey, null, options),
+  balance: (publicKey, options) => history(publicKey, 'total', options),
+  credits: (publicKey, options) => history(null, 'credits', options),
 }

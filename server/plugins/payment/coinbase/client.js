@@ -1,5 +1,5 @@
 const JsonFetch = require('../../../../src/api/json-fetch')
-const {pendingStatusMap} = require('./common')
+const {pollingStatusMap} = require('./common')
 
 class Coinbase {
   constructor() {
@@ -30,7 +30,7 @@ class Coinbase {
     } = charge.data
 
     const {context, status} = timeline[timeline.length - 1]
-    const pending = pendingStatusMap[context ? context : status]
+    const pending = pollingStatusMap[context ? context : status]
     const detected = status === 'NEW' ? false : true
 
     return {

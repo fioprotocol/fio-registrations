@@ -129,6 +129,12 @@ router.get('/public-api/balance/:publicKey', hourlyLimit(200), handler(async (re
   .. or ..
 
   {
+    externId: String // payment processor's ID
+  }
+
+  .. or ..
+
+  {
     address: String, // before the '@'
     domain: String, // after the '@'
     publicKey: String? // purchase attempts may have different owner keys
@@ -183,9 +189,16 @@ router.get('/public-api/balance/:publicKey', hourlyLimit(200), handler(async (re
 router.post('/public-api/summary', handler(async (req, res) => {
   const {publicKey} = req.body
   let {referralCode, trxStatus} = req.body
-  const {address, domain} = req.body
+  let {address, domain, externId} = req.body
 
-  assert(publicKey || domain, 'Public key or domain is required')
+  if(address === '') address = null
+  if(domain === '') domain = null
+  if(externId === '') externId = null
+
+  assert(
+    publicKey || domain || externId,
+    'publicKey, domain, or externId is required'
+  )
 
   if(!referralCode) {
     referralCode = process.env.DEFAULT_REFERRAL_CODE
@@ -267,9 +280,14 @@ router.post('/public-api/summary', handler(async (req, res) => {
           id: {
             // newest payment
             [Op.eq]: sequelize.literal(
-              `( select max(p.id) from account_pay p ` +
-              `join account_pay_event e on e.account_pay_id = p.id ` +
-              `where account_id = "Account"."id" )`
+              `(
+                select max(p.id) from account_pay p ` +
+                `join account_pay_event e on e.account_pay_id = p.id ` +
+                `where account_id = "Account"."id" ` +
+                (externId ?
+                  'and extern_id = ' + sequelize.escape(externId) : ''
+                ) +
+              `)`
             )
           }
         },

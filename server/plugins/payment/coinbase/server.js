@@ -97,7 +97,8 @@ class Coinbase {
 
     if(result.data) {
       const {code, timeline, hosted_url} = result.data
-      const update = timelineUpdate(0, timeline[0])
+      const [update] = payEvents([], [timeline[0]])
+
       update.extern_id = code
       update.forward_url = hosted_url
 
@@ -105,8 +106,10 @@ class Coinbase {
       update.pricing = result.data.pricing
       update.addresses = result.data.addresses
 
+
       return update
     }
+
     throw new Error(JSON.stringify(result))
   }
 
@@ -181,11 +184,11 @@ class Coinbase {
     }
 
     const {code, timeline, payments} = event.data
-    const events = timeline.map(
-      (line, id) => timelineUpdate(id, line, payments))
+    const events = payEvents(payments, timeline)
+    await this.syncEvents(code, events)
 
-    await this.syncEvents(code, events) // ensure events are recorded
-    res.sendStatus(200) // let webhook know not to re-try
+    // let webhook know not to re-try
+    return res.sendStatus(200)
   }
 
   /**
@@ -210,8 +213,7 @@ class Coinbase {
     const result = await this.coinbase.get(`/charges/${code}`)
     if(result.data && typeof Array.isArray(result.data.timeline)) {
       const {timeline, payments} = result.data
-      const events = timeline.map(
-        (line, id) => timelineUpdate(id, line, payments))
+      const events = payEvents(payments, timeline)
 
       if(this.debug.enabled) {
         this.debug('updateChargeHistory', { code, events })
@@ -233,80 +235,102 @@ const webhookEventTypes = {
   'charge:resolved': true // success
 }
 
-/** Total payments for each line in the timeline */
-function totalPaymentsByStatus(payments, upToDateStr) {
-  const upTo = new Date(upToDateStr).getTime()
-  const totals = {}
-  for (var i = 0; i < payments.length; i++) {
-    const {status, detected_at, value} = payments[i]
-    const detected = new Date(detected_at).getTime()
-    if(detected <= upTo) {
-      if(!totals[status]) {
-        totals[status] = 0
+function payEvents(payments, timeline) {
+  const unapplied_payment = []
+
+  // Capture change in payment status from pending to confirmed.
+  for(let payment of payments) {
+    let applied = false
+
+    // Apply payments to timeline (oldest timeline entry first)
+    for(let i = timeline.length - 1; i >= 0; i--) {
+      const line = timeline[i]
+      if(!line.payment) {
+        continue
       }
-      const {amount} = value.local
-      totals[status] += Number(amount)
+
+      if(
+        line.payment.network === payment.network &&
+        line.payment.transaction_id === payment.transaction_id
+      ) {
+        line.apply = {
+          amount: payment.value.local.amount,
+          status: payment.status
+        }
+        applied = true
+        break
+      }
     }
-  }
-  return totals
-}
 
-function timelineUpdate(event_id, line, payments) {
-  const {status, time, context} = line
-  const metadata = {}
-
-  const isPending = pollingStatusMap[context ? context : status]
-  if(isPending === undefined) {
-    const err = `Unknown status ${status} or context ${context}`
-    console.error(`[Coinbase plugin] ${err}`)
-    metadata.unknown_status = err
-  }
-
-  if(
-    (context && status !== 'UNRESOLVED') ||
-    (status === 'UNRESOLVED' && !context)
-  ) {
-    const err = `REVIEW: Unexpected context ${context} for provided status ${status}`
-    console.error(`[Coinbase plugin] ${err}`)
-    metadata.unexpected_status = err
-  }
-
-  let confirmed_total, pending_total
-  if(payments) {
-    const total_usd = totalPaymentsByStatus(payments, time)
-
-    confirmed_total = total_usd['CONFIRMED']
-    delete total_usd['CONFIRMED']
-
-    pending_total = total_usd['PENDING']
-    delete total_usd['PENDING']
-
-    if(Object.keys(total_usd).length) {
-      Object.assign(metadata, {total_usd})
+    if(!applied) {
+      unapplied_payment.push(payment)
     }
   }
 
-  // Extra payment info if exists
-  const keys = Object.keys(line)
-  for (var i = 0; i < keys.length; i++) {
-    const key = keys[i]
-    if(key !== 'status' && key !== 'time' && key !== 'context') {
-      metadata[key] = line[key]
+  const events = []
+
+  for(let i = 0; i < timeline.length; i++) {
+    const line = timeline[i]
+    const {context, status} = line
+
+    const extern_status = context ? context : status
+    const isPending = pollingStatusMap[extern_status]
+    let confirmed_total = null, pending_total = null
+
+    const metadata = {}
+
+    if(line.apply) {
+      if(line.apply.status === 'CONFIRMED') {
+        confirmed_total = line.apply.amount
+      } else if(line.apply.status === 'PENDING') {
+        pending_total = line.apply.amount
+      } else {
+        metadata.unknown_payment_status = line.apply.status
+      }
     }
+
+    events.push({
+      pending: isPending === undefined ? true : isPending,
+      event_id: String(i),
+      extern_status,
+      extern_time: line.time,
+      confirmed_total,
+      pending_total,
+      metadata: Object.keys(metadata).length ? metadata : null
+    })
+
   }
 
-  // Success is not needed, it set by the server-process when
-  // confirmed_total >= buy_price.  Pending === false is an indicator
-  // that the transaction does not need to be monitored anymore.
-  return {
-    pending: isPending === undefined ? true : isPending,
-    event_id: String(event_id),
-    extern_status: context ? context : status,
-    extern_time: time,
-    confirmed_total,
-    pending_total,
-    metadata: Object.keys(metadata).length ? metadata : null
+  // Conbase may show payments that are not in the timeline yet
+  // @see ./examples/unapplied-payment.json
+  for(let i = 0; i < unapplied_payment.length; i++) {
+    const payment = unapplied_payment[i]
+
+    const metadata = {}
+    const isPending = pollingStatusMap[payment.status]
+
+    let confirmed_total = null, pending_total = null
+
+    if(payment.status === 'CONFIRMED') {
+      confirmed_total = payment.value.local.amount
+    } else if(payment.status === 'PENDING') {
+      pending_total = payment.value.local.amount
+    } else {
+      metadata.unknown_payment_status = payment.status
+    }
+
+    events.push({
+      pending: isPending === undefined ? true : isPending,
+      event_id: String(events.length + i),
+      extern_status: payment.status,
+      extern_time: payment.detected_at,
+      confirmed_total,
+      pending_total,
+      metadata: Object.keys(metadata).length ? metadata : null
+    })
   }
+
+  return events
 }
 
 module.exports = Coinbase

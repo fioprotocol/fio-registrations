@@ -156,6 +156,7 @@
               <div class="row mt-3" v-if="monitorStatus">
                 <b-col cols="auto">
                   <TrxMonitor
+                    :externId="row.item.extern_id"
                     :address="row.item.address"
                     :domain="row.item.domain"
                     :publicKey="row.item.owner_key"
@@ -441,7 +442,7 @@ export default {
         row.item.trx_status === null ||
         /expire|review/.test(row.item.trx_status) && (
           row.item.pay_status === null ||
-          /review|success/.test(row.item.pay_status)
+          /review|cancel|success/.test(row.item.pay_status)
         )
       )
     },

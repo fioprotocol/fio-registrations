@@ -41,6 +41,7 @@
           </div>
           <div class="mt-2 mb-4">
             <TrxMonitor
+              :externId="extern_id"
               :address="wallet.address"
               :domain="wallet.domain"
               :publicKey="wallet.owner_key"

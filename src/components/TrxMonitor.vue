@@ -72,6 +72,7 @@ export default {
     referralCode: String,
     address: String,
     domain: String,
+    externId: String,
     topActive: Boolean,
     afterTopActive: Boolean,
     refresh: Number,
@@ -224,7 +225,8 @@ export default {
           referralCode: this.referralCode,
           publicKey: this.publicKey,
           address: this.address,
-          domain: this.domain
+          domain: this.domain,
+          externId: this.externId
         }
       })
     },

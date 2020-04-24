@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <div>
+    <div class="mb-5">
       <img v-if="Wallet.wallet" :src="logo" id="logo">
     </div>
 

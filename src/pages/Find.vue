@@ -13,7 +13,8 @@
             <!-- <router-link :to="{name: 'find', params: {search: 'success'}}">success</router-link>, -->
             <router-link :to="{name: 'find', params: {search: 'expire'}}">expire</router-link>,
             <router-link :to="{name: 'find', params: {search: 'retry'}}">retry</router-link>,
-            <router-link :to="{name: 'find', params: {search: 'cancel'}}">cancel</router-link>
+            <router-link :to="{name: 'find', params: {search: 'cancel'}}">cancel</router-link>,
+            <router-link :to="{name: 'find', params: {search: 'credits'}}">credits</router-link>
           <br/>
           OR Public Key, Address, Domain, Payment Processor ID
         </small>
@@ -155,6 +156,7 @@
               <div class="row mt-3" v-if="monitorStatus">
                 <b-col cols="auto">
                   <TrxMonitor
+                    :externId="row.item.extern_id"
                     :address="row.item.address"
                     :domain="row.item.domain"
                     :publicKey="row.item.owner_key"
@@ -224,6 +226,22 @@
           </b-table>
         </div>
       </div>
+    </div>
+
+    <div v-if="credits" class="mb-4">
+      <b-table
+        :fields="['owner_key', 'total']" :items="credits"
+      >
+        <template v-slot:cell(owner_key)="data">
+          <router-link href :to="{name: 'find', params: {search: data.value}}">
+            {{pubKeyStart(data.value)}}&hellip;{{pubKeyEnd(data.value)}}
+          </router-link>
+        </template>
+
+        <template v-slot:cell(total)="data">
+          <Amount :value="data.value"/>
+        </template>
+      </b-table>
     </div>
 
     <div v-if="isPublicKeySearch && found" class="mb-4">
@@ -424,7 +442,7 @@ export default {
         row.item.trx_status === null ||
         /expire|review/.test(row.item.trx_status) && (
           row.item.pay_status === null ||
-          /review|success/.test(row.item.pay_status)
+          /review|cancel|success/.test(row.item.pay_status)
         )
       )
     },
@@ -446,6 +464,14 @@ export default {
         key: 'refreshPaymentResult',
         path: 'update-payment/' + extern_id
       })
+    },
+
+    pubKeyStart(pubkey) {
+      return pubkey.substring(0, 6)
+    },
+
+    pubKeyEnd(pubkey) {
+      return pubkey.substring(pubkey.length, pubkey.length - 3)
     },
   },
 
@@ -474,8 +500,14 @@ export default {
         return false
       }
 
-      if(this.find.success && this.find.success.length > 0) {
-        return false
+      if(this.find.success) {
+        if(this.find.success.length > 0) {
+          return false
+        }
+
+        if(this.find.success.credits && this.find.success.credits.length > 0) {
+          return false
+        }
       }
 
       return true
@@ -493,6 +525,13 @@ export default {
         return []
       }
       return this.find.success.filter(row => row.address === null)
+    },
+
+    credits() {
+      if(!this.find.success || !this.find.success.credits) {
+        return null
+      }
+      return this.find.success.credits
     },
 
     monitorStatus() {

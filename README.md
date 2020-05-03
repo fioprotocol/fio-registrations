@@ -19,6 +19,8 @@ Route Rules
 
 ## Build and Configure
 
+This is built using node v12 ..
+
 ```
 npm install
 ```

@@ -17,7 +17,7 @@ Route Rules
 * /(address|ref)/:referralCode?/:defaultDomain?
 * /(domain)/:referralCode?
 
-## One Time Project setup
+## Build and Configure
 
 ```
 npm install
@@ -36,7 +36,29 @@ directory during development.
 npm run build
 ```
 
-Create the database schema.  It will not drop tables.
+### Database Setup
+
+Node uses a package called Sequelize to access the database.  Any related
+exceptions will likely mention Sequelize.  The user and the password below
+needs to match the username and password in your `.env-server` DATABASE_URL.
+
+```
+$ sudo su - postgres -c "createuser fio"
+$ sudo su - postgres -c "createdb fio-registrations"
+$ sudo -u postgres psql
+psql (9.6.15)
+Type "help" for help.
+
+postgres=# grant all privileges on database "fio-registrations" to fio;
+GRANT
+postgres=# ALTER ROLE fio WITH PASSWORD 'password';
+ALTER ROLE
+postgres=# ALTER DATABASE "fio-registrations" SET timezone TO 'UTC';
+ALTER DATABASE
+postgres=# \q
+```
+
+Create the database schema.  It will not drop existing tables.
 
 ```
 npm run sync

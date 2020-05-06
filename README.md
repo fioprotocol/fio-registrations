@@ -118,6 +118,30 @@ git push heroku
 heroku config:set NODE_MODULES_CACHE=true
 ```
 
+## Setup
+
+Make sure you provide a WALLET_PRIVATE_KEY to with funds in it that will be
+used to pay for new addresses and/or domains.
+
+Login to the Admin interface using the username and password you provided in
+DEFAULT_USER.  http://localhost:8080/page/login
+
+Click on "Wallets" then "Add new Wallet"
+
+Fill in the fields, take note of the "Referral Code" which will be used
+in the URL address / domain purchase URL.
+
+Make sure to set a price for either the address or domain or both.  Check
+"Address Sale Active" and/or "Domain Sale Active" to enable.  If your
+setting up for free addresses, the address price can be "0" zero.
+
+If your selling addresses, they will need a domain.  Under "Domains" enter
+a public domain (a domain allowed to create addresses) that is registered
+to your WALLET_PRIVATE_KEY.  This domain will appear in the public address
+registration drop-down.  You may register such a domain using this server,
+however it will need to be set public via another method such as the
+clio command line.
+
 ## Development
 
 Example **fio-registration** webhook server.  Replace with a wallet's webhook signature verification key.

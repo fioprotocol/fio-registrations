@@ -74,7 +74,7 @@
 
       <b-form-group id="account-price-group" class="mb-4"
         label="New Account Sale Price:" label-for="account-price"
-        description="Sale price for new accounts (in USD / USDC)"
+        description="Sale price for new accounts (in USD / USDC).  Enter 0 for free addresses."
       >
         <b-form-input id="account-price"
           v-model="form.account_sale_price"
@@ -124,7 +124,7 @@
         >
         </b-form-textarea>
 
-        <small class="text-muted">Provide each @<b>domain</b> on a separate line omitting the preceding colon.</small>
+        <small class="text-muted">Provide each @<b>domain</b> on a separate line (omit the preceding at symbol).  These are public domains that will be selling addresses on this server.</small>
       </b-form-group>
 
       <b-form-group id="webhook-group"
@@ -142,7 +142,7 @@
               placeholder="Enter the secure (https) webhook endpoint to your server."
             >
             </b-form-input>
-            <small class="text-muted">Receive payment and transaction status notifications.</small>
+            <small class="text-muted">Send payment and transaction status notifications to an external webhook.  This is optional.</small>
           </b-col>
           <b-col cols="auto">
             <b-link v-b-modal.webhook-test-modal>

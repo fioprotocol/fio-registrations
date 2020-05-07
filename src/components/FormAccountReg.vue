@@ -68,7 +68,8 @@ export default {
   data() {
     return {
       address: null,
-      validAddress: null
+      validAddress: null,
+      limitError: false
     }
   },
 
@@ -97,12 +98,20 @@ export default {
 
   methods: {
     valid(valid) {
+      this.limitError = false
       this.validAddress = valid
     },
 
     register() {
-      if(!this.validatedAddress) {
+      if (!this.validatedAddress) {
+        this.limitError = false
         const {address, publicKey} = this
+        const selectedDomain = address.split('@')[1]
+        const domainLimit = this.Wallet.wallet.domains_limit[selectedDomain] || {}
+        const registered = this.Wallet.wallet.accountsByDomain[selectedDomain] || 0
+        if (registered >= parseInt(domainLimit)) {
+          return this.limitError = true
+        }
         this.$store.dispatch('Account/isAccountRegistered', {address, publicKey})
       } else {
         const {referralCode, address, publicKey} = this
@@ -181,6 +190,10 @@ export default {
 
       if(this.validAddress === null) {
         return {}
+      }
+
+      if (this.limitError === true) {
+        return { error: 'FIO Address registrations no longer available for that domain' }
       }
 
       if(this.validAddress === false) {

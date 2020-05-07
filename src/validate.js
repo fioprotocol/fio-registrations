@@ -28,6 +28,13 @@ function isValidAddress(address) {
   )
 }
 
+function captchaSuccess(req) {
+  // todo:
+
+  return true
+}
+
 module.exports = {
-  isValidAddress
+  isValidAddress,
+  captchaSuccess
 }

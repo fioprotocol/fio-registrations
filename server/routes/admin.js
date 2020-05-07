@@ -25,6 +25,7 @@ const {Op} = Sequelize
 
 const {PublicKey} = require('@fioprotocol/fiojs').Ecc
 const {checkEncrypt, checkDecrypt} = require('../encryption-check')
+const { getAccountsByDomainsAndStatus } = require('../process-events')
 
 if(!process.env.TITLE) {
   throw new Error('Required: process.env.TITLE')
@@ -391,6 +392,11 @@ router.get('/wallet/:referral_code', handler(async (req, res) => {
       result.webhook_shared_secret
     ).toString()
   }
+  const accountsByDomain = await getAccountsByDomainsAndStatus(wallet.domains)
+  result.accountsByDomain = accountsByDomain.reduce((acc, data) => {
+    acc[data.domain] = parseInt(data.accounts)
+    return acc
+  }, {})
 
   return res.send(result)
 }))

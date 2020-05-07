@@ -33,6 +33,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: []
     },
+    domains_limit: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: {}
+    },
     domain_sale_price: {
       type: DataTypes.NUMERIC(9, 2),
       allowNull: true,
@@ -78,6 +83,16 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: ['pending', 'retry', 'success', 'expire', 'review', 'cancel'],
       comment: 'enabled webhook events'
+    },
+    actor: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: ''
+    },
+    permission: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: ''
     }
   }, {
     tableName: 'wallet'

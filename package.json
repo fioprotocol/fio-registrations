@@ -17,7 +17,7 @@
     "sync": "node ./server/db/sync.js",
     "seed": "sequelize-cli db:seed:all",
     "apidoc-watch": "nodemon -w server/routes/ --exec 'apidoc -i server/routes/ -o public/docs/api'",
-    "postinstall": "npm run sync && npm run seed"
+    "postinstall": "npm run sync && npm run migrate && npm run seed"
   },
   "dependencies": {
     "@fioprotocol/fiojs": "^0.5.1",

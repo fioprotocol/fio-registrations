@@ -10,17 +10,12 @@ router.get("/public-api/gt/register-slide", handler(async (req, res) => {
       console.error(err);
       res.status(500);
       res.send(err);
-      return;
+      return
     }
 
     if (!data.success) {
-      // apirefer
-
-      data.fallback = true;
       res.send(data);
-      // todo
     } else {
-      data.fallback = false;
       res.send(data);
     }
   });

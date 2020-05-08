@@ -12,7 +12,7 @@
           id="check-button"
           type="submit"
           class="btn btn-success mt-4"
-          :disabled="address === null"
+          :disabled="address === null || captchaIsLoading || !isCaptchaInitSuccess"
         >
           <div v-if="!validatedAddress">
             <div v-if="!checkAddressLoading">
@@ -138,7 +138,6 @@ export default {
             }
 
             const captchaParams = {
-              fallback: this.getCaptchaResult.fallback,
               geetest_challenge: result.geetest_challenge,
               geetest_validate: result.geetest_validate,
               geetest_seccode: result.geetest_seccode
@@ -301,7 +300,7 @@ export default {
       }
 
       if (this.captchaErrored) {
-        return {error: 'Service issue. Please try later'}
+        return { error: 'Temporarily unavailable' }
       }
 
       if(this.validatedAddress) {
@@ -311,6 +310,10 @@ export default {
         return {success: `${type} "${this.address}" is available for $${this.priceBeforeCredit}/year`}
       }
       return {}
+    },
+
+    isCaptchaInitSuccess() {
+      return !this.captchaErrored
     },
 
     priceBeforeCredit() {

@@ -22,10 +22,10 @@ if(process.env.MIN_ADDRESS_PRICE == null) {
 }
 
 async function validateCaptcha(req) {
-  const { fallback, geetest_challenge, geetest_validate, geetest_seccode } = req.body
+  const { geetest_challenge, geetest_validate, geetest_seccode } = req.body
   if (!geetest_challenge || !geetest_validate || !geetest_seccode) return false
   return new Promise((resolve, reject) => {
-    geeTest.validate(fallback, {
+    geeTest.validate(false, {
       geetest_challenge,
       geetest_validate,
       geetest_seccode

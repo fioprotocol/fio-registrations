@@ -21,8 +21,9 @@ export default {
     /**
       @arg address format: "address@domain" or just "domain"
       @arg publicKey is used to check for a credit
+      @arg cb callback (optional)
     */
-    async isAccountRegistered({commit, state}, {address, publicKey}) {
+    async isAccountRegistered({commit, state}, {address, publicKey, cb}) {
       const type = address.indexOf('@') === -1 ? 'Domain' : 'Address'
       loading(state.loading[`is${type}Registered`], async () => {
         const resultReq = fio.isAccountRegistered(address)
@@ -44,6 +45,7 @@ export default {
         commit('isAccountRegistered', {
           isRegistered: result, address, credit
         })
+        if (cb) cb(result)
       })
     },
   },

@@ -128,6 +128,7 @@ app.use('/', require('./routes/account'));
 app.use('/', require('./routes/upload'));
 app.use('/', require('./routes/api-bearer'));
 app.use('/', require('./routes/mfa'));
+app.use('/', require('./routes/captcha'));
 
 // '/api/' has extra authentication check in AuthState above
 app.use('/api/', require('./routes/admin'));

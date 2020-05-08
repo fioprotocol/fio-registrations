@@ -13,11 +13,32 @@ const {Sequelize, sequelize} = db
 const {Op} = Sequelize
 
 const {PublicKey} = require('@fioprotocol/fiojs').Ecc
-const { isValidAddress, captchaSuccess } = require('../../src/validate')
+const { isValidAddress } = require('../../src/validate')
 const { getAccountsByDomainsAndStatus } = require('../process-events')
+const geeTest = require('../geetest')
 
 if(process.env.MIN_ADDRESS_PRICE == null) {
   throw new Error('Required: process.env.MIN_ADDRESS_PRICE')
+}
+
+async function validateCaptcha(req) {
+  const { fallback, geetest_challenge, geetest_validate, geetest_seccode } = req.body
+  if (!geetest_challenge || !geetest_validate || !geetest_seccode) return false
+  return new Promise((resolve, reject) => {
+    geeTest.validate(fallback, {
+      geetest_challenge,
+      geetest_validate,
+      geetest_seccode
+    }, (err, success) => {
+      if (err) {
+        return reject(err)
+      } else if (!success) {
+        return reject(false)
+      } else {
+        return resolve(true)
+      }
+    });
+  })
 }
 
 /**
@@ -255,7 +276,13 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   const price = +Number(wallet[`${type}_sale_price`])
 
   if (price === 0) {
-    if(!captchaSuccess(req) && !res.state.user_id) {
+    let isCaptchaSuccess = false
+    try {
+      isCaptchaSuccess = await validateCaptcha(req)
+    } catch (e) {
+      return res.status(400).send({ captchaStatus: 'fail' })
+    }
+    if (!isCaptchaSuccess && !res.state.user_id) {
       return res.status(401).send({error: `Unauthorized: Due to the referral code sale price, a user API Bearer Token is required`})
     }
   }

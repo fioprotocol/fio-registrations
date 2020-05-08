@@ -1,4 +1,3 @@
-
 const accountRe = /^[a-z0-9-]{1,62}$/
 const accountMaxLength = 64
 
@@ -28,13 +27,6 @@ function isValidAddress(address) {
   )
 }
 
-function captchaSuccess(req) {
-  // todo:
-
-  return true
-}
-
 module.exports = {
-  isValidAddress,
-  captchaSuccess
+  isValidAddress
 }

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <form @submit.prevent="register" class="mb-4">
+    <form @submit.prevent="submitForm" class="mb-4">
       <FormAccount
         v-model="address"
         v-on:valid="valid"
@@ -24,7 +24,11 @@
             </div>
           </div>
           <div v-if="validatedAddress">
-            <div v-if="freeSale || priceAfterCredit === 0">
+            <div v-if="captchaIsLoading"
+                 class="mb-1 spinner-grow spinner-grow-sm text-light"
+                 role="status" aria-hidden="true">
+            </div>
+            <div v-else-if="freeSale || priceAfterCredit === 0">
               Register
               <span v-if="priceAfterCredit !== priceBeforeCredit">
                 &nbsp;(with credit)
@@ -59,17 +63,22 @@ import {mapState} from 'vuex'
 import FormAccount from '../components/FormAccount.vue'
 import Alert from '../components/Alert.vue'
 import ServerMixin from './ServerMixin'
+import '../plugins/gt-sdk'
 
 export default {
   mixins: [
-    ServerMixin('buyResult')
+    ServerMixin('buyResult'),
+    ServerMixin('getCaptchaResult')
   ],
 
   data() {
     return {
       address: null,
       validAddress: null,
-      limitError: false
+      limitError: false,
+      captchaObj: null,
+      captchaLoading: false,
+      captchaErrored: false
     }
   },
 
@@ -102,7 +111,8 @@ export default {
       this.validAddress = valid
     },
 
-    register() {
+    submitForm() {
+      if (this.captchaIsLoading) return
       if (!this.validatedAddress) {
         this.limitError = false
         const {address, publicKey} = this
@@ -112,22 +122,73 @@ export default {
         if (registered >= parseInt(domainLimit)) {
           return this.limitError = true
         }
-        this.$store.dispatch('Account/isAccountRegistered', {address, publicKey})
+        this.$store.dispatch('Account/isAccountRegistered', {address, publicKey, cb: isRegistered => {
+          if (this.buyAddress && this.freeSale && !isRegistered) {
+            this.initCaptcha()
+          }
+        }})
       } else {
-        const {referralCode, address, publicKey} = this
-        const redirectUrl = window.location.href
+        if (this.buyAddress && this.freeSale) {
+          if (!this.captchaObj) return
+          this.captchaObj.verify()
+          this.captchaObj.onSuccess(() => {
+            const result = this.captchaObj.getValidate();
+            if (!result) {
+              return alert('Please complete verification');
+            }
 
-        this.$store.dispatch('Server/post', {
-          key: 'buyResult', path: '/public-api/buy-address',
-          body: {address, referralCode, publicKey, redirectUrl}
-        })
+            const captchaParams = {
+              fallback: this.getCaptchaResult.fallback,
+              geetest_challenge: result.geetest_challenge,
+              geetest_validate: result.geetest_validate,
+              geetest_seccode: result.geetest_seccode
+            }
+            this.register(captchaParams)
+          })
+          this.captchaObj.onError(e => {
+            console.log('captcha errored')
+            console.log(e)
+          });
+        } else {
+          this.register()
+        }
       }
+    },
+
+    register(captchaParams = {}) {
+      const { referralCode, address, publicKey } = this
+      const redirectUrl = window.location.href
+
+      this.$store.dispatch('Server/post', {
+        key: 'buyResult', path: '/public-api/buy-address',
+        body: { address, referralCode, publicKey, redirectUrl, ...captchaParams }
+      })
+    },
+
+    initCaptcha() {
+      if (this.captchaObj) {
+        try {
+          this.captchaObj.reset();
+          this.captchaObj = null
+        } catch (e) {
+          //
+          console.log(e);
+        }
+      }
+      this.captchaErrored = false
+      this.$store.dispatch('Server/get', {
+        key: 'getCaptchaResult', path: '/public-api/gt/register-slide'
+      })
     }
   },
 
   watch: {
     ['buyResult._loading']: function(loading) {
-      if(loading) { return }
+      if (loading) { return }
+      if (this.buyResult.captchaStatus === 'fail') {
+        this.captchaObj.reset();
+        return
+      }
       const success = this.buyResult.success
 
       if(success.charge) {
@@ -151,6 +212,31 @@ export default {
         // freeSale account
         this.$emit('registrationPending', true)
       }
+    },
+    ['getCaptchaResult._loading']: function(loading) {
+      this.captchaLoading = true
+      if (loading) return
+      const data = this.getCaptchaResult
+      if (!data.success) {
+        this.captchaObj = null
+        this.captchaLoading = false
+        this.captchaErrored = true
+        return
+      }
+      window.initGeetest({
+        gt: data.gt,
+        challenge: data.challenge,
+        offline: !data.success,
+        new_captcha: true,
+        lang: 'en',
+        product: "bind",
+        width: "400px"
+      }, captchaObj => {
+        captchaObj.onReady(() => {
+          this.captchaLoading = false
+        });
+        this.captchaObj = captchaObj
+      })
     }
   },
 
@@ -176,6 +262,10 @@ export default {
     validatedAddress() {
       return this.address !== null &&
         this.address === this.Account.availableAccount
+    },
+
+    captchaIsLoading() {
+      return this.captchaLoading
     },
 
     checkAddressLoading() {
@@ -208,6 +298,10 @@ export default {
 
       if(this.buyResult.error) {
         return {error: this.buyResult.error}
+      }
+
+      if (this.captchaErrored) {
+        return {error: 'Service issue. Please try later'}
       }
 
       if(this.validatedAddress) {

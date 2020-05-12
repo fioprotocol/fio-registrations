@@ -45,10 +45,10 @@ const regdomain = async (domain, ownerPublic, tpid, walletActor = '', walletPerm
   const maxFee = await fio.getFeeDomain(actor)
   const options = {}
   if (walletActor && walletPermission) {
-    options.authorization = {
+    options.authorization = [{
       actor: walletActor,
       permission: walletPermission
-    }
+    }]
     options.actor = walletActor
   }
   return fio.registerDomain({
@@ -64,10 +64,10 @@ const regaddress = async (address, ownerPublic, tpid, walletActor = '', walletPe
   const maxFee = await fio.getFeeAddress(actor)
   const options = {}
   if (walletActor && walletPermission) {
-    options.authorization = {
+    options.authorization = [{
       actor: walletActor,
       permission: walletPermission
-    }
+    }]
     options.actor = walletActor
   }
   return fio.registerAddress({

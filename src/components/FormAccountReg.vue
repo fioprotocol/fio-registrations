@@ -113,8 +113,11 @@ export default {
 
     submitForm() {
       if (this.captchaIsLoading) return
+      this.limitError = false
+      this.$store.dispatch('Server/reset', {
+        key: 'buyResult'
+      })
       if (!this.validatedAddress) {
-        this.limitError = false
         const {address, publicKey} = this
         const selectedDomain = address.split('@')[1]
         const domainLimit = this.Wallet.wallet.domains_limit[selectedDomain] || {}
@@ -190,7 +193,7 @@ export default {
       }
       const success = this.buyResult.success
 
-      if(success.charge) {
+      if (success && success.charge) {
         if(this.info.paymentInapp || !success.charge.forward_url) {
           const { extern_id } = success.charge
           const { returnUrl } = document.location
@@ -295,7 +298,7 @@ export default {
         return {error: `${type} "${this.address}" is already registered`}
       }
 
-      if(this.buyResult.error) {
+      if (this.buyResult.error) {
         return {error: this.buyResult.error}
       }
 

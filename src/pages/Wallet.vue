@@ -364,7 +364,7 @@ export default {
   methods: {
     onSubmit() {
       const body = JSON.parse(JSON.stringify(this.form))
-      body.domains_limit = JSON.parse(JSON.stringify(this.wallet.domains_limit))
+      body.domains_limit = this.wallet.domains_limit ? JSON.parse(JSON.stringify(this.wallet.domains_limit)) : {}
       body.domains = this.form.domains.map(({ domain, limit }) => {
         body.domains_limit[domain] = limit
         return domain
@@ -379,7 +379,7 @@ export default {
       }
 
       body.newWallet = this.newWallet
-      if(this.newWallet) {
+      if (this.newWallet) {
         this.forwardAfterSave = true
       }
 
@@ -435,8 +435,10 @@ export default {
         return false
       }
       const form = this.formatWalletToForm()
-      for(let key in this.form) {
-        if(this.form[key] !== form[key]) {
+      for (let key in this.form) {
+        if (key === 'domains') {
+          if (JSON.stringify(this.form[key]) !== JSON.stringify(form[key])) return true
+        } else if (this.form[key] !== form[key]) {
           return true
         }
       }

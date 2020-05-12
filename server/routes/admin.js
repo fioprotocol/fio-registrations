@@ -392,7 +392,7 @@ router.get('/wallet/:referral_code', handler(async (req, res) => {
       result.webhook_shared_secret
     ).toString()
   }
-  const accountsByDomain = await getAccountsByDomainsAndStatus(wallet.domains)
+  const accountsByDomain = await getAccountsByDomainsAndStatus(wallet.id, wallet.domains)
   result.accountsByDomain = accountsByDomain.reduce((acc, data) => {
     acc[data.domain] = parseInt(data.accounts)
     return acc

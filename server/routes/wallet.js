@@ -77,7 +77,7 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
     }
   })
 
-  const accountsByDomain = await getAccountsByDomainsAndStatus(wallet.domains)
+  const accountsByDomain = await getAccountsByDomainsAndStatus(wallet.id, wallet.domains)
 
   const plainWallet = wallet ? wallet.get({ plain: true }) : {}
   if (plainWallet.id) {
@@ -260,11 +260,11 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   }
 
   if (buyAccount) {
-    const accountsByDomain = await getAccountsByDomainsAndStatus([addressArray[1]])
+    const accountsByDomain = await getAccountsByDomainsAndStatus(wallet.id, [addressArray[1]])
     const accountsNumber = accountsByDomain.length ? parseInt(accountsByDomain[0].accounts) : 0
-    const domainsLimit = wallet.domains_limit[addressArray[1]] || {}
-    if (accountsNumber >= parseInt(domainsLimit.limit)) {
-      return res.status(400).send({error: `FIO Address registrations no longer available for that domain`})
+    const domainsLimit = wallet.domains_limit[addressArray[1]] || null
+    if (domainsLimit !== null && accountsNumber >= parseInt(domainsLimit)) {
+      return res.status(400).send({ error: `FIO Address registrations no longer available for that domain` })
     }
   }
 

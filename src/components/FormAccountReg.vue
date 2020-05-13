@@ -1,6 +1,6 @@
 <template>
   <div>
-    <form @submit.prevent="register" class="mb-4">
+    <form @submit.prevent="submitForm" class="mb-4">
       <FormAccount
         v-model="address"
         v-on:valid="valid"
@@ -12,7 +12,7 @@
           id="check-button"
           type="submit"
           class="btn btn-success mt-4"
-          :disabled="address === null"
+          :disabled="address === null || captchaIsLoading || !isCaptchaInitSuccess"
         >
           <div v-if="!validatedAddress">
             <div v-if="!checkAddressLoading">
@@ -24,7 +24,11 @@
             </div>
           </div>
           <div v-if="validatedAddress">
-            <div v-if="freeSale || priceAfterCredit === 0">
+            <div v-if="captchaIsLoading"
+                 class="mb-1 spinner-grow spinner-grow-sm text-light"
+                 role="status" aria-hidden="true">
+            </div>
+            <div v-else-if="freeSale || priceAfterCredit === 0">
               Register
               <span v-if="priceAfterCredit !== priceBeforeCredit">
                 &nbsp;(with credit)
@@ -59,16 +63,22 @@ import {mapState} from 'vuex'
 import FormAccount from '../components/FormAccount.vue'
 import Alert from '../components/Alert.vue'
 import ServerMixin from './ServerMixin'
+import '../plugins/gt-sdk'
 
 export default {
   mixins: [
-    ServerMixin('buyResult')
+    ServerMixin('buyResult'),
+    ServerMixin('getCaptchaResult')
   ],
 
   data() {
     return {
       address: null,
-      validAddress: null
+      validAddress: null,
+      limitError: false,
+      captchaObj: null,
+      captchaLoading: false,
+      captchaErrored: false
     }
   },
 
@@ -97,31 +107,93 @@ export default {
 
   methods: {
     valid(valid) {
+      this.limitError = false
       this.validAddress = valid
     },
 
-    register() {
-      if(!this.validatedAddress) {
+    submitForm() {
+      if (this.captchaIsLoading) return
+      this.limitError = false
+      this.$store.dispatch('Server/reset', {
+        key: 'buyResult'
+      })
+      if (!this.validatedAddress) {
         const {address, publicKey} = this
-        this.$store.dispatch('Account/isAccountRegistered', {address, publicKey})
+        const selectedDomain = address.split('@')[1]
+        const domainLimit = this.Wallet.wallet.domains_limit[selectedDomain] || {}
+        const registered = this.Wallet.wallet.accountsByDomain[selectedDomain] || 0
+        if (registered >= parseInt(domainLimit)) {
+          return this.limitError = true
+        }
+        this.$store.dispatch('Account/isAccountRegistered', {address, publicKey, cb: isRegistered => {
+          if (this.buyAddress && this.freeSale && !isRegistered) {
+            this.initCaptcha()
+          }
+        }})
       } else {
-        const {referralCode, address, publicKey} = this
-        const redirectUrl = window.location.href
+        if (this.buyAddress && this.freeSale) {
+          if (!this.captchaObj) return
+          this.captchaObj.verify()
+          this.captchaObj.onSuccess(() => {
+            const result = this.captchaObj.getValidate();
+            if (!result) {
+              return alert('Please complete verification');
+            }
 
-        this.$store.dispatch('Server/post', {
-          key: 'buyResult', path: '/public-api/buy-address',
-          body: {address, referralCode, publicKey, redirectUrl}
-        })
+            const captchaParams = {
+              geetest_challenge: result.geetest_challenge,
+              geetest_validate: result.geetest_validate,
+              geetest_seccode: result.geetest_seccode
+            }
+            this.register(captchaParams)
+          })
+          this.captchaObj.onError(e => {
+            console.log('captcha errored')
+            console.log(e)
+          });
+        } else {
+          this.register()
+        }
       }
+    },
+
+    register(captchaParams = {}) {
+      const { referralCode, address, publicKey } = this
+      const redirectUrl = window.location.href
+
+      this.$store.dispatch('Server/post', {
+        key: 'buyResult', path: '/public-api/buy-address',
+        body: { address, referralCode, publicKey, redirectUrl, ...captchaParams }
+      })
+    },
+
+    initCaptcha() {
+      if (this.captchaObj) {
+        try {
+          this.captchaObj.reset();
+          this.captchaObj = null
+        } catch (e) {
+          //
+          console.log(e);
+        }
+      }
+      this.captchaErrored = false
+      this.$store.dispatch('Server/get', {
+        key: 'getCaptchaResult', path: '/public-api/gt/register-slide'
+      })
     }
   },
 
   watch: {
     ['buyResult._loading']: function(loading) {
-      if(loading) { return }
+      if (loading) { return }
+      if (this.buyResult.captchaStatus === 'fail') {
+        this.captchaObj.reset();
+        return
+      }
       const success = this.buyResult.success
 
-      if(success.charge) {
+      if (success && success.charge) {
         if(this.info.paymentInapp || !success.charge.forward_url) {
           const { extern_id } = success.charge
           const { returnUrl } = document.location
@@ -142,6 +214,31 @@ export default {
         // freeSale account
         this.$emit('registrationPending', true)
       }
+    },
+    ['getCaptchaResult._loading']: function(loading) {
+      this.captchaLoading = true
+      if (loading) return
+      const data = this.getCaptchaResult
+      if (!data.success) {
+        this.captchaObj = null
+        this.captchaLoading = false
+        this.captchaErrored = true
+        return
+      }
+      window.initGeetest({
+        gt: data.gt,
+        challenge: data.challenge,
+        offline: !data.success,
+        new_captcha: true,
+        lang: 'en',
+        product: "bind",
+        width: "400px"
+      }, captchaObj => {
+        captchaObj.onReady(() => {
+          this.captchaLoading = false
+        });
+        this.captchaObj = captchaObj
+      })
     }
   },
 
@@ -169,6 +266,10 @@ export default {
         this.address === this.Account.availableAccount
     },
 
+    captchaIsLoading() {
+      return this.captchaLoading
+    },
+
     checkAddressLoading() {
       const type = this.buyAddress ? 'Address' : 'Domain'
       return this.Account.loading[`is${type}Registered`]._loading
@@ -183,6 +284,10 @@ export default {
         return {}
       }
 
+      if (this.limitError === true) {
+        return { error: 'FIO Address registrations no longer available for that domain' }
+      }
+
       if(this.validAddress === false) {
         const type = this.buyAddress ? 'address' : 'domain'
         return {error: 'Invalid ' + type}
@@ -193,8 +298,12 @@ export default {
         return {error: `${type} "${this.address}" is already registered`}
       }
 
-      if(this.buyResult.error) {
+      if (this.buyResult.error) {
         return {error: this.buyResult.error}
+      }
+
+      if (this.captchaErrored) {
+        return { error: 'Temporarily unavailable' }
       }
 
       if(this.validatedAddress) {
@@ -204,6 +313,10 @@ export default {
         return {success: `${type} "${this.address}" is available for $${this.priceBeforeCredit}/year`}
       }
       return {}
+    },
+
+    isCaptchaInitSuccess() {
+      return !this.captchaErrored
     },
 
     priceBeforeCredit() {

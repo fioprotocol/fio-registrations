@@ -74,7 +74,7 @@
 
       <b-form-group id="account-price-group" class="mb-4"
         label="New Account Sale Price:" label-for="account-price"
-        description="Sale price for new accounts (in USD / USDC)"
+        description="Sale price for new accounts (in USD / USDC).  Enter 0 for free addresses."
       >
         <b-form-input id="account-price"
           v-model="form.account_sale_price"
@@ -115,16 +115,49 @@
         <small class="text-muted">Enter the benificary account name <b>account@domain</b> (if any) that will receive fees from new registered accounts.</small>
       </b-form-group>
 
-      <b-form-group id="domains-group"
+      <b-form-group id="actor-group"
+        label="Actor:" label-for="actor" type="text"
+      >
+        <b-form-input id="actor" v-model="form.actor"
+          placeholder="Enter actor" :state="actorValidation"
+          minlength="7" maxlength="127"
+        >
+        </b-form-input>
+
+        <small class="text-muted">Enter actor...</small>
+      </b-form-group>
+
+      <b-form-group id="permission-group"
+        label="Permission:" label-for="permission" type="text"
+      >
+        <b-form-input id="permission" v-model="form.permission"
+          placeholder="Enter permission" :state="permissionValidation"
+          minlength="7" maxlength="127"
+        >
+        </b-form-input>
+
+        <small class="text-muted">Enter permission...</small>
+      </b-form-group>
+
+      <!--<b-form-group id="domains-group"-->
+        <!--label="Domains:" label-for="domains"-->
+      <!--&gt;-->
+        <!--<b-form-textarea id="domains" v-model="form.domains"-->
+          <!--placeholder="Enter domains" required-->
+          <!--:state="domainsValidation"-->
+        <!--&gt;-->
+        <!--</b-form-textarea>-->
+
+        <!--<small class="text-muted">Provide each @<b>domain</b> on a separate line (omit the preceding at symbol).  These are public domains that will be selling addresses on this server.</small>-->
+      <!--</b-form-group>-->
+
+      <b-button size="sm float-right" @click="addDomain" variant="primary">Add</b-button>
+      <b-form-group id="n-domains-group"
         label="Domains:" label-for="domains"
       >
-        <b-form-textarea id="domains" v-model="form.domains"
-          placeholder="Enter domains" required
-          :state="domainsValidation"
-        >
-        </b-form-textarea>
-
-        <small class="text-muted">Provide each @<b>domain</b> on a separate line omitting the preceding colon.</small>
+        <DomainList :domains="form.domains" :removeDomain="removeDomain">
+        </DomainList>
+        <small class="text-muted">Click 'add' to create new @<b>domain</b>. These are public domains that will be selling addresses on this server.</small>
       </b-form-group>
 
       <b-form-group id="webhook-group"
@@ -142,7 +175,7 @@
               placeholder="Enter the secure (https) webhook endpoint to your server."
             >
             </b-form-input>
-            <small class="text-muted">Receive payment and transaction status notifications.</small>
+            <small class="text-muted">Send payment and transaction status notifications to an external webhook.  This is optional.</small>
           </b-col>
           <b-col cols="auto">
             <b-link v-b-modal.webhook-test-modal>
@@ -207,6 +240,7 @@
 <script>
 import {mapState} from 'vuex'
 import WebhookProperties from '../components/WebhookProperties'
+import DomainList from "../components/DomainList";
 
 function formDefaults () {
   return {
@@ -220,6 +254,8 @@ function formDefaults () {
     account_sale_active: false,
 
     tpid: '',
+    actor: '',
+    permission: '',
 
     webhook_endpoint: '',
     webhook_enabled: false,
@@ -228,7 +264,11 @@ function formDefaults () {
     webhook_trx_events: ['pending', 'retry', 'success', 'expire', 'review', 'cancel'],
 
     logo_url: '',
-    domains: '',
+    domains: [{
+      domain: '',
+      limit: null,
+      registered: 0
+    }],
 
     forwardAfterSave: false
   }
@@ -238,6 +278,7 @@ export default {
   name: 'Wallet',
 
   components: {
+    DomainList,
     WebhookProperties
   },
 
@@ -323,7 +364,11 @@ export default {
   methods: {
     onSubmit() {
       const body = JSON.parse(JSON.stringify(this.form))
-      body.domains = this.form.domains.split('\n')
+      body.domains_limit = this.wallet.domains_limit ? JSON.parse(JSON.stringify(this.wallet.domains_limit)) : {}
+      body.domains = this.form.domains.map(({ domain, limit }) => {
+        body.domains_limit[domain] = limit
+        return domain
+      })
 
       if(
         this.wallet.webhook_enabled !== null && // already enabled
@@ -334,13 +379,25 @@ export default {
       }
 
       body.newWallet = this.newWallet
-      if(this.newWallet) {
+      if (this.newWallet) {
         this.forwardAfterSave = true
       }
 
       this.$store.dispatch('Server/post', {
         key: 'upsertWallet', path: 'wallet', body
       })
+    },
+
+    addDomain() {
+      this.form.domains.push({
+        domain: '',
+        limit: null,
+        registered: null
+      })
+    },
+
+    removeDomain(key) {
+      this.form.domains.splice(key, 1)
     },
 
     formatWalletToForm() {
@@ -350,8 +407,11 @@ export default {
         let value
         if(key === 'webhook_enabled') {
           value = this.wallet[key] != null
-        } else if(key === 'domains') {
-          value = this.wallet[key] ? this.wallet[key].join('\n') : ''
+        } else if (key === 'domains') {
+          value = this.wallet.domains ? this.wallet.domains.map(domain => {
+            const domainLimit = this.wallet.domains_limit[domain] ? this.wallet.domains_limit[domain] : null
+            return { domain, limit: domainLimit, registered: this.wallet.accountsByDomain[domain] }
+          }) : []
         } else {
           const walletValue = this.wallet[key]
           value = walletValue == null ? defaults[key] : walletValue
@@ -375,8 +435,10 @@ export default {
         return false
       }
       const form = this.formatWalletToForm()
-      for(let key in this.form) {
-        if(this.form[key] !== form[key]) {
+      for (let key in this.form) {
+        if (key === 'domains') {
+          if (JSON.stringify(this.form[key]) !== JSON.stringify(form[key])) return true
+        } else if (this.form[key] !== form[key]) {
           return true
         }
       }
@@ -429,8 +491,18 @@ export default {
         /^[a-zA-Z0-9@-]{4,}$/.test(this.form.tpid)
     },
 
+    actorValidation() {
+      return this.form.actor === '' ||
+        /^[a-zA-Z0-9]{12,12}$/.test(this.form.actor)
+    },
+
+    permissionValidation() {
+      return this.form.permission === '' ||
+        /(^[a-z1-5.]{0,11}[a-z1-5]$)|(^[a-z1-5.]{12}[a-j1-5]$)/.test(this.form.permission)
+    },
+
     domainsValidation() {
-      return this.form.domains.trim() !== ''
+      return this.form.domains.length > 0
     },
 
     webhookValidation() {

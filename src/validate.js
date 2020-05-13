@@ -1,4 +1,3 @@
-
 const accountRe = /^[a-z0-9-]{1,62}$/
 const accountMaxLength = 64
 

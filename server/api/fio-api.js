@@ -47,28 +47,32 @@ class FioApi extends FioClient {
     return this.chain.post('/get_block', {block_num_or_id: blockNumOrId})
   }
 
-  registerDomain({domain, ownerPublic, maxFee, tpid, actor}) {
+  registerDomain({domain, ownerPublic, maxFee, tpid, actor}, options = {}) {
     return {
       account: 'fio.address',
       name: 'regdomain',
-      authorization: this.options.authorization,
+      authorization: options.authorization || this.options.authorization,
       data: {
         fio_domain: domain,
         owner_fio_public_key: ownerPublic,
-        max_fee: maxFee, tpid, actor
+        max_fee: maxFee,
+        tpid,
+        actor: options.actor || actor
       }
     }
   }
 
-  registerAddress({address, ownerPublic, maxFee, tpid, actor}) {
+  registerAddress({address, ownerPublic, maxFee, tpid, actor}, options = {}) {
     return {
       account: 'fio.address',
       name: 'regaddress',
-      authorization: this.options.authorization,
+      authorization: options.authorization || this.options.authorization,
       data: {
         fio_address: address,
         owner_fio_public_key: ownerPublic,
-        max_fee: maxFee, tpid, actor
+        max_fee: maxFee,
+        tpid,
+        actor: options.actor || actor
       }
     }
   }

@@ -41,26 +41,42 @@ async function all() {
     .catch(err => console.error(err))
 }
 
-const regdomain = async (domain, ownerPublic, tpid) => {
+const regdomain = async (domain, ownerPublic, tpid, walletActor = '', walletPermission = '') => {
   const maxFee = await fio.getFeeDomain(actor)
+  const options = {}
+  if (walletActor && walletPermission) {
+    options.authorization = [{
+      actor: walletActor,
+      permission: walletPermission
+    }]
+    options.actor = walletActor
+  }
   return fio.registerDomain({
     domain,
     ownerPublic,
     maxFee,
     tpid,
     actor
-  })
+  }, options)
 }
 
-const regaddress = async (address, ownerPublic, tpid) => {
+const regaddress = async (address, ownerPublic, tpid, walletActor = '', walletPermission = '') => {
   const maxFee = await fio.getFeeAddress(actor)
+  const options = {}
+  if (walletActor && walletPermission) {
+    options.authorization = [{
+      actor: walletActor,
+      permission: walletPermission
+    }]
+    options.actor = walletActor
+  }
   return fio.registerAddress({
     address,
     ownerPublic,
     maxFee,
     tpid,
     actor
-  })
+  }, options)
 }
 
 /**
@@ -83,7 +99,9 @@ async function getPaidNeedingAccounts() {
       a.address,
       a.domain,
       a.owner_key,
-      w.tpid
+      w.tpid,
+      w.actor,
+      w.permission
       --, a.created, le.trx_status, ae.pay_status
     from account a
     join wallet w on w.id = a.wallet_id
@@ -109,6 +127,28 @@ async function getPaidNeedingAccounts() {
   return newRegs
 }
 
+async function getAccountsByDomainsAndStatus(walletId, domains = [], statuses = ['success', 'pending']) {
+  const domainWhere = domains.length ? ` and a.domain in (${domains.map(domain => `'${domain}'`).join(',')}) ` : ''
+  const statusesWhere = statuses.length > 1 ? ` (${statuses.map(status => `le.trx_status = '${status}'`).join(' OR ')}) ` : ` le.trx_status = '${status}' `
+  const [accounts] = await sequelize.query(`
+    select a.domain, count(distinct a.id) as accounts
+    from account a
+    join blockchain_trx t on t.account_id = a.id
+    join blockchain_trx_event le on le.id = (
+      select max(le.id)
+      from blockchain_trx lt
+      join blockchain_trx_event le on le.blockchain_trx_id = lt.id
+      where lt.account_id = a.id
+    )
+    where a.wallet_id=${walletId} and
+      ${statusesWhere}
+      ${domainWhere}
+    group by
+      a.domain
+  `)
+  return accounts
+}
+
 /**
   <h4>any or no status => pending or review</h4>
 
@@ -121,12 +161,14 @@ async function broadcastNewAccount({
   domain,
   address,
   owner_key,
-  tpid
+  tpid,
+  actor,
+  permission
 }) {
   const account = (address ? address + '@' : '') + domain
   const regAction = address ?
-    await regaddress( account, owner_key, tpid ) :
-    await regdomain( domain, owner_key, tpid )
+    await regaddress( account, owner_key, tpid, actor, permission ) :
+    await regdomain( domain, owner_key, tpid, actor, permission )
 
   let transaction, trx_id, expiration
 
@@ -433,6 +475,7 @@ function nameExists(names, address, domain) {
 module.exports = {
   all: trace({all}),
   getPaidNeedingAccounts,
+  getAccountsByDomainsAndStatus,
   broadcastPaidNeedingAccounts,
   broadcastNewAccount,
   checkIrreversibility,

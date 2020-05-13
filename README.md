@@ -17,7 +17,9 @@ Route Rules
 * /(address|ref)/:referralCode?/:defaultDomain?
 * /(domain)/:referralCode?
 
-## One Time Project setup
+## Build and Configure
+
+This is built using node v12 ..
 
 ```
 npm install
@@ -36,7 +38,29 @@ directory during development.
 npm run build
 ```
 
-Create the database schema.  It will not drop tables.
+### Database Setup
+
+Node uses a package called Sequelize to access the database.  Any related
+exceptions will likely mention Sequelize.  The user and the password below
+needs to match the username and password in your `.env-server` DATABASE_URL.
+
+```
+$ sudo su - postgres -c "createuser fio"
+$ sudo su - postgres -c "createdb fio-registrations"
+$ sudo -u postgres psql
+psql (9.6.15)
+Type "help" for help.
+
+postgres=# grant all privileges on database "fio-registrations" to fio;
+GRANT
+postgres=# ALTER ROLE fio WITH PASSWORD 'password';
+ALTER ROLE
+postgres=# ALTER DATABASE "fio-registrations" SET timezone TO 'UTC';
+ALTER DATABASE
+postgres=# \q
+```
+
+Create the database schema.  It will not drop existing tables.
 
 ```
 npm run sync
@@ -93,6 +117,30 @@ heroku config:set NODE_MODULES_CACHE=false
 git push heroku
 heroku config:set NODE_MODULES_CACHE=true
 ```
+
+## Setup
+
+Make sure you provide a WALLET_PRIVATE_KEY to with funds in it that will be
+used to pay for new addresses and/or domains.
+
+Login to the Admin interface using the username and password you provided in
+DEFAULT_USER.  http://localhost:8080/page/login
+
+Click on "Wallets" then "Add new Wallet"
+
+Fill in the fields, take note of the "Referral Code" which will be used
+in the URL address / domain purchase URL.
+
+Make sure to set a price for either the address or domain or both.  Check
+"Address Sale Active" and/or "Domain Sale Active" to enable.  If your
+setting up for free addresses, the address price can be "0" zero.
+
+If your selling addresses, they will need a domain.  Under "Domains" enter
+a public domain (a domain allowed to create addresses) that is registered
+to your WALLET_PRIVATE_KEY.  This domain will appear in the public address
+registration drop-down.  You may register such a domain using this server,
+however it will need to be set public via another method such as the
+clio command line.
 
 ## Development
 

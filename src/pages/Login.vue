@@ -72,7 +72,13 @@
         </div>
       </b-form>
 
-      <br/><alert :object="Login.alert"></alert>
+      <b-alert variant="danger" dismissible class="mt-3" :show="Login.alert.error" >
+        {{Login.alert.error}}
+      </b-alert>
+
+      <b-alert variant="success" dismissible class="mt-3" :show="Login.alert.success" >
+        {{Login.alert.success}}
+      </b-alert>
 
     </div>
   </main-layout>
@@ -81,14 +87,14 @@
 <script>
 import {mapState} from 'vuex'
 import MainLayout from '../layouts/Main.vue'
-import Alert from '../components/Alert.vue'
+import {BAlert} from 'bootstrap-vue'
 
 export default {
   name: 'Login',
 
   components: {
     MainLayout,
-    Alert
+    BAlert
   },
 
   data() {

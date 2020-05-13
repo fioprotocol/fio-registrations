@@ -13,10 +13,32 @@ const {Sequelize, sequelize} = db
 const {Op} = Sequelize
 
 const {PublicKey} = require('@fioprotocol/fiojs').Ecc
-const {isValidAddress} = require('../../src/validate')
+const { isValidAddress } = require('../../src/validate')
+const { getAccountsByDomainsAndStatus } = require('../process-events')
+const geeTest = require('../geetest')
 
 if(process.env.MIN_ADDRESS_PRICE == null) {
   throw new Error('Required: process.env.MIN_ADDRESS_PRICE')
+}
+
+async function validateCaptcha(req) {
+  const { geetest_challenge, geetest_validate, geetest_seccode } = req.body
+  if (!geetest_challenge || !geetest_validate || !geetest_seccode) return false
+  return new Promise((resolve, reject) => {
+    geeTest.validate(false, {
+      geetest_challenge,
+      geetest_validate,
+      geetest_seccode
+    }, (err, success) => {
+      if (err) {
+        return reject(err)
+      } else if (!success) {
+        return reject(false)
+      } else {
+        return resolve(true)
+      }
+    });
+  })
 }
 
 /**
@@ -43,6 +65,7 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
   const wallet = await db.Wallet.findOne({
     attributes: [
       'id', 'name', 'logo_url', 'domains',
+      'domains_limit',
       'domain_sale_price',
       'account_sale_price',
       'domain_sale_active',
@@ -54,15 +77,17 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
     }
   })
 
-  const {
-    id, name, logo_url, domains,
-    domain_sale_price,
-    account_sale_price,
-    domain_sale_active,
-    account_sale_active
-  } = wallet || {}
+  const accountsByDomain = await getAccountsByDomainsAndStatus(wallet.id, wallet.domains)
 
-  return res.send({success: wallet});
+  const plainWallet = wallet ? wallet.get({ plain: true }) : {}
+  if (plainWallet.id) {
+    plainWallet.accountsByDomain = accountsByDomain.reduce((acc, data) => {
+      acc[data.domain] = parseInt(data.accounts)
+      return acc
+    }, {})
+  }
+
+  return res.send({success: plainWallet});
 }))
 
 /**
@@ -205,7 +230,8 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       'domain_sale_price',
       'account_sale_price',
       'domain_sale_active',
-      'account_sale_active'
+      'account_sale_active',
+      'domains_limit'
     ],
     where: {
       referral_code: ref,
@@ -233,6 +259,15 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     )
   }
 
+  if (buyAccount) {
+    const accountsByDomain = await getAccountsByDomainsAndStatus(wallet.id, [addressArray[1]])
+    const accountsNumber = accountsByDomain.length ? parseInt(accountsByDomain[0].accounts) : 0
+    const domainsLimit = wallet.domains_limit[addressArray[1]] || null
+    if (domainsLimit !== null && accountsNumber >= parseInt(domainsLimit)) {
+      return res.status(400).send({ error: `FIO Address registrations no longer available for that domain` })
+    }
+  }
+
   if(await fio.isAccountRegistered(address)) {
     return res.status(404).send({error: `Already registered`})
   }
@@ -240,13 +275,19 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   const {name, logo_url} = wallet
   const price = +Number(wallet[`${type}_sale_price`])
 
-  if(price === 0) {
-    if(!res.state.user_id) {
+  if (price === 0) {
+    let isCaptchaSuccess = false
+    try {
+      isCaptchaSuccess = await validateCaptcha(req)
+    } catch (e) {
+      return res.status(400).send({ captchaStatus: 'fail' })
+    }
+    if (!isCaptchaSuccess && !res.state.user_id) {
       return res.status(401).send({error: `Unauthorized: Due to the referral code sale price, a user API Bearer Token is required`})
     }
   }
 
-  if(type === 'account' && price < process.env.MIN_ADDRESS_PRICE) {
+  if (type === 'account' && price < process.env.MIN_ADDRESS_PRICE) {
     return res.status(400).send({error: `Price is too low`})
   }
 

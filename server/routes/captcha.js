@@ -1,10 +1,15 @@
 const express = require('express');
+const { createHmac } = require('crypto')
 const router = express.Router();
 const handler = require('./handler')
 const geeTest = require('../geetest')
 
-
 router.get("/public-api/gt/register-slide", handler(async (req, res) => {
+  if (process.env.GEETEST_CAPTCHA_SKIP) {
+    const captchaHash = skipCaptchaHash(`${req.headers['x-forwarded-for']}${Date.now()}`)
+    global.captchaHashes[captchaHash] = true
+    return res.send({ skipCaptcha: captchaHash, success: false });
+  }
   geeTest.register(null, function (err, data) {
     if (err) {
       console.error(err);
@@ -20,5 +25,10 @@ router.get("/public-api/gt/register-slide", handler(async (req, res) => {
     }
   });
 }));
+
+const skipCaptchaHash = data =>
+  createHmac('sha256', process.env.GEETEST_CAPTCHA_SKIP)
+    .update('GEETEST_CAPTCHA_SKIP').update(data)
+    .digest().toString('base64')
 
 module.exports = router;

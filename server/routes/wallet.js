@@ -253,10 +253,14 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     )
   }
 
-  if(!isValidAddress(address)) {
+  if (!isValidAddress(address)) {
     return res.status(400).send(
       {error: `Invalid ${type}`}
     )
+  }
+  
+  if (!PublicKey.isValid(publicKey)) {
+    return res.status(400).send({ error: 'Missing public key' })
   }
 
   if (buyAccount) {

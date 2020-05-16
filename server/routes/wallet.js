@@ -22,6 +22,10 @@ if(process.env.MIN_ADDRESS_PRICE == null) {
 }
 
 async function validateCaptcha(req) {
+  if (process.env.GEETEST_CAPTCHA_SKIP && global.captchaHashes[req.body.skipCaptcha]) {
+    delete global.captchaHashes[req.body.skipCaptcha]
+    return true
+  }
   const { geetest_challenge, geetest_validate, geetest_seccode } = req.body
   if (!geetest_challenge || !geetest_validate || !geetest_seccode) return false
   return new Promise((resolve, reject) => {

@@ -220,11 +220,12 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
 */
 router.post('/public-api/buy-address', handler(async (req, res) => {
   const {
-    address, referralCode, publicKey,
+    address: addressFromReq, referralCode, publicKey,
     redirectUrl
   } = req.body
   const processor = await plugins.payment
 
+  const address = addressFromReq.toLowerCase()
   const ref = referralCode ? referralCode : process.env.DEFAULT_REFERRAL_CODE
   const wallet = await db.Wallet.findOne({
     attributes: [
@@ -276,7 +277,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     }
   }
 
-  if(await fio.isAccountRegistered(address)) {
+  if (await fio.isAccountRegistered(address)) {
     return res.status(404).send({error: `Already registered`})
   }
 

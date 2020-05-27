@@ -16,6 +16,7 @@ const {PublicKey} = require('@fioprotocol/fiojs').Ecc
 const { isValidAddress } = require('../../src/validate')
 const { getAccountsByDomainsAndStatus } = require('../process-events')
 const geeTest = require('../geetest')
+const { getROE, convert } = require('../roe')
 
 if(process.env.MIN_ADDRESS_PRICE == null) {
   throw new Error('Required: process.env.MIN_ADDRESS_PRICE')
@@ -73,14 +74,15 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
       'domain_sale_price',
       'account_sale_price',
       'domain_sale_active',
-      'account_sale_active'
+      'account_sale_active',
+      'domain_roe_active',
+      'account_roe_active'
     ],
     where: {
       referral_code: referralCode,
       active: true
     }
   })
-
   const accountsByDomain = await getAccountsByDomainsAndStatus(wallet.id, wallet.domains)
 
   const plainWallet = wallet ? wallet.get({ plain: true }) : {}
@@ -89,6 +91,19 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
       acc[data.domain] = parseInt(data.accounts)
       return acc
     }, {})
+
+    if (wallet.account_roe_active || wallet.domain_roe_active) {
+      const roe = await getROE()
+      if (wallet.account_roe_active) {
+        const accountRegFee = await fio.getFeeAddress('')
+        plainWallet.account_sale_price = convert(accountRegFee, roe)
+      }
+      if (wallet.account_roe_active) {
+        const domainRegFee = await fio.getFeeDomain('')
+        plainWallet.domain_sale_active = convert(domainRegFee, roe)
+      }
+    }
+
   }
 
   return res.send({success: plainWallet});
@@ -235,7 +250,9 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       'account_sale_price',
       'domain_sale_active',
       'account_sale_active',
-      'domains_limit'
+      'domains_limit',
+      'domain_roe_active',
+      'account_roe_active'
     ],
     where: {
       referral_code: ref,
@@ -281,7 +298,18 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   }
 
   const {name, logo_url} = wallet
-  const price = +Number(wallet[`${type}_sale_price`])
+  let price = +Number(wallet[`${type}_sale_price`])
+  
+  if (wallet[`${type}_roe_active`]) {
+    try {
+      const roe = await getROE()
+      const fee = type === 'account' ? await fio.getFeeAddress('') : await fio.getFeeDomain('')
+      price = +Number(convert(fee, roe))
+    } catch (e) {
+      console.log(e);
+      return res.status(400).send({ error: `Server error. Please try later.` })
+    }
+  }
 
   if (price === 0) {
     let isCaptchaSuccess = false

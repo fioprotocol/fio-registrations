@@ -108,8 +108,8 @@ export default {
       }
 
       return this.buyAddress ?
-        isValidAddress(`${this.localAddress}@${this.selectedDomain}`) :
-        isValidAddress(this.localAddress)
+        isValidAddress(`${this.localAddress}@${this.selectedDomain}`.toLowerCase()) :
+        isValidAddress(this.localAddress.toLowerCase())
     },
 
     type() {

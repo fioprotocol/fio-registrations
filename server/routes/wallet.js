@@ -98,9 +98,9 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
         const accountRegFee = await fio.getFeeAddress('')
         plainWallet.account_sale_price = convert(accountRegFee, roe)
       }
-      if (wallet.account_roe_active) {
+      if (wallet.domain_roe_active) {
         const domainRegFee = await fio.getFeeDomain('')
-        plainWallet.domain_sale_active = convert(domainRegFee, roe)
+        plainWallet.domain_sale_price = convert(domainRegFee, roe)
       }
     }
 

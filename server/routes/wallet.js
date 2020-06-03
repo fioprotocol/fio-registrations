@@ -14,7 +14,7 @@ const {Op} = Sequelize
 
 const {PublicKey} = require('@fioprotocol/fiojs').Ecc
 const { isValidAddress } = require('../../src/validate')
-const { getAccountsByDomainsAndStatus } = require('../process-events')
+const { getAccountsByDomainsAndStatus, getRegisteredAmountForOwner } = require('../process-events')
 const geeTest = require('../geetest')
 const { getROE, convert } = require('../roe')
 
@@ -321,6 +321,18 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     }
     if (!isCaptchaSuccess && !res.state.user_id) {
       return res.status(401).send({error: `Unauthorized: Due to the referral code sale price, a user API Bearer Token is required`})
+    }
+
+    if (buyAccount) {
+      try {
+        const amountRegistered = await getRegisteredAmountForOwner(wallet.id, publicKey, [addressArray[1]], true)
+        if (parseInt(amountRegistered) > 0) {
+          return res.status(400).send({ error: `You have already registered a free address for that domain` })
+        }
+      } catch (e) {
+        console.log(e);
+        return res.status(400).send({ error: `Server error. Please try later` })
+      }
     }
   }
 

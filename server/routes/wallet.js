@@ -298,11 +298,11 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       try {
         const amountRegistered = await getRegisteredAmountForOwner(wallet.id, publicKey, [addressArray[1]], true)
         if (parseInt(amountRegistered) > 0) {
-          return res.status(400).send({ error: `You have already registered free address for that domain` })
+          return res.status(400).send({ error: `You have already registered a free address for that domain` })
         }
       } catch (e) {
         console.log(e);
-        return res.status(400).send({ error: `Server error. Please try later.` })
+        return res.status(400).send({ error: `Server error. Please try later` })
       }
     }
   }

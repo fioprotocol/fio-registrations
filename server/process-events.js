@@ -85,6 +85,44 @@ const regaddress = async (address, ownerPublic, tpid, walletActor = '', walletPe
   }, options)
 }
 
+const renewdomain = async (domain, ownerPublic, tpid, walletActor = '', walletPermission = '') => {
+  const maxFee = await fio.getFeeRenewDomain(actor)
+  const options = {}
+  if (walletActor && walletPermission) {
+    options.authorization = [{
+      actor: walletActor,
+      permission: walletPermission
+    }]
+    options.actor = walletActor
+  }
+  return fio.renewDomain({
+    domain,
+    ownerPublic,
+    maxFee,
+    tpid,
+    actor
+  }, options)
+}
+
+const renewaddress = async (address, ownerPublic, tpid, walletActor = '', walletPermission = '') => {
+  const maxFee = await fio.getFeeRenewAddress(actor)
+  const options = {}
+  if (walletActor && walletPermission) {
+    options.authorization = [{
+      actor: walletActor,
+      permission: walletPermission
+    }]
+    options.actor = walletActor
+  }
+  return fio.renewAddress({
+    address,
+    ownerPublic,
+    maxFee,
+    tpid,
+    actor
+  }, options)
+}
+
 /**
   <h4>paid accounts with no status or retry => pending or review</h4>
 
@@ -114,6 +152,7 @@ async function getPaidNeedingAccounts() {
                       a.address,
                       a.domain,
                       a.owner_key,
+                      acc_payer.type
                       w.tpid,
                       w.actor,
                       w.permission
@@ -171,6 +210,7 @@ async function getRegisteredAmountForOwner(walletId, owner_key, domains = [], is
       ${domainWhere}
       ${buyPriceWhere}
       and ap.buy_price = 0
+      and ap.type = 'register'
     group by
       a.wallet_id
   `)
@@ -198,6 +238,7 @@ async function getRegisteredAmountByIp(walletId, ip, isFree = false, statuses = 
       ${statusesWhere}
       and a.ip = '${ip}'
       ${freeWhere}
+      and ap.type = 'register'
     group by
       a.wallet_id
   `)
@@ -235,17 +276,25 @@ async function broadcastNewAccount({
   owner_key,
   tpid,
   actor,
-  permission
+  permission,
+  type
 }) {
   const account = (address ? address + '@' : '') + domain
-  const regAction = address ?
-    await regaddress( account, owner_key, tpid, actor, permission ) :
-    await regdomain( domain, owner_key, tpid, actor, permission )
+  let fioAction
+  if (type === 'register') {
+    fioAction = address ?
+      await regaddress( account, owner_key, tpid, actor, permission ) :
+      await regdomain( domain, owner_key, tpid, actor, permission )
+  } else if(type === 'renew') {
+    fioAction = address ?
+      await renewaddress( account, owner_key, tpid, actor, permission ) :
+      await renewdomain( domain, owner_key, tpid, actor, permission )
+  }
 
   let transaction, trx_id, expiration
 
   try {
-    transaction = await fio.transaction([regAction])
+    transaction = await fio.transaction([fioAction])
     trx_id = await fio.transactionId(transaction)
     expiration = transaction.expiration
   } catch(error) {

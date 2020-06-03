@@ -100,8 +100,8 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
       return acc
     }, {})
 
+    const roe = await getROE()
     if (wallet.account_roe_active || wallet.domain_roe_active) {
-      const roe = await getROE()
       if (wallet.account_roe_active) {
         const accountRegFee = await fio.getFeeAddress('')
         plainWallet.account_sale_price = convert(accountRegFee, roe)
@@ -110,6 +110,14 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
         const domainRegFee = await fio.getFeeDomain('')
         plainWallet.domain_sale_price = convert(domainRegFee, roe)
       }
+    }
+    if (wallet.account_sale_active) {
+      const accountRenewFee = await fio.getFeeRenewAddress('')
+      plainWallet.account_renew_price = convert(accountRenewFee, roe)
+    }
+    if (wallet.domain_sale_active) {
+      const domainRenewFee = await fio.getFeeRenewDomain('')
+      plainWallet.domain_renew_price = convert(domainRenewFee, roe)
     }
 
   }
@@ -580,6 +588,174 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     )
 
     return {success: {charge}, account_id: account.id}
+  })
+
+  return res.send(result);
+}))
+
+/**
+ *
+ @api {post} /public-api/renew-account
+ @apiGroup Renew
+ @apiName PostRenewAccount
+ @apiDescription
+ -
+ */
+router.post('/public-api/renew-account', handler(async (req, res) => {
+  const {
+    address: addressFromReq, referralCode, publicKey,
+    redirectUrl
+  } = req.body
+  const processor = await plugins.payment
+
+  const address = addressFromReq.toLowerCase()
+  const ref = referralCode ? referralCode : process.env.DEFAULT_REFERRAL_CODE
+  const wallet = await db.Wallet.findOne({
+    attributes: [
+      'id',
+      'name',
+      'logo_url',
+      'domain_sale_active',
+      'account_sale_active',
+      'domains_limit',
+    ],
+    where: {
+      referral_code: ref,
+      active: true
+    }
+  })
+
+  if (!wallet) {
+    return res.status(404).send({error: 'Referral code not found'})
+  }
+
+  const addressArray = address.split('@')
+  const buyAccount = addressArray.length === 2
+  const type = buyAccount ? 'account' : 'domain'
+
+  if(!wallet[`${type}_sale_active`]) {
+    return res.status(400).send(
+      {error: `This referral code is not renewing ${type}s.`}
+    )
+  }
+
+  if (!isValidAddress(address)) {
+    return res.status(400).send(
+      { error: `Invalid ${type}` }
+    )
+  }
+  
+  if (!PublicKey.isValid(publicKey)) {
+    return res.status(400).send({ error: 'Missing public key' })
+  }
+
+  if (buyAccount) {
+    const accountsByDomain = await getAccountsByDomainsAndStatus(wallet.id, [addressArray[1]])
+    const accountsNumber = accountsByDomain.length ? parseInt(accountsByDomain[0].accounts) : 0
+    const domainsLimit = wallet.domains_limit[addressArray[1]] || null
+    if (domainsLimit !== null && accountsNumber >= parseInt(domainsLimit)) {
+      return res.status(400).send({ error: `FIO Address registrations no longer available for that domain` })
+    }
+  }
+
+  try {
+    if (!await fio.isAccountRegistered(address)) {
+      return res.status(404).send({error: `${type} not registered`})
+    }
+  } catch (e) {
+    console.log(e);
+    return res.status(400).send({ error: `Server error. Please try again later.` })
+  }
+
+  const {name, logo_url} = wallet
+  let price = +Number(wallet[`${type}_sale_price`])
+  
+  try {
+    const roe = await getROE()
+    const fee = type === 'account' ? await fio.getFeeRenewAddress('') : await fio.getFeeRenewDomain('')
+    price = +Number(convert(fee, roe))
+  } catch (e) {
+    console.log(e);
+    return res.status(400).send({ error: `Server error. Please try again later.` })
+  }
+
+  if (type === 'account' && price < process.env.MIN_ADDRESS_PRICE) {
+    return res.status(400).send({ error: `Price is too low` })
+  }
+
+  const adjPrice = Math.max(0, +Number(price).toFixed(2))
+
+  const result = await db.sequelize.transaction(async transaction => {
+    const tr = {transaction}
+
+    const accountObj = {
+      domain: addressArray.length === 1 ? addressArray[0] : addressArray[1],
+      address: addressArray.length === 1 ? null : addressArray[0],
+      wallet_id: wallet.id
+    }
+
+    const [account] = await db.Account.findOrCreate({
+      defaults: accountObj,
+      where: {
+        domain: accountObj.domain,
+        address: accountObj.address || null,
+        owner_key: publicKey
+      },
+      transaction
+    })
+
+    const charge = await processor.createCharge({
+      name, 
+      logoUrl: logo_url, 
+      price: adjPrice, 
+      type, 
+      address, 
+      publicKey,
+      accountId: account.id, 
+      redirectUrl
+    })
+
+    charge.pay_source = process.env.PLUGIN_PAYMENT
+
+    const {
+      event_id = 0,
+      extern_id,
+      extern_status,
+      extern_time,
+      forward_url
+    } = charge
+
+    const metadata = charge.metadata && Object.keys(charge.metadata).length ?
+      charge.metadata : null
+
+    const accountPay = await db.AccountPay.create({
+      pay_source: process.env.PLUGIN_PAYMENT,
+      extern_id,
+      buy_price: price,
+      metadata,
+      account_id: account.id,
+      forward_url,
+      type: 'renew'
+    }, tr)
+
+    let pay_status
+    if (charge.pending === false) {
+      pay_status = 'cancel'
+    } else if(charge.pending === true) {
+      pay_status = 'pending'
+    } else { // event.pending === undefined
+      pay_status = 'review'
+    }
+
+    await db.AccountPayEvent.create({
+      pay_status,
+      event_id: String(event_id),
+      extern_time,
+      extern_status,
+      account_pay_id: accountPay.id
+    }, tr)
+
+    return { success: {charge}, account_id: account.id }
   })
 
   return res.send(result);

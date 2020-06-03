@@ -36,6 +36,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: true,
     },
+    type: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'register'
+    }
   }, {
     tableName: 'account_pay',
     // comment: '',

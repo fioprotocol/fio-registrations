@@ -55,7 +55,7 @@
     </div>
 
     <div v-if="regPublicKey && validPublicKey && Wallet.wallet">
-      <div v-if="!regAddress && !regDomain">
+      <div v-if="!regAddress && !regDomain && !renewDomain && !renewAddress">
         <div>
           <b>Sale Closed</b>
         </div>
@@ -87,7 +87,10 @@
       </div>
 
       <div v-if="pending === true && !buyAgain">
-        <button class="btn btn-success" @click="buyAgainClick()">
+        <button v-if="renewDomain || renewAddress" class="btn btn-success" @click="buyAgainClick()">
+          Renew Another Name
+        </button>
+        <button v-if="regDomain || regAddress" class="btn btn-success" @click="buyAgainClick()">
           Buy Another Name
         </button>
       </div>
@@ -141,12 +144,53 @@
                   </div>
                 </div>
               </div>
+              
+              <div v-if="renewAddress" class="col-sm">
+                <h4>Renew FIO Address</h4>
+                <p class="h5"><strong>username</strong>@domain</p>
+                <br/>
+                <FormAccountRenew
+                        :referralCode="referralCode"
+                        :defaultDomain="defaultDomain"
+                        :publicKey="regPublicKey"
+                        :renewAddress="true"
+                        :registrationPending="accountReg"
+                        @registrationPending="accountReg = $event"
+                />
+                <div class="text-left mb-4">
+                  <div class="list-group">
+                    <small class="list-group-item marketing">
+                      &rsaquo;&nbsp;Renew now for {{Wallet.wallet.account_renew_price}} USDC or equivalent
+                    </small>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="renewDomain" class="col-sm">
+                <h4>Renew FIO Domain</h4>
+                <p class="h5">username@<strong>domain</strong></p>
+                <br/>
+                <FormAccountRenew
+                        :referralCode="referralCode"
+                        :defaultDomain="defaultDomain"
+                        :publicKey="regPublicKey"
+                        :buyAddress="false"
+                />
+                <div class="text-left">
+                  <div class="list-group">
+                    <small class="list-group-item">
+                      &rsaquo;&nbsp;Renew now for {{Wallet.wallet.domain_renew_price}} USDC or equivalent
+                    </small>
+                  </div>
+                </div>
+              </div>
+              
             </div>
           </div>
         </div>
       </div>
 
-      <div class="mt-3">
+      <div class="mt-3" v-if="regAddress || regDomain">
         <TrxMonitor
           :afterTopActive="!buyAgain"
           :refresh="refresh"
@@ -195,6 +239,7 @@ import '../assets/custom.scss'
 
 import PublicKeyInput from '../components/PublicKeyInput.vue'
 import FormAccountReg from '../components/FormAccountReg.vue'
+import FormAccountRenew from '../components/FormAccountRenew.vue'
 import TrxMonitor from '../components/TrxMonitor.vue'
 import ServerMixin from '../components/ServerMixin'
 import {mapState} from 'vuex'
@@ -215,6 +260,7 @@ export default {
   components: {
     PublicKeyInput,
     FormAccountReg,
+    FormAccountRenew,
     TrxMonitor
   },
 
@@ -331,10 +377,11 @@ export default {
     },
 
     regDomain() {
-      const reg = !document.location.pathname ||
-        document.location.pathname === '/' ||
+      const reg = (!document.location.pathname ||
+        document.location.pathname === '/' || 
         /^\/ref\/?/.test(document.location.pathname) ||
-        /^\/domain\/?/.test(document.location.pathname)
+        /^\/domain\/?/.test(document.location.pathname)) &&
+        !/\/renew\/?/.test(document.location.pathname)
 
       if(!reg) {
         return false
@@ -349,7 +396,8 @@ export default {
       const reg = !document.location.pathname ||
         document.location.pathname === '/' ||
         /^\/ref\/?/.test(document.location.pathname) ||
-        /^\/address\/?/.test(document.location.pathname)
+        /^\/address\/?/.test(document.location.pathname) &&
+        !/\/renew\/?/.test(document.location.pathname)
 
       if(!reg) {
         return false
@@ -357,6 +405,33 @@ export default {
 
       return this.Wallet.wallet &&
         this.Wallet.wallet.account_sale_active
+    },
+
+    renewDomain() {
+      const renew = !document.location.pathname ||
+        document.location.pathname === '/' ||
+        /^\/domain\/renew\/?/.test(document.location.pathname)
+
+      if (!renew) {
+        return false
+      }
+
+      return this.Wallet.wallet &&
+              this.Wallet.wallet.domain_sale_active &&
+              this.Wallet.wallet.domains.length > 0
+    },
+
+    renewAddress() {
+      const renew = !document.location.pathname ||
+              document.location.pathname === '/' ||
+              /^\/address\/renew\/?/.test(document.location.pathname)
+
+      if (!renew) {
+        return false
+      }
+
+      return this.Wallet.wallet &&
+              this.Wallet.wallet.account_sale_active
     },
 
     accountReg: {

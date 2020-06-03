@@ -77,6 +77,16 @@ class FioApi extends FioClient {
     }
   }
 
+  renewDomain({domain, ownerPublic, maxFee, tpid, actor}, options = {}) {
+    // todo:
+    return {}
+  }
+
+  renewAddress({address, ownerPublic, maxFee, tpid, actor}, options = {}) {
+    // todo:
+    return {}
+  }
+
   async transaction(actions = [], {
     privateKeys = null
   } = {}) {

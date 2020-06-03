@@ -78,6 +78,20 @@ class FioClient {
     )
   }
 
+  getFeeRenewAddress = async (fio_address) => {
+    await this.init
+    return this.getFee(
+      'renew_fio_address', fio_address.replace(/:/, '@')
+    )
+  }
+
+  getFeeRenewDomain = async (fio_address) => {
+    await this.init
+    return this.getFee(
+      'renew_fio_domain', fio_address.replace(/:/, '@')
+    )
+  }
+
   async getFee(end_point, fio_address = null) {
     await this.init
     const ret = await this.chain.post('/get_fee', {

@@ -199,6 +199,8 @@ import TrxMonitor from '../components/TrxMonitor.vue'
 import ServerMixin from '../components/ServerMixin'
 import {mapState} from 'vuex'
 
+const walletRefreshTimeout = 15 * 1000 * 60 // 15 min
+
 export default {
   name: 'Home',
   props: {
@@ -243,6 +245,15 @@ export default {
       this.buyAgain = true
       this.accountReg = false
       this.refresh = Date.now()
+    },
+    
+    refreshWallet(referralCode) {
+      setTimeout(() => {
+        this.$store.dispatch('Wallet/refreshWallet', {
+          referralCode
+        })
+        this.refreshWallet(referralCode)
+      }, walletRefreshTimeout)
     }
   },
 
@@ -277,6 +288,7 @@ export default {
     this.$store.dispatch('Wallet/loadWallet', {
       referralCode: this.referralCode
     })
+    this.refreshWallet(this.referralCode)
 
     this.href = window.location.href
   },

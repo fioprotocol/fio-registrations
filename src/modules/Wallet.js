@@ -20,6 +20,10 @@ export default {
         commit('loadWallet', {walletResult, referralCode})
       })
     },
+    async refreshWallet({commit, state}, {referralCode}) {
+      const walletResult = await server.getRefWallet(referralCode)
+      commit('loadWallet', {walletResult, referralCode})
+    },
   },
 
   mutations: {

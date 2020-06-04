@@ -501,6 +501,7 @@ router.get('/public-api/get-domains/:referralCode', handler(async (req, res) => 
       'id',
       'domains',
       'account_sale_price',
+      'account_roe_active',
       'account_sale_active'
     ],
     where: {
@@ -516,8 +517,8 @@ router.get('/public-api/get-domains/:referralCode', handler(async (req, res) => 
   if (!wallet.account_sale_active) {
     return res.status(400).send({ error: 'This referral code is not selling accounts' })
   }
-  
-  const free = !wallet.account_sale_price
+
+  const free = wallet.account_roe_active ? false : !parseFloat(wallet.account_sale_price)
   const domains = []
   for (const domain of wallet.domains) {
     domains.push({ domain, free })

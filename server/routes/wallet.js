@@ -485,4 +485,41 @@ router.get('/public-api/wallet/:extern_id', handler(async (req, res) => {
   return res.send({success: true, wallet })
 }))
 
+/**
+ * @api {get} /public-api/get-domains/:referralCode get-domains
+ * @apiGroup Information
+ * @apiName Get Domains
+ * @apiDescription
+ * Returns domains which are available for FIO Address registrations for provided referral code.
+ */
+router.get('/public-api/get-domains/:referralCode', handler(async (req, res) => {
+  const { referralCode } = req.params
+  assert(typeof referralCode === 'string', 'Required parameter: referralCode')
+  
+  const wallet = await db.Wallet.findOne({
+    attributes: [
+      'id',
+      'domains',
+      'account_sale_price',
+      'account_sale_active'
+    ],
+    where: {
+      referral_code: referralCode,
+      active: true
+    }
+  })
+  
+  if (!wallet) {
+    return res.status(404).send({ error: 'Referral code not found' })
+  }
+  
+  const free = wallet.account_sale_active ? !wallet.account_sale_price : false
+  const domains = []
+  for (const domain of wallet.domains) {
+    domains.push({ domain, free })
+  }
+
+  return res.send({ success: true, domains })
+}))
+
 module.exports = router;

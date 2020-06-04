@@ -513,7 +513,11 @@ router.get('/public-api/get-domains/:referralCode', handler(async (req, res) => 
     return res.status(404).send({ error: 'Referral code not found' })
   }
   
-  const free = wallet.account_sale_active ? !wallet.account_sale_price : false
+  if (!wallet.account_sale_active) {
+    return res.status(400).send({ error: 'This referral code is not selling accounts' })
+  }
+  
+  const free = !wallet.account_sale_price
   const domains = []
   for (const domain of wallet.domains) {
     domains.push({ domain, free })

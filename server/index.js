@@ -31,6 +31,8 @@ const plugins = require('./plugins')
 if(!plugins.payment) { throw new Error(`Missing payment plugin`) }
 if(!plugins.email) { throw new Error(`Missing email plugin`) }
 
+global.captchaHashes = {};
+
 const app = express()
 
 // Raw body needed to verify webhook signatures.

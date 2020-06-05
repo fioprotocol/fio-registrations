@@ -132,6 +132,7 @@ export default {
         }})
       } else {
         if (this.buyAddress && this.freeSale) {
+          if (this.getCaptchaResult.skipCaptcha) return this.register({ skipCaptcha: this.getCaptchaResult.skipCaptcha})
           if (!this.captchaObj) return
           this.captchaObj.verify()
           this.captchaObj.onSuccess(() => {
@@ -188,7 +189,12 @@ export default {
     ['buyResult._loading']: function(loading) {
       if (loading) { return }
       if (this.buyResult.captchaStatus === 'fail') {
-        this.captchaObj.reset();
+        try {
+          if (this.captchaObj) this.captchaObj.reset();
+        } catch (e) {
+          //
+          console.log(e);
+        }
         return
       }
       const success = this.buyResult.success
@@ -219,6 +225,12 @@ export default {
       this.captchaLoading = true
       if (loading) return
       const data = this.getCaptchaResult
+      if (data.skipCaptcha) {
+        this.captchaObj = null
+        this.captchaLoading = false
+        this.captchaErrored = false
+        return
+      }
       if (!data.success) {
         this.captchaObj = null
         this.captchaLoading = false

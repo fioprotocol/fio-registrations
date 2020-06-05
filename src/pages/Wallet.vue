@@ -77,7 +77,7 @@
         description="Sale price for new accounts (in USD / USDC).  Enter 0 for free addresses."
       >
         <b-form-input id="account-price"
-          v-model="form.account_sale_price"
+          v-model="form.account_sale_price" v-bind:disabled="form.account_roe_active"
           type="number" step="0.01" min="0.00"
           placeholder="Enter account sale price"
         >
@@ -86,6 +86,10 @@
         <b-form-checkbox v-model="form.account_sale_active" class="mt-1">
           Account Sale Active
         </b-form-checkbox>
+
+        <b-form-checkbox v-model="form.account_roe_active" class="mt-1">
+          Price according to rate of exchange
+        </b-form-checkbox>
       </b-form-group>
 
       <b-form-group id="domain-price-group" class="mb-4"
@@ -93,13 +97,17 @@
         description="Sale price for new domains (in USD / USDC)"
       >
         <b-form-input id="domain-price" v-model="form.domain_sale_price"
-          type="number" min="0.03" step="0.01"
+          type="number" min="0.03" step="0.01" v-bind:disabled="form.domain_roe_active"
           placeholder="Enter domain sale price"
         >
         </b-form-input>
 
         <b-form-checkbox v-model="form.domain_sale_active" class="mt-1">
           Domain Sale Active
+        </b-form-checkbox>
+
+        <b-form-checkbox v-model="form.domain_roe_active" class="mt-1">
+          Price according to rate of exchange
         </b-form-checkbox>
       </b-form-group>
 
@@ -252,6 +260,9 @@ function formDefaults () {
 
     domain_sale_active: false,
     account_sale_active: false,
+
+    domain_roe_active: false,
+    account_roe_active: false,
 
     tpid: '',
     actor: '',

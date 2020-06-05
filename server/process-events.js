@@ -149,6 +149,34 @@ async function getAccountsByDomainsAndStatus(walletId, domains = [], statuses = 
   return accounts
 }
 
+async function getRegisteredAmountForOwner(walletId, owner_key, domains = [], isFree = false, statuses = ['success', 'pending']) {
+  const domainWhere = domains.length ? ` and a.domain in (${domains.map(domain => `'${domain}'`).join(',')}) ` : ''
+  const statusesWhere = statuses.length > 1 ? ` (${statuses.map(status => `le.trx_status = '${status}'`).join(' OR ')}) ` : ` le.trx_status = '${status}' `
+  const buyPriceWhere = isFree ? ` and a.owner_key = '${owner_key}' ` : ''
+  
+  const [res] = await sequelize.query(`
+    select count(distinct a.id) as accounts
+    from account a
+    join account_pay ap on ap.account_id = a.id
+    join blockchain_trx t on t.account_id = a.id
+    join blockchain_trx_event le on le.id = (
+      select max(le.id)
+      from blockchain_trx lt
+      join blockchain_trx_event le on le.blockchain_trx_id = lt.id
+      where lt.account_id = a.id
+    )
+    where a.wallet_id=${walletId} and
+      ${statusesWhere}
+      ${domainWhere}
+      ${buyPriceWhere}
+      and ap.buy_price = 0
+    group by
+      a.wallet_id
+  `)
+
+  return res[0] && res[0].accounts ? res[0].accounts : 0
+}
+
 /**
   <h4>any or no status => pending or review</h4>
 
@@ -476,6 +504,7 @@ module.exports = {
   all: trace({all}),
   getPaidNeedingAccounts,
   getAccountsByDomainsAndStatus,
+  getRegisteredAmountForOwner,
   broadcastPaidNeedingAccounts,
   broadcastNewAccount,
   checkIrreversibility,

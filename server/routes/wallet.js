@@ -14,14 +14,19 @@ const {Op} = Sequelize
 
 const {PublicKey} = require('@fioprotocol/fiojs').Ecc
 const { isValidAddress } = require('../../src/validate')
-const { getAccountsByDomainsAndStatus } = require('../process-events')
+const { getAccountsByDomainsAndStatus, getRegisteredAmountForOwner } = require('../process-events')
 const geeTest = require('../geetest')
+const { getROE, convert } = require('../roe')
 
 if(process.env.MIN_ADDRESS_PRICE == null) {
   throw new Error('Required: process.env.MIN_ADDRESS_PRICE')
 }
 
 async function validateCaptcha(req) {
+  if (process.env.GEETEST_CAPTCHA_SKIP && global.captchaHashes[req.body.skipCaptcha]) {
+    delete global.captchaHashes[req.body.skipCaptcha]
+    return true
+  }
   const { geetest_challenge, geetest_validate, geetest_seccode } = req.body
   if (!geetest_challenge || !geetest_validate || !geetest_seccode) return false
   return new Promise((resolve, reject) => {
@@ -69,14 +74,15 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
       'domain_sale_price',
       'account_sale_price',
       'domain_sale_active',
-      'account_sale_active'
+      'account_sale_active',
+      'domain_roe_active',
+      'account_roe_active'
     ],
     where: {
       referral_code: referralCode,
       active: true
     }
   })
-
   const accountsByDomain = await getAccountsByDomainsAndStatus(wallet.id, wallet.domains)
 
   const plainWallet = wallet ? wallet.get({ plain: true }) : {}
@@ -85,6 +91,19 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
       acc[data.domain] = parseInt(data.accounts)
       return acc
     }, {})
+
+    if (wallet.account_roe_active || wallet.domain_roe_active) {
+      const roe = await getROE()
+      if (wallet.account_roe_active) {
+        const accountRegFee = await fio.getFeeAddress('')
+        plainWallet.account_sale_price = convert(accountRegFee, roe)
+      }
+      if (wallet.domain_roe_active) {
+        const domainRegFee = await fio.getFeeDomain('')
+        plainWallet.domain_sale_price = convert(domainRegFee, roe)
+      }
+    }
+
   }
 
   return res.send({success: plainWallet});
@@ -216,11 +235,12 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
 */
 router.post('/public-api/buy-address', handler(async (req, res) => {
   const {
-    address, referralCode, publicKey,
+    address: addressFromReq, referralCode, publicKey,
     redirectUrl
   } = req.body
   const processor = await plugins.payment
 
+  const address = addressFromReq.toLowerCase()
   const ref = referralCode ? referralCode : process.env.DEFAULT_REFERRAL_CODE
   const wallet = await db.Wallet.findOne({
     attributes: [
@@ -231,7 +251,9 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       'account_sale_price',
       'domain_sale_active',
       'account_sale_active',
-      'domains_limit'
+      'domains_limit',
+      'domain_roe_active',
+      'account_roe_active'
     ],
     where: {
       referral_code: ref,
@@ -253,10 +275,14 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     )
   }
 
-  if(!isValidAddress(address)) {
+  if (!isValidAddress(address)) {
     return res.status(400).send(
       {error: `Invalid ${type}`}
     )
+  }
+  
+  if (!PublicKey.isValid(publicKey)) {
+    return res.status(400).send({ error: 'Missing public key' })
   }
 
   if (buyAccount) {
@@ -268,12 +294,23 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     }
   }
 
-  if(await fio.isAccountRegistered(address)) {
+  if (await fio.isAccountRegistered(address)) {
     return res.status(404).send({error: `Already registered`})
   }
 
   const {name, logo_url} = wallet
-  const price = +Number(wallet[`${type}_sale_price`])
+  let price = +Number(wallet[`${type}_sale_price`])
+  
+  if (wallet[`${type}_roe_active`]) {
+    try {
+      const roe = await getROE()
+      const fee = type === 'account' ? await fio.getFeeAddress('') : await fio.getFeeDomain('')
+      price = +Number(convert(fee, roe))
+    } catch (e) {
+      console.log(e);
+      return res.status(400).send({ error: `Server error. Please try later.` })
+    }
+  }
 
   if (price === 0) {
     let isCaptchaSuccess = false
@@ -284,6 +321,18 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     }
     if (!isCaptchaSuccess && !res.state.user_id) {
       return res.status(401).send({error: `Unauthorized: Due to the referral code sale price, a user API Bearer Token is required`})
+    }
+
+    if (buyAccount) {
+      try {
+        const amountRegistered = await getRegisteredAmountForOwner(wallet.id, publicKey, [addressArray[1]], true)
+        if (parseInt(amountRegistered) > 0) {
+          return res.status(400).send({ error: `You have already registered a free address for that domain` })
+        }
+      } catch (e) {
+        console.log(e);
+        return res.status(400).send({ error: `Server error. Please try later` })
+      }
     }
   }
 
@@ -434,6 +483,48 @@ router.get('/public-api/wallet/:extern_id', handler(async (req, res) => {
   }
 
   return res.send({success: true, wallet })
+}))
+
+/**
+ * @api {get} /public-api/get-domains/:referralCode get-domains
+ * @apiGroup Information
+ * @apiName Get Domains
+ * @apiDescription
+ * Returns domains which are available for FIO Address registrations for provided referral code.
+ */
+router.get('/public-api/get-domains/:referralCode', handler(async (req, res) => {
+  const { referralCode } = req.params
+  assert(typeof referralCode === 'string', 'Required parameter: referralCode')
+  
+  const wallet = await db.Wallet.findOne({
+    attributes: [
+      'id',
+      'domains',
+      'account_sale_price',
+      'account_roe_active',
+      'account_sale_active'
+    ],
+    where: {
+      referral_code: referralCode,
+      active: true
+    }
+  })
+  
+  if (!wallet) {
+    return res.status(404).send({ error: 'Referral code not found' })
+  }
+  
+  if (!wallet.account_sale_active) {
+    return res.status(400).send({ error: 'This referral code is not selling accounts' })
+  }
+
+  const free = wallet.account_roe_active ? false : !parseFloat(wallet.account_sale_price)
+  const domains = []
+  for (const domain of wallet.domains) {
+    domains.push({ domain, free })
+  }
+
+  return res.send({ success: true, domains })
 }))
 
 module.exports = router;

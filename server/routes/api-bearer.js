@@ -40,4 +40,33 @@ router.post('/api/api-update', handler(async (req, res) => {
   return res.send({ success: created ? 'Created' : 'Updated' })
 }))
 
+router.post('/api/wallet-api-update', handler(async (req, res) => {
+  if (!res.state.user_id) {
+    return res.status(401).send({error: 'Unauthorized'})
+  }
+
+  const { sharedSecret, walletId } = req.body
+  assert(/^[0-9a-zA-Z]{33,47}$/.test(sharedSecret), 'Required json body api: sharedSecret')
+
+  const api_bearer_hash = crypto.createHash('sha256')
+    .update(sharedSecret).digest().toString('hex')
+
+  const walletApi = await db.WalletApi.findOne({
+    where: { wallet_id: walletId },
+  })
+  let isNew = false
+  if (walletApi && walletApi.wallet_id) {
+    walletApi.api_bearer_hash = api_bearer_hash
+    await walletApi.save()
+  } else {
+    isNew = true
+    await db.WalletApi.create({
+      wallet_id: walletId,
+      api_bearer_hash
+    })
+  }
+
+  return res.send({ success: isNew ? 'Created' : 'Updated' })
+}))
+
 module.exports = router;

@@ -206,6 +206,36 @@
           <small>Add your webhook URL then use properties to create the required webhook sigining key.</small>
         </div>
       </b-form-group>
+      
+      <b-form-group v-if="!newWallet" class="mb-4" label="API Token:" description="Required for free registrations when using API.">
+        <div class="row">
+          <b-col cols="6">
+            <b-form-checkbox
+                    :disabled="!canEnableApi"
+                    v-model="form.api_enabled"
+                    name="api-check-button"
+                    switch
+            >
+              API Bearer Token
+            </b-form-checkbox>
+            <div v-if="!canEnableApi">
+              <small class="text-muted">
+                Setup the API key under <u>Properties&hellip;</u>
+              </small>
+            </div>
+          </b-col>
+          <b-col cols="auto">
+            <b-link v-b-modal.api-modal>
+              Properties&hellip;
+            </b-link>
+            <b-modal id="api-modal" ok-only ok-title="Close"
+                     title="API Bearer Token"
+            >
+              <ApiBearer @apiUpdated="form.api_enabled = true" :walletId="this.wallet.id" />
+            </b-modal>
+          </b-col>
+        </div>
+      </b-form-group>
 
       <b-modal id="success-modal" title="Save Wallet" variant="info" @ok="resetUpsert" ok-only>
         {{upsertWallet.success}}
@@ -247,6 +277,7 @@
 
 <script>
 import {mapState} from 'vuex'
+import ApiBearer from '../components/ApiBearer'
 import WebhookProperties from '../components/WebhookProperties'
 import DomainList from "../components/DomainList";
 
@@ -281,7 +312,8 @@ function formDefaults () {
       registered: 0
     }],
 
-    forwardAfterSave: false
+    forwardAfterSave: false,
+    api_enabled: false
   }
 }
 
@@ -289,6 +321,7 @@ export default {
   name: 'Wallet',
 
   components: {
+    ApiBearer,
     DomainList,
     WebhookProperties
   },
@@ -521,6 +554,10 @@ export default {
         this.form.webhook_shared_secret &&
         this.form.webhook_shared_secret.length >= 30
       )
+    },
+
+    canEnableApi() {
+      return this.form.api_enabled || this.wallet.api_token_exists
     },
   },
 

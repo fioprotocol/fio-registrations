@@ -324,15 +324,11 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     
     // checking wallet API token
     let walletApiAuthorized = false
-    let bearer
-    const authorization = req.get('authorization')
-    if (/^Bearer /.test(authorization)) {
-      bearer = authorization.substring('Bearer '.length)
-    }
-    if (wallet.api_enabled && bearer) {
+    const { apiToken } = req.body
+    if (wallet.api_enabled && apiToken) {
       try {
         const hash = crypto.createHash('sha256')
-          .update(bearer).digest().toString('hex')
+          .update(apiToken).digest().toString('hex')
         const walletApi = await db.WalletApi.findOne({
           where: { api_bearer_hash: hash, wallet_id: wallet.id },
           include: {
@@ -353,7 +349,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     }
     
     if (!isCaptchaSuccess && !walletApiAuthorized) {
-      return res.status(401).send({error: `Unauthorized: Due to the referral code sale price, a user API Bearer Token is required`})
+      return res.status(401).send({error: `Unauthorized: Due to the referral code sale price, a user API Token is required`})
     }
 
     if (buyAccount) {

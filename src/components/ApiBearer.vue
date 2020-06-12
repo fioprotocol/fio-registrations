@@ -37,6 +37,12 @@ import ServerMixin from './ServerMixin'
 export default {
   name: 'ApiBearer',
 
+  props: {
+    walletId: {
+      type: Number
+    }
+  },
+
   mixins: [
     ServerMixin('apiSharedSecret'),
     ServerMixin('apiUpdateRequest'),
@@ -66,9 +72,14 @@ export default {
     },
 
     onSubmit() {
+      let path = 'api-update'
+      const body = { sharedSecret: this.sharedSecret }
+      if (this.walletId) {
+        body.walletId = this.walletId
+        path = 'wallet-api-update'
+      }
       this.$store.dispatch('Server/post', {
-        key: 'apiUpdateRequest', path: 'api-update',
-        body: { sharedSecret: this.sharedSecret }
+        key: 'apiUpdateRequest', path, body
       })
     },
   },

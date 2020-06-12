@@ -103,6 +103,12 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
       defaultValue: ''
+    },
+    api_enabled: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      comment: 'Enable / disable secret API Bearer token'
     }
   }, {
     tableName: 'wallet'
@@ -110,6 +116,7 @@ module.exports = (sequelize, DataTypes) => {
 
   Wallet.associate = function(models) {
     Wallet.hasMany(models.Account, {foreignKey: 'wallet_id'})
+    Wallet.hasOne(models.WalletApi, { foreignKey: 'wallet_id', onDelete: 'CASCADE' })
   };
 
   return Wallet;

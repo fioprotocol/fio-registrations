@@ -392,6 +392,12 @@ router.get('/wallet/:referral_code', handler(async (req, res) => {
       result.webhook_shared_secret
     ).toString()
   }
+  const walletApi = await db.WalletApi.findOne({
+    where: { wallet_id: wallet.id }
+  })
+  if (walletApi) {
+    result.api_token_exists = true
+  }
   const accountsByDomain = await getAccountsByDomainsAndStatus(wallet.id, wallet.domains)
   result.accountsByDomain = accountsByDomain.reduce((acc, data) => {
     acc[data.domain] = parseInt(data.accounts)

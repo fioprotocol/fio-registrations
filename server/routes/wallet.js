@@ -1,4 +1,5 @@
 const assert = require('assert')
+const crypto = require('crypto')
 const express = require('express');
 const router = express.Router();
 const handler = require('./handler')
@@ -253,7 +254,8 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       'account_sale_active',
       'domains_limit',
       'domain_roe_active',
-      'account_roe_active'
+      'account_roe_active',
+      'api_enabled'
     ],
     where: {
       referral_code: ref,
@@ -319,8 +321,35 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     } catch (e) {
       return res.status(400).send({ captchaStatus: 'fail' })
     }
-    if (!isCaptchaSuccess && !res.state.user_id) {
-      return res.status(401).send({error: `Unauthorized: Due to the referral code sale price, a user API Bearer Token is required`})
+    
+    // checking wallet API token
+    let walletApiAuthorized = false
+    const { apiToken } = req.body
+    if (wallet.api_enabled && apiToken) {
+      try {
+        const hash = crypto.createHash('sha256')
+          .update(apiToken).digest().toString('hex')
+        const walletApi = await db.WalletApi.findOne({
+          where: { api_bearer_hash: hash, wallet_id: wallet.id },
+          include: {
+            model: db.Wallet,
+            required: true,
+            attributes: ['id'],
+            where: { api_enabled: true }
+          }
+        })
+        if (walletApi && walletApi.wallet_id) {
+          walletApiAuthorized = true
+          walletApi.last_used = new Date().toISOString()
+          walletApi.save()
+        }
+      } catch (e) {
+        //
+      }
+    }
+    
+    if (!isCaptchaSuccess && !walletApiAuthorized) {
+      return res.status(401).send({error: `Unauthorized: Due to the referral code sale price, a user API Token is required`})
     }
 
     if (buyAccount) {

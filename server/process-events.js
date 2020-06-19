@@ -94,35 +94,30 @@ async function broadcastPaidNeedingAccounts() {
 
 async function getPaidNeedingAccounts() {
   const [newRegs] = await sequelize.query(`
-    select distinct
-      a.id as account_id,
-      a.address,
-      a.domain,
-      a.owner_key,
-      w.tpid,
-      w.actor,
-      w.permission
-      --, a.created, le.trx_status, ae.pay_status
-    from account a
-    join wallet w on w.id = a.wallet_id
-    join account_pay ap on ap.account_id = a.id
-    join account_pay_event ae on ae.id = (
-      select max(le.id) from account_pay_event le
-      where le.account_pay_id = ap.id
-    )
-    left join blockchain_trx t on t.id = (
-      select max(lt.id) from blockchain_trx lt
-      where lt.account_id = a.id
-    ) and t.type = 'register'
-    left join blockchain_trx_event le on le.id = (
-      select max(te.id) from blockchain_trx_event te
-      where te.blockchain_trx_id = t.id
-    )
-    where
-      (ae.pay_status = 'success' AND le.trx_status IS NULL) OR
-      le.trx_status = 'retry'
-    order by
-      a.id
+    WITH last AS (
+        select max(bte.id) over (partition by account_id) mid, account_id
+            from blockchain_trx bt
+            left outer join blockchain_trx_event bte on bte.blockchain_trx_id = bt.id
+            group by bte.id, account_id
+    ), acc_payer AS (
+        select account_id
+            from account_pay ap
+            inner join account_pay_event ape on ape.account_pay_id = ap.id
+            where ape.pay_status = 'success'
+    ) select distinct a.id account_id,
+                      a.address,
+                      a.domain,
+                      a.owner_key,
+                      w.tpid,
+                      w.actor,
+                      w.permission
+        from account a
+            inner join acc_payer on acc_payer.account_id = a.id
+            left join last on last.account_id = acc_payer.account_id
+            left join blockchain_trx_event bte on bte.id = last.mid
+            left join wallet w on a.wallet_id = w.id
+        where last.account_id is null OR bte.trx_status = 'retry'
+        order by a.id;
   `)
   return newRegs
 }

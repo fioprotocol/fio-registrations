@@ -28,7 +28,6 @@ router.post('/buy', handler(async (req, res) => {
   const {
     referral_code = null,
     domain = null,
-    address = null,
     owner_key = null,
     pay_source = 'api',
     extern_id = null,
@@ -43,13 +42,15 @@ router.post('/buy', handler(async (req, res) => {
     metadata = null
   } = req.body
 
+  let { address } = req.body
+
   assert(referral_code, 'required: referral_code')
   assert(buy_price, 'required: buy_price')
   assert(domain, 'required: domain')
   assert(owner_key, 'required: owner_key')
   assert(pay_source, 'required: pay_source')
 
-  if(address && address.trim() === '') {
+  if (address && address.trim() === '') {
     address = null
   }
 

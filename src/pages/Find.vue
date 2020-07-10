@@ -47,6 +47,20 @@
       </b-table>
     </div>
 
+    <paginate
+            v-if="found && pagesAmount"
+            v-model="urlPage"
+            :page-count="pagesAmount"
+            :click-handler="setPage"
+            :prev-text="'Prev'"
+            :next-text="'Next'"
+            :container-class="'pagination'"
+            :page-link-class="'page-link'"
+            :prev-class="'page-link'"
+            :next-class="'page-link'"
+            :page-class="'page-item'">
+    </paginate>
+
     <div v-if="found">
       <div v-for="type of [
         {
@@ -227,7 +241,6 @@
         </div>
       </div>
     </div>
-
     <div v-if="credits" class="mb-4">
       <b-table
         :fields="['owner_key', 'total']" :items="credits"
@@ -253,6 +266,20 @@
       />
     </div>
 
+    <paginate
+            v-if="found && pagesAmount"
+            v-model="urlPage"
+            :page-count="pagesAmount"
+            :click-handler="setPage"
+            :prev-text="'Prev'"
+            :next-text="'Next'"
+            :container-class="'pagination'"
+            :page-link-class="'page-link'"
+            :prev-class="'page-link'"
+            :next-class="'page-link'"
+            :page-class="'page-item'">
+    </paginate>
+
     <div v-if="notFound">
       <code>No matching results</code>
     </div>
@@ -262,9 +289,12 @@
 <script>
 import Vue from 'vue'
 import {mapState} from 'vuex'
+import Paginate from 'vuejs-paginate'
 import TrxMonitor from '../components/TrxMonitor.vue'
 import Transactions from '../components/Transactions.vue'
 import Amount from '../components/Amount.vue'
+
+Vue.component('paginate', Paginate)
 
 export default {
   name: 'Find',
@@ -272,11 +302,13 @@ export default {
   components: { TrxMonitor, Transactions, Amount },
 
   props: {
-    search: String
+    search: String,
+    page: String
   },
 
   data() {
     return {
+      urlPage: 1,
       searchInput: '',
       submittedSearch: '',
       totalBalance: null,
@@ -399,8 +431,8 @@ export default {
     },
 
     onSubmit() {
-      if(this.$router.history.current.params.search !== this.searchInput) {
-        this.$router.push({name: 'find', params: {search: this.searchInput}})
+      if (this.$router.history.current.params.search !== this.searchInput) {
+        this.$router.push({ name: 'find', params: { search: this.searchInput, page: '1' }})
       } else {
         this.lookup()
       }
@@ -410,7 +442,7 @@ export default {
       this.submittedSearch = this.search
       this.$store.dispatch('Server/get', {
         key: 'find',
-        path: 'find/' + encodeURIComponent(this.submittedSearch)
+        path: 'find/' + encodeURIComponent(this.submittedSearch) + '/' + (this.urlPage || 1)
       })
     },
 
@@ -473,6 +505,10 @@ export default {
     pubKeyEnd(pubkey) {
       return pubkey.substring(pubkey.length, pubkey.length - 3)
     },
+
+    setPage(pageNum) {
+      this.$router.push({ name: 'find', params: { search: this.currentSearch, page: pageNum.toString() } })
+    }
   },
 
   computed: {
@@ -527,6 +563,20 @@ export default {
       return this.find.success.filter(row => row.address === null)
     },
 
+    currentSearch() {
+      if (!this.find.success) {
+        return ''
+      }
+      return this.find.search
+    },
+
+    pagesAmount() {
+      if (!this.find.success) {
+        return 0
+      }
+      return this.find.pages
+    },
+
     credits() {
       if(!this.find.success || !this.find.success.credits) {
         return null
@@ -551,11 +601,12 @@ export default {
   watch: {
     $route(to) {
       this.searchInput = to.params.search
+      this.urlPage = parseInt(to.params.page)
       this.lookup()
     },
 
     ['findRefresh._loading']: function(loading) {
-      if(!loading && this.rowSelect.item) {
+      if (!loading && this.rowSelect.item) {
         const [item] = this.findRefresh.success
         for (var val in item) {
           Vue.set(this.rowSelect.item, val, item[val]) //details
@@ -572,7 +623,8 @@ export default {
 
   created() {
     this.searchInput = this.search
-    if(this.search) {
+    this.urlPage = parseInt(this.page)
+    if (this.search) {
       this.lookup()
     }
   },
@@ -585,7 +637,7 @@ export default {
 
 <style scope>
 .account-table {
-  max-height: 700px;
+  max-height: 900px;
 }
 
 .credit {

@@ -8,7 +8,8 @@ const trace = require('./trace-filter')(() => debug, extend => debug = extend)
 const db = require('./db/models');
 const {Sequelize, sequelize} = db
 const {Op} = Sequelize
-const {trimKeys} = require('./db/helper')
+
+const { saveRegistrationsSearchItem, checkCreatedBcTrxEvents } = require('./registrations-search-util')
 
 const {Fio, Ecc} = require('@fioprotocol/fiojs')
 const {PrivateKey} = Ecc
@@ -148,7 +149,7 @@ async function getRegisteredAmountForOwner(walletId, owner_key, domains = [], is
   const domainWhere = domains.length ? ` and a.domain in (${domains.map(domain => `'${domain}'`).join(',')}) ` : ''
   const statusesWhere = statuses.length > 1 ? ` (${statuses.map(status => `le.trx_status = '${status}'`).join(' OR ')}) ` : ` le.trx_status = '${status}' `
   const buyPriceWhere = isFree ? ` and a.owner_key = '${owner_key}' ` : ''
-  
+
   const [res] = await sequelize.query(`
     select count(distinct a.id) as accounts
     from account a
@@ -205,11 +206,27 @@ async function broadcastNewAccount({
       account_id
     })
 
-    await db.BlockchainTrxEvent.create({
+    const newBcTrxEvent = await db.BlockchainTrxEvent.create({
       trx_status: 'review',
       blockchain_trx_id: dbTrx.id,
       trx_status_notes: error.message
     })
+    // Updating RegistrationsSearch table record
+    saveRegistrationsSearchItem(
+      {
+        blockchain_trx_id: dbTrx.id,
+        blockchain_trx_event_id: newBcTrxEvent.id,
+        trx_status: newBcTrxEvent.trx_status
+      },
+      {
+        account_id
+      },
+      {
+        account_id,
+        dbTrx,
+        newBcTrxEvent
+      }
+    )
     return
   }
 
@@ -232,10 +249,26 @@ async function broadcastNewAccount({
         account_id
       })
 
-      await db.BlockchainTrxEvent.create({
+      const newBcTrxEvent = await db.BlockchainTrxEvent.create({
         trx_status: 'pending',
         blockchain_trx_id: dbTrx.id
       })
+      // Updating RegistrationsSearch table record
+      saveRegistrationsSearchItem(
+        {
+          blockchain_trx_id: dbTrx.id,
+          blockchain_trx_event_id: newBcTrxEvent.id,
+          trx_status: newBcTrxEvent.trx_status
+        },
+        {
+          account_id
+        },
+        {
+          account_id,
+          dbTrx,
+          newBcTrxEvent
+        }
+      )
       return
     }
 
@@ -254,11 +287,27 @@ async function broadcastNewAccount({
         account_id
       })
 
-      await db.BlockchainTrxEvent.create({
+      const newBcTrxEvent = await db.BlockchainTrxEvent.create({
         trx_status: 'review',
         trx_status_notes: notes,
         blockchain_trx_id: dbTrx.id
       })
+      // Updating RegistrationsSearch table record
+      saveRegistrationsSearchItem(
+        {
+          blockchain_trx_id: dbTrx.id,
+          blockchain_trx_event_id: newBcTrxEvent.id,
+          trx_status: newBcTrxEvent.trx_status
+        },
+        {
+          account_id
+        },
+        {
+          account_id,
+          dbTrx,
+          newBcTrxEvent
+        }
+      )
     } else {
       const dbTrx = await db.BlockchainTrx.create({
         type: 'register',
@@ -267,11 +316,27 @@ async function broadcastNewAccount({
         account_id
       })
 
-      await db.BlockchainTrxEvent.create({
+      const newBcTrxEvent = await db.BlockchainTrxEvent.create({
         trx_status: 'review',
         trx_status_notes: notes,
         blockchain_trx_id: dbTrx.id
       })
+      // Updating RegistrationsSearch table record
+      saveRegistrationsSearchItem(
+        {
+          blockchain_trx_id: dbTrx.id,
+          blockchain_trx_event_id: newBcTrxEvent.id,
+          trx_status: newBcTrxEvent.trx_status
+        },
+        {
+          account_id
+        },
+        {
+          account_id,
+          dbTrx,
+          newBcTrxEvent
+        }
+      )
     }
   } catch(error) {
     console.error(error);
@@ -297,7 +362,7 @@ async function checkIrreversibility() {
   nextCheck = 0
 
   const pendingAccounts = await db.Account.findAll({
-    attributes: ['address', 'domain', 'owner_key'],
+    attributes: ['id', 'address', 'domain', 'owner_key'],
     include: [
       {
         model: db.BlockchainTrx,
@@ -348,6 +413,7 @@ async function checkIrreversibility() {
   let libTime
 
   const promises = []
+  const accountsWithUpdatedEvents = []
   for (let account of pendingAccounts) {
     const {owner_key} = account
 
@@ -395,6 +461,7 @@ async function checkIrreversibility() {
               blockchain_trx_id: trx.id
             })
           )
+          accountsWithUpdatedEvents[account.id] = true
         } else {
           if(expired) {
             promises.push(
@@ -403,12 +470,16 @@ async function checkIrreversibility() {
                 blockchain_trx_id: trx.id
               })
             )
+            accountsWithUpdatedEvents[account.id] = true
           }
         }
       }
     }
   }
-  return Promise.all(promises)
+  const res = await Promise.all(promises)
+  // Updating RegistrationsSearch table record
+  checkCreatedBcTrxEvents(Object.keys(accountsWithUpdatedEvents))
+  return res
 }
 
 /**
@@ -480,6 +551,8 @@ async function expireRetry(retry = 3) {
   }
 
   await db.BlockchainTrxEvent.bulkCreate(trxEvents)
+  // Updating RegistrationsSearch table record
+  checkCreatedBcTrxEvents([], res.map(event => event.blockchain_trx_id))
 }
 
 function nameExists(names, address, domain) {

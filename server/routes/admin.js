@@ -26,6 +26,7 @@ const {Op} = Sequelize
 const {PublicKey} = require('@fioprotocol/fiojs').Ecc
 const {checkEncrypt, checkDecrypt} = require('../encryption-check')
 const { getAccountsByDomainsAndStatus } = require('../process-events')
+const { saveRegistrationsSearchItem, fillRegistrationsSearch, getRegSearchRes } = require('../registrations-search-util')
 
 if(!process.env.TITLE) {
   throw new Error('Required: process.env.TITLE')
@@ -74,18 +75,18 @@ router.get('/transactions/:publicKey', handler(async (req, res) => {
   res.send({success: history})
 }))
 
-router.get('/find/:search', handler(async (req, res) => {
-  const {user_id} = res.state
-  if(!user_id) {
+router.get('/find/:search/:page?', handler(async (req, res) => {
+  const { user_id } = res.state
+  if (!user_id) {
     return res.status(401).send({error: 'Unauthorized'})
   }
 
-  const {search} = req.params
-  if(!search || search.trim() === '') {
+  const { search, page = 1 } = req.params
+  if (!search || search.trim() === '') {
     return res.status(401).send({error: 'Missing url parameter: search'})
   }
 
-  if(search === 'credits') {
+  if (search === 'credits') {
     const credits = await transactions.credits()
     return res.send({success: {credits}})
   }
@@ -96,35 +97,35 @@ router.get('/find/:search', handler(async (req, res) => {
     'pending', 'success', 'expire', 'retry', 'review', 'cancel'
   ].find(status => status === search.toLowerCase())
 
-  if(statusSearch) {
+  if (statusSearch) {
     accountWhere = sequelize.literal(
-      `(pay_status = '${statusSearch}' OR trx_status = '${statusSearch}')`
+      `("RegistrationsSearch".pay_status = '${statusSearch}' OR "RegistrationsSearch".trx_status = '${statusSearch}')`
     )
-  } else if(PublicKey.isValid(search)) {
+  } else if (PublicKey.isValid(search)) {
     accountWhere.owner_key = search
   } else {
     // address, domain, or processor id
     const noSeparator = search.indexOf('@') === -1
 
-    if(noSeparator) {
-      const count = await db.AccountPay.count({where: {extern_id: search}})
-      if(count === 1) {
+    if (noSeparator) {
+      const count = await db.AccountPay.count({ where: { extern_id: search } })
+      if (count === 1) {
         accountPayWhere.extern_id = search
       }
     }
 
-    if(!accountPayWhere.extern_id) {
-      if(noSeparator) {
+    if (!accountPayWhere.extern_id) {
+      if (noSeparator) {
         accountWhere[Op.or] = {
           domain: search,
           address: search
         }
       } else {
         const [address, domain = ''] = search.split('@')
-        if(address !== '') {
+        if (address !== '') {
           accountWhere.address = address
         }
-        if(domain !== '') {
+        if (domain !== '') {
           accountWhere.domain = domain
         }
       }
@@ -134,94 +135,274 @@ router.get('/find/:search', handler(async (req, res) => {
   // if(debug.enabled) {
   //   debug('/find/:search', search, {accountWhere, accountPayWhere});
   // }
+  const limit = 25
+  const offset = limit * (page - 1)
+  const { rows, count } = await getRegSearchRes(accountWhere, accountPayWhere, limit, offset)
+  const pages = Math.floor(count / limit) + 1
 
-  const result = await db.Account.findAll({
-   raw: true,
-   // limit: 100,
-   attributes: [['id', 'account_id'], 'address', 'domain', 'owner_key'],
-   where: accountWhere,
-   order: [['created', 'asc']],
-   include: [
-     {
-       model: db.Wallet,
-       attributes: [['name', 'wallet_name'], 'referral_code'],
-       required: true
-     },
-     {
-       model: db.AccountPay,
-       attributes: [
-         'pay_source', 'extern_id', 'forward_url',
-         'buy_price', 'metadata', 'id'
-       ],
-       required: Object.keys(accountPayWhere).length !== 0,
-       where: {
-         id: {
-           [Op.eq]: sequelize.literal(
-             `( select max(p.id) from account_pay p ` +
-             `join account_pay_event e on e.account_pay_id = p.id ` +
-             `where account_id = "Account"."id" )`
-           )
-         },
-         ...accountPayWhere,
-       },
-       include: [
-         {
-           model: db.AccountPayEvent,
-           attributes: [
-             ['created', 'pay_created'], 'pay_status', 'pay_status_notes',
-             ['created_by', 'pay_created_by'], 'extern_status', 'extern_time',
-             'confirmed_total', 'pending_total', 'metadata', 'id'
-           ],
-           where: {
-             id: {
-               [Op.eq]: sequelize.literal(
-                 `( select max(id) from account_pay_event ` +
-                 `where account_pay_id = "AccountPays"."id" )`
-               )
-             }
-           }
-         }
-       ],
-     },
-     {
-       model: db.BlockchainTrx,
-       attributes: [
-         ['type', 'blockchain_trx_type'], 'trx_id',
-         'expiration', 'block_num'
-       ],
-       required: false,
-       where: {
-         type: 'register',
-         id: {
-           [Op.eq]: sequelize.literal(
-             `( select max(t.id) from blockchain_trx t ` +
-             `join blockchain_trx_event e on e.blockchain_trx_id = t.id ` +
-             `where account_id = "Account"."id" )`
-           )
-         }
-       },
-       include: [
-         {
-           model: db.BlockchainTrxEvent,
-           attributes: [
-             ['created', 'trx_created'], 'trx_status',
-             'trx_status_notes', 'blockchain_trx_id'
-           ],
-           where: {
-             id: {
-               [Op.eq]: sequelize.literal(
-                 `( select max(id) from blockchain_trx_event ` +
-                 `where blockchain_trx_id = "BlockchainTrxes"."id")`
-               )
-             }
-           }
-         }
-       ]
-     }
-   ]
-  })
+  return res.send({ success: rows, count, pages, page, search })
+}))
 
-  return res.send({success: result.map(r => trimKeys(r))})
+/**
+ * Separate (account pay/blockchain trx) search
+ */
+router.get('/find-by/:type/:search/:?page', handler(async (req, res) => {
+  const {user_id} = res.state
+  if(!user_id) {
+    return res.status(401).send({error: 'Unauthorized'})
+  }
+
+  const { type, search, page = 1 } = req.params
+  if (!type || type.trim() === '') {
+    return res.status(401).send({error: 'Missing url parameter: type'})
+  }
+  if (!search || search.trim() === '') {
+    return res.status(401).send({error: 'Missing url parameter: search'})
+  }
+
+  let accountWhere = {}, accountPayWhere = {}, bcTxWhere = {}, accountPayLitWhere = {}
+
+  const statusSearch = [
+    'pending', 'success', 'expire', 'retry', 'review', 'cancel'
+  ].find(status => status === search.toLowerCase())
+
+  if (statusSearch) {
+    accountPayLitWhere = sequelize.literal(
+      `(pay_status = '${statusSearch}')`
+    )
+    bcTxWhere = sequelize.literal(
+      `(trx_status = '${statusSearch}')`
+    )
+  } else if (PublicKey.isValid(search)) {
+    accountWhere.owner_key = search
+  } else {
+    // address, domain, or processor id
+    const noSeparator = search.indexOf('@') === -1
+
+    if (noSeparator) {
+      const count = await db.AccountPay.count({ where: { extern_id: search } })
+      if(count === 1) {
+        accountPayWhere.extern_id = search
+      }
+    }
+
+    if (!accountPayWhere.extern_id) {
+      if (noSeparator) {
+        accountWhere[Op.or] = {
+          domain: search,
+          address: search
+        }
+      } else {
+        const [address, domain = ''] = search.split('@')
+        if (address !== '') {
+          accountWhere.address = address
+        }
+        if (domain !== '') {
+          accountWhere.domain = domain
+        }
+      }
+    }
+  }
+
+  const limit = 20
+  const offset = limit * (page - 1)
+  let results = []
+  let resultAccountPay = []
+  let resultBcTrx = []
+
+  if (type !== 'bcTrx') {
+    resultAccountPay = await db.AccountPay.findAndCountAll({
+      raw: true,
+      limit,
+      offset,
+      subQuery: false,
+      attributes: ['pay_source', 'extern_id', 'forward_url', 'buy_price', 'metadata', 'id'],
+      where: {
+        [Op.and]: [
+          {
+            id: {
+              [Op.eq]: sequelize.literal(
+                `( select max(p.id) from account_pay p ` +
+                `join account_pay_event e on e.account_pay_id = p.id ` +
+                `where account_id = "Account"."id" )`
+              )
+            }
+          },
+          accountPayWhere,
+          accountPayLitWhere
+        ]
+      },
+      include: [
+        {
+          model: db.AccountPayEvent,
+          attributes: [
+            ['created', 'pay_created'], 'pay_status', 'pay_status_notes',
+            ['created_by', 'pay_created_by'], 'extern_status', 'extern_time',
+            'confirmed_total', 'pending_total', 'metadata', 'id'
+          ],
+          where: {
+            id: {
+              [Op.eq]: sequelize.literal(
+                `( select max(id) from account_pay_event ` +
+                `where account_pay_id = "AccountPay"."id" )`
+              )
+            }
+          }
+        },
+        {
+          model: db.Account,
+          attributes: [['id', 'account_id'], 'address', 'domain', 'owner_key'],
+          required: true,
+          where: accountWhere,
+          order: [['created', 'asc']],
+          include: [
+            {
+              model: db.Wallet,
+              attributes: [['name', 'wallet_name'], 'referral_code'],
+              required: true
+            },
+            {
+              model: db.BlockchainTrx,
+              attributes: [
+                ['type', 'blockchain_trx_type'], 'trx_id',
+                'expiration', 'block_num'
+              ],
+              required: false,
+              where: {
+                type: 'register',
+                id: {
+                  [Op.eq]: sequelize.literal(
+                    `( select max(t.id) from blockchain_trx t ` +
+                    `join blockchain_trx_event e on e.blockchain_trx_id = t.id ` +
+                    `where account_id = "Account"."id" )`
+                  )
+                }
+              },
+              include: [
+                {
+                  model: db.BlockchainTrxEvent,
+                  attributes: [
+                    ['created', 'trx_created'], 'trx_status',
+                    'trx_status_notes', 'blockchain_trx_id'
+                  ],
+                  where: {
+                    id: {
+                      [Op.eq]: sequelize.literal(
+                        `( select max(id) from blockchain_trx_event ` +
+                        `where blockchain_trx_id = "Account->BlockchainTrxes"."id")`
+                      )
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+    })
+    console.log(resultAccountPay);
+    results = resultAccountPay
+  }
+  if (type !== 'accountPay') {
+    resultBcTrx = await db.BlockchainTrx.findAll({
+      raw: true,
+      limit,
+      offset,
+      subQuery: false,
+      attributes: [
+        ['type', 'blockchain_trx_type'], 'trx_id',
+        'expiration', 'block_num'
+      ],
+      where: {
+        [Op.and]: [
+          {
+            type: 'register',
+            id: {
+              [Op.eq]: sequelize.literal(
+                `( select max(t.id) from blockchain_trx t ` +
+                `join blockchain_trx_event e on e.blockchain_trx_id = t.id ` +
+                `where account_id = "Account"."id" )`
+              )
+            }
+          },
+          bcTxWhere
+        ]
+      },
+      include: [
+        {
+          model: db.BlockchainTrxEvent,
+          attributes: [
+            ['created', 'trx_created'], 'trx_status',
+            'trx_status_notes', 'blockchain_trx_id'
+          ],
+          where: {
+            id: {
+              [Op.eq]: sequelize.literal(
+                `( select max(id) from blockchain_trx_event ` +
+                `where blockchain_trx_id = "BlockchainTrx"."id")`
+              )
+            }
+          }
+        },
+        {
+          model: db.Account,
+          attributes: [['id', 'account_id'], 'address', 'domain', 'owner_key'],
+          required: true,
+          order: [['created', 'asc']],
+          where: accountWhere,
+          include: [
+            {
+              model: db.Wallet,
+              attributes: [['name', 'wallet_name'], 'referral_code'],
+              required: true
+            },
+            {
+              model: db.AccountPay,
+              attributes: [
+                'pay_source', 'extern_id', 'forward_url',
+                'buy_price', 'metadata', 'id'
+              ],
+              required: Object.keys(accountPayWhere).length !== 0,
+              where: {
+                id: {
+                  [Op.eq]: sequelize.literal(
+                    `( select max(p.id) from account_pay p ` +
+                    `join account_pay_event e on e.account_pay_id = p.id ` +
+                    `where account_id = "Account"."id" )`
+                  )
+                },
+                ...accountPayWhere,
+              },
+              include: [
+                {
+                  model: db.AccountPayEvent,
+                  attributes: [
+                    ['created', 'pay_created'], 'pay_status', 'pay_status_notes',
+                    ['created_by', 'pay_created_by'], 'extern_status', 'extern_time',
+                    'confirmed_total', 'pending_total', 'metadata', 'id'
+                  ],
+                  where: {
+                    id: {
+                      [Op.eq]: sequelize.literal(
+                        `( select max(id) from account_pay_event ` +
+                        `where account_pay_id = "Account->AccountPays"."id" )`
+                      )
+                    }
+                  }
+                }
+              ],
+            },
+          ]
+        }
+      ],
+    })
+    results = resultBcTrx
+  }
+  if (type === 'all') {
+    results = [...resultAccountPay, ...resultBcTrx]
+  }
+
+  return res.send({ success: results.map(r => trimKeys(r)) })
 }))
 
 router.post('/update-trx-status', handler(async (req, res) => {
@@ -248,6 +429,20 @@ router.post('/update-trx-status', handler(async (req, res) => {
       created_by: username,
       trx_status_notes
     }, tr)
+    // Updating RegistrationsSearch table record
+    await saveRegistrationsSearchItem(
+      {
+        blockchain_trx_id: trx.id,
+        blockchain_trx_event_id: event.id,
+        trx_status: event.trx_status
+      },
+      { account_id },
+      {
+        blockchainTrx: trx,
+        blockchainTrxEvent: event
+      },
+      transaction
+    )
 
     return res.send({success: `Updated status: ${new_status}`})
   })
@@ -618,6 +813,16 @@ router.post('/user', handler(async (req, res) => {
   }
 
   return res.send({error: 'Update failed'})
+}))
+
+router.get('/fill-registrations-search', handler(async (req, res) => {
+  try {
+    fillRegistrationsSearch()
+  } catch (e) {
+    console.log('fillRegistrationsSearch ERRORED === ');
+    console.log(e);
+  }
+  return res.send({ success: 'Process is launched' })
 }))
 
 module.exports = router

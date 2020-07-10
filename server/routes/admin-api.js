@@ -16,6 +16,8 @@ const db = require('../db/models')
 const {Sequelize, sequelize} = db
 const {Op} = Sequelize
 
+const { saveRegistrationsSearchItem } = require('../registrations-search-util')
+
 /**
   Create or update a payment in the system.  A pay_status of `success` will trigger a domain registration.
 */
@@ -28,7 +30,6 @@ router.post('/buy', handler(async (req, res) => {
   const {
     referral_code = null,
     domain = null,
-    address = null,
     owner_key = null,
     pay_source = 'api',
     extern_id = null,
@@ -43,13 +44,15 @@ router.post('/buy', handler(async (req, res) => {
     metadata = null
   } = req.body
 
+  let { address } = req.body
+
   assert(referral_code, 'required: referral_code')
   assert(buy_price, 'required: buy_price')
   assert(domain, 'required: domain')
   assert(owner_key, 'required: owner_key')
   assert(pay_source, 'required: pay_source')
 
-  if(address && address.trim() === '') {
+  if (address && address.trim() === '') {
     address = null
   }
 
@@ -108,6 +111,19 @@ router.post('/buy', handler(async (req, res) => {
         address,
         owner_key
       }, tr)
+      await saveRegistrationsSearchItem(
+        {
+          domain,
+          address,
+          owner_key,
+          account_id: account.id,
+          created: account.created
+        },
+        {},
+        account,
+        transaction,
+        true
+      )
     }
 
     let accountPay = await db.AccountPay.findOne({
@@ -142,6 +158,15 @@ router.post('/buy', handler(async (req, res) => {
           source: 'api'
         }
       }, tr)
+      await saveRegistrationsSearchItem(
+        {
+          extern_id,
+          account_pay_id: accountPay.id
+        },
+        { account_id: account.id },
+        accountPay,
+        transaction
+      )
     }
 
     let accountPayEvent = await db.AccountPayEvent.findOne({
@@ -178,6 +203,16 @@ router.post('/buy', handler(async (req, res) => {
       pending_total,
       metadata
     }, tr)
+    // Updating RegistrationsSearch table record
+    await saveRegistrationsSearchItem(
+      {
+        pay_status,
+        account_pay_event_id: accountPayEvent.id
+      },
+      { account_id: account.id, account_pay_id: accountPay.id },
+      accountPayEvent,
+      transaction
+    )
 
     return res.send({success: {
       referral_code,

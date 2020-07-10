@@ -19,6 +19,8 @@ const { getAccountsByDomainsAndStatus, getRegisteredAmountForOwner } = require('
 const geeTest = require('../geetest')
 const { getROE, convert } = require('../roe')
 
+const { saveRegistrationsSearchItem } = require('../registrations-search-util')
+
 if(process.env.MIN_ADDRESS_PRICE == null) {
   throw new Error('Required: process.env.MIN_ADDRESS_PRICE')
 }
@@ -282,7 +284,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       {error: `Invalid ${type}`}
     )
   }
-  
+
   if (!PublicKey.isValid(publicKey)) {
     return res.status(400).send({ error: 'Missing public key' })
   }
@@ -302,7 +304,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
 
   const {name, logo_url} = wallet
   let price = +Number(wallet[`${type}_sale_price`])
-  
+
   if (wallet[`${type}_roe_active`]) {
     try {
       const roe = await getROE()
@@ -321,7 +323,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     } catch (e) {
       return res.status(400).send({ captchaStatus: 'fail' })
     }
-    
+
     // checking wallet API token
     let walletApiAuthorized = false
     const { apiToken } = req.body
@@ -347,7 +349,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
         //
       }
     }
-    
+
     if (!isCaptchaSuccess && !walletApiAuthorized) {
       return res.status(401).send({error: `Unauthorized: Due to the referral code sale price, a user API Token is required`})
     }
@@ -399,6 +401,18 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       },
       transaction
     })
+    await saveRegistrationsSearchItem(
+      {
+        account_id: account.id,
+        domain: accountObj.domain,
+        address: accountObj.address || null,
+        owner_key: publicKey
+      },
+      {},
+      account,
+      transaction,
+    true
+    )
 
     if(
       (type === 'account' && price === 0) ||
@@ -418,6 +432,18 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
         event_id: String(0),
         account_pay_id: accountPay.id
       }, tr)
+      // Updating RegistrationsSearch table record
+      await saveRegistrationsSearchItem(
+        {
+          pay_status: accountPayEvent.pay_status,
+          extern_id: accountPay.extern_id,
+          account_pay_id: accountPay.id,
+          account_pay_event_id: accountPayEvent.id,
+        },
+        { account_id: account.id },
+        account,
+        transaction
+      )
 
       return {success: true, account_id: account.id}
     }
@@ -465,6 +491,18 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       extern_status,
       account_pay_id: accountPay.id
     }, tr)
+    // Updating RegistrationsSearch table record
+    await saveRegistrationsSearchItem(
+      {
+        pay_status: accountPayEvent.pay_status,
+        extern_id: accountPay.extern_id,
+        account_pay_id: accountPay.id,
+        account_pay_event_id: accountPayEvent.id,
+      },
+      { account_id: account.id },
+      account,
+      transaction
+    )
 
     return {success: {charge}, account_id: account.id}
   })
@@ -524,7 +562,7 @@ router.get('/public-api/wallet/:extern_id', handler(async (req, res) => {
 router.get('/public-api/get-domains/:referralCode', handler(async (req, res) => {
   const { referralCode } = req.params
   assert(typeof referralCode === 'string', 'Required parameter: referralCode')
-  
+
   const wallet = await db.Wallet.findOne({
     attributes: [
       'id',
@@ -538,11 +576,11 @@ router.get('/public-api/get-domains/:referralCode', handler(async (req, res) => 
       active: true
     }
   })
-  
+
   if (!wallet) {
     return res.status(404).send({ error: 'Referral code not found' })
   }
-  
+
   if (!wallet.account_sale_active) {
     return res.status(400).send({ error: 'This referral code is not selling accounts' })
   }

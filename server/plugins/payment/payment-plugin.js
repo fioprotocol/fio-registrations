@@ -2,8 +2,9 @@ const debug = require('debug')('fio:payment-plugin')
 const trace = debug.extend('trace')
 
 const db = require('../../db/models')
+const {sequelize} = db
 const transactions = require('../../db/transactions')
-const {Op} = db.Sequelize
+const { saveRegistrationsSearchItem } = require('../../registrations-search-util')
 
 /**
   Create AccountPayEvent records events that do not exist.  If the
@@ -47,7 +48,7 @@ async function dbSyncEvents(extern_id, events) {
     return balance = +Number(bal.total)
   }
 
-  return await db.sequelize.transaction(async transaction => {
+  const resEvents = await db.sequelize.transaction(async transaction => {
     await db.AccountPayEvent.destroy({
       where: { account_pay_id: accountPay.id },
       transaction
@@ -102,6 +103,25 @@ async function dbSyncEvents(extern_id, events) {
 
     return events
   })
+
+  // Get last account pay event
+  const [accountPayEvents] = await sequelize.query(
+    `select id, pay_status from account_pay_event where account_pay_id = ${accountPay.id} order by id DESC`
+  )
+  // Updating RegistrationsSearch table record
+  await saveRegistrationsSearchItem(
+    {
+      pay_status: accountPayEvents[0].pay_status,
+      account_pay_event_id: accountPayEvents[0].id,
+    },
+    { account_pay_id: accountPay.id },
+    {
+      account_pay_id: accountPay.id,
+      events: resEvents
+    }
+  )
+
+  return resEvents
 }
 
 module.exports = {

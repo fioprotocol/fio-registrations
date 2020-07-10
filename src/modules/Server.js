@@ -12,7 +12,7 @@ export default {
       'user', 'users', 'saveUser', 'deleteUser',
       'find', 'findRefresh', 'refreshPaymentResult',
       'sendInvite', 'invite',
-      'wallet', 'wallets', 'upsertWallet', 'uploadImage',
+      'wallet', 'wallets', 'upsertWallet', 'uploadImage', 'fillRegistrationsSearch'
     ]),
   },
 

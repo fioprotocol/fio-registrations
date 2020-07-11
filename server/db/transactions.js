@@ -41,11 +41,7 @@ async function history(publicKey, type = null, options = {}) {
       --, ape.*
     from account a
     join account_pay ap on ap.account_id = a.id
-    join account_pay_event ae on ae.id = (
-      select max(le.id)
-      from account_pay_event le
-      where le.account_pay_id = ap.id
-    )
+    join account_pay_event ae on ae.id = ap.last_pay_event
     where
       ${publicKey ? 'a.owner_key = :publicKey and' : ''}
       not exists (
@@ -56,11 +52,7 @@ async function history(publicKey, type = null, options = {}) {
       ) and not exists ( -- has any pending payments
         select 1
         from account_pay ap
-        join account_pay_event ae on ae.id = (
-          select max(le.id)
-          from account_pay_event le
-          where le.account_pay_id = ap.id
-        )
+        join account_pay_event ae on ae.id = ap.last_pay_event
         where ap.account_id = a.id and ae.pay_status = 'cancel'
       )
 
@@ -98,12 +90,7 @@ async function history(publicKey, type = null, options = {}) {
     )
     join blockchain_trx t on t.account_id = a.id and t.type = 'register'
     join blockchain_trx_event te on te.blockchain_trx_id = t.id
-    join blockchain_trx_event le on le.id = (
-      select max(le.id)
-      from blockchain_trx lt
-      join blockchain_trx_event le on le.blockchain_trx_id = lt.id
-      where lt.account_id = a.id
-    )
+    join blockchain_trx_event le on le.id = t.last_trx_event
     ${publicKey ? 'where a.owner_key = :publicKey' : ''}
 
     order by created, source_id, total asc, pending asc

@@ -35,6 +35,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+    last_trx: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
   }, {
     tableName: 'blockchain_trx',
     comment: 'Record is created before broadcast then selected with read lock during broadcast.',
@@ -48,6 +52,7 @@ module.exports = (sequelize, DataTypes) => {
 
   BlockchainTrx.associate = function(models) {
     BlockchainTrx.belongsTo(models.Account, {foreignKey: 'account_id'});
+    BlockchainTrx.belongsTo(models.BlockchainTrxEvent, {foreignKey: 'last_trx'})
     BlockchainTrx.hasMany(models.BlockchainTrxEvent, {foreignKey: 'blockchain_trx_id'})
   };
 

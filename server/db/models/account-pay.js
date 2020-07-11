@@ -31,7 +31,11 @@ module.exports = (sequelize, DataTypes) => {
     account_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
-    }
+    },
+    last_pay: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
   }, {
     tableName: 'account_pay',
     // comment: '',
@@ -45,6 +49,7 @@ module.exports = (sequelize, DataTypes) => {
 
   AccountPay.associate = function(models) {
     AccountPay.belongsTo(models.Account, {foreignKey: 'account_id'});
+    AccountPay.belongsTo(models.AccountPayEvent, {foreignKey: 'last_pay'})
     AccountPay.hasMany(models.AccountPayEvent, {foreignKey: 'account_pay_id'})
   };
 

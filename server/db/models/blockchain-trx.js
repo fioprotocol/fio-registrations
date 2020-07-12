@@ -52,7 +52,7 @@ module.exports = (sequelize, DataTypes) => {
 
   BlockchainTrx.associate = function(models) {
     BlockchainTrx.belongsTo(models.Account, {foreignKey: 'account_id'});
-    BlockchainTrx.belongsTo(models.BlockchainTrxEvent, {foreignKey: 'last_trx'})
+    BlockchainTrx.belongsTo(models.BlockchainTrxEvent, {foreignKey: 'last_trx_event'})
     BlockchainTrx.hasMany(models.BlockchainTrxEvent, {foreignKey: 'blockchain_trx_id'})
   };
 

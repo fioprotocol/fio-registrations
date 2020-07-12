@@ -49,7 +49,7 @@ module.exports = (sequelize, DataTypes) => {
 
   AccountPay.associate = function(models) {
     AccountPay.belongsTo(models.Account, {foreignKey: 'account_id'});
-    AccountPay.belongsTo(models.AccountPayEvent, {foreignKey: 'last_pay'})
+    AccountPay.belongsTo(models.AccountPayEvent, {foreignKey: 'last_pay_event'})
     AccountPay.hasMany(models.AccountPayEvent, {foreignKey: 'account_pay_id'})
   };
 

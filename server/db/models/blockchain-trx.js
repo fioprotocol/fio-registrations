@@ -35,7 +35,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    last_trx: {
+    last_trx_event: {
       type: DataTypes.INTEGER,
       allowNull: true,
     },

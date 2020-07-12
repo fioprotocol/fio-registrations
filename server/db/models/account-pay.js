@@ -32,7 +32,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    last_pay: {
+    last_pay_event: {
       type: DataTypes.INTEGER,
       allowNull: true,
     },

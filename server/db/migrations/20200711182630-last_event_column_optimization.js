@@ -30,7 +30,8 @@ module.exports = {
       `CREATE FUNCTION account_last_pay_event_insert_trigger_function()
       RETURNS trigger AS $$
       BEGIN
-        UPDATE account_pay SET last_pay_event = NEW.ID;
+        UPDATE account_pay SET last_pay_event = NEW.ID
+        WHERE id = NEW.account_pay_id;
         RETURN NEW;
       END; $$ LANGUAGE plpgsql`
     )
@@ -47,7 +48,8 @@ module.exports = {
       `CREATE FUNCTION blockchain_last_trx_event_insert_trigger_function()
       RETURNS trigger AS $$
       BEGIN
-        UPDATE blockchain_trx SET last_trx_event = NEW.ID;
+        UPDATE blockchain_trx SET last_trx_event = NEW.ID
+        WHERE id = NEW.blockchain_trx_id;
         RETURN NEW;
       END; $$ LANGUAGE plpgsql`
     )

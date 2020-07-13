@@ -45,6 +45,30 @@ module.exports = {
     )
 
     await QI.sequelize.query(
+      `CREATE FUNCTION account_last_pay_event_delete_trigger_function()
+      RETURNS trigger AS $$
+      BEGIN
+
+        UPDATE account_pay SET last_pay_event = (
+          SELECT MAX(ae.id) FROM account_pay_event ae
+          WHERE ae.account_pay_id = OLD.account_pay_id
+            AND ae.id < OLD.id
+        )
+        WHERE id = OLD.account_pay_id;
+
+        RETURN OLD;
+      END; $$ LANGUAGE plpgsql`
+    )
+
+    await QI.sequelize.query(
+      `CREATE TRIGGER account_last_pay_event_delete_trigger
+      BEFORE DELETE
+      ON account_pay_event
+      FOR EACH ROW
+      EXECUTE PROCEDURE account_last_pay_event_delete_trigger_function()`
+    )
+
+    await QI.sequelize.query(
       `CREATE FUNCTION blockchain_last_trx_event_insert_trigger_function()
       RETURNS trigger AS $$
       BEGIN
@@ -52,6 +76,30 @@ module.exports = {
         WHERE id = NEW.blockchain_trx_id;
         RETURN NEW;
       END; $$ LANGUAGE plpgsql`
+    )
+
+    await QI.sequelize.query(
+      `CREATE FUNCTION blockchain_last_trx_event_delete_trigger_function()
+      RETURNS trigger AS $$
+      BEGIN
+
+        UPDATE blockchain_trx SET last_trx_event = (
+          SELECT MAX(be.id) FROM blockchain_trx_event be
+          WHERE be.blockchain_trx_id = OLD.blockchain_trx_id
+            AND be.id < OLD.id
+        )
+        WHERE id = OLD.blockchain_trx_id;
+
+        RETURN OLD;
+      END; $$ LANGUAGE plpgsql`
+    )
+
+    await QI.sequelize.query(
+      `CREATE TRIGGER blockchain_last_trx_event_delete_trigger
+      BEFORE DELETE
+      ON blockchain_trx_event
+      FOR EACH ROW
+      EXECUTE PROCEDURE blockchain_last_trx_event_delete_trigger_function()`
     )
 
     await QI.sequelize.query(
@@ -89,11 +137,27 @@ module.exports = {
     )
 
     await QI.sequelize.query(
+      `DROP TRIGGER account_last_pay_event_delete_trigger ON account_pay_event`
+    )
+
+    await QI.sequelize.query(
+      `DROP FUNCTION account_last_pay_event_delete_trigger_function()`
+    )
+
+    await QI.sequelize.query(
       `DROP TRIGGER blockchain_last_trx_event_insert_trigger ON blockchain_trx_event`
     )
 
     await QI.sequelize.query(
       `DROP FUNCTION blockchain_last_trx_event_insert_trigger_function()`
+    )
+
+    await QI.sequelize.query(
+      `DROP TRIGGER blockchain_last_trx_event_delete_trigger ON blockchain_trx_event`
+    )
+
+    await QI.sequelize.query(
+      `DROP FUNCTION blockchain_last_trx_event_delete_trigger_function()`
     )
 
     await QI.removeConstraint('account_pay', 'account_pay_account_pay_event_last_pay_event_fkey')

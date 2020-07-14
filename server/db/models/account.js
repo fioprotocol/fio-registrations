@@ -39,11 +39,11 @@ module.exports = (sequelize, DataTypes) => {
     indexes: [
       {
         unique: true,
-        fields: ['address', 'domain', 'owner_key']
+        fields: ['address', 'domain', 'owner_key', 'wallet_id']
       },
       {
         unique: true,
-        fields: ['domain', 'owner_key'],
+        fields: ['domain', 'owner_key', 'wallet_id'],
         where: { address: {[Op.is]: null} }, // nullbuster
       },
       // {

@@ -397,7 +397,8 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       where: {
         domain: accountObj.domain,
         address: accountObj.address || null,
-        owner_key: publicKey
+        owner_key: publicKey,
+        wallet_id: wallet.id
       },
       transaction
     })

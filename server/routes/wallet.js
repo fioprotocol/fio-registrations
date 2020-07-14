@@ -254,6 +254,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       'account_sale_price',
       'domain_sale_active',
       'account_sale_active',
+      'domains',
       'domains_limit',
       'domain_roe_active',
       'account_roe_active',
@@ -290,6 +291,9 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   }
 
   if (buyAccount) {
+    if (wallet.domains.indexOf(addressArray[1]) < 0) {
+      return res.status(400).send({ error: `This domain not allowed for this referrer code` })
+    }
     const accountsByDomain = await getAccountsByDomainsAndStatus(wallet.id, [addressArray[1]])
     const accountsNumber = accountsByDomain.length ? parseInt(accountsByDomain[0].accounts) : 0
     const domainsLimit = wallet.domains_limit[addressArray[1]] || null

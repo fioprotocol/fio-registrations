@@ -488,34 +488,44 @@ async function checkIrreversibility() {
 */
 async function expireRetry(retry = 3) {
   const [res] = await db.sequelize.query(`
-    select
-      t.id as blockchain_trx_id,
-      r.retries, --, e.id, e.trx_status,
-      a.owner_key, a.address, a.domain
+    with nx as (
+        -- get highest event that is not expired
+        select max(id) notexpire, max(blockchain_trx_id) blockchain_trx_id
+        from blockchain_trx_event be
+        where be.trx_status != 'expire'
+        group by blockchain_trx_id
+    ),
+         ex as (
+             -- now get highest expired, and only return if higher than not expired
+             select max(id) expire, max(be.blockchain_trx_id) blockchain_trx_id
+             from blockchain_trx_event be
+                      left join nx on nx.blockchain_trx_id = be.blockchain_trx_id
+             where be.trx_status = 'expire'
+               and be.id > nx.notexpire
+             group by be.blockchain_trx_id
+         ),
+         r as (
+             -- get retry counts
+             select count(*) as retries, rt.account_id, re.blockchain_trx_id
+             from blockchain_trx rt
+                      inner join blockchain_trx_event re on re.blockchain_trx_id = rt.id
+                 -- limit to events where most recent is expired
+                      inner join ex on ex.blockchain_trx_id = rt.id
+             where re.trx_status = 'retry'
+             group by rt.account_id, re.blockchain_trx_id
+         )
+    select t.id as blockchain_trx_id,
+           r.retries,
+           a.owner_key,
+           a.address,
+           a.domain
     from blockchain_trx t
-    join account a on a.id = t.account_id
-    join blockchain_trx_event e on e.id = (
-      select max(id) from blockchain_trx_event
-      where blockchain_trx_id = t.id
-    )
-    join (
-      select count(*) as retries, rt.account_id
-      from blockchain_trx rt
-      join blockchain_trx_event re on
-        re.blockchain_trx_id = rt.id and
-        re.trx_status = 'retry'
-      group by
-        rt.account_id
-    ) as r on r.account_id = t.account_id
-    where
-      t.type = 'register' and
-      e.trx_status = 'expire' and
-      t.id = (
-        select max(id) from blockchain_trx
-        where account_id = t.account_id
-      ) and
-      r.retries <= :retries
-    order by t.id
+             -- find the account id from blockchain_trx
+             inner join blockchain_trx_event bte on bte.blockchain_trx_id = t.id
+             inner join r on r.blockchain_trx_id = t.id
+             inner join account a on t.account_id = a.id
+    where r.retries <= :retries
+    group by r.retries, t.id, a.owner_key, a.address, a.domain
   `, {replacements: {retries: retry}})
 
   const trxEvents = []

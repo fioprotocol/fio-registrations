@@ -125,22 +125,21 @@ async function getPaidNeedingAccounts() {
 
 async function getAccountsByDomainsAndStatus(walletId, domains = [], statuses = ['success', 'pending']) {
   const domainWhere = domains.length ? ` and a.domain in (${domains.map(domain => `'${domain}'`).join(',')}) ` : ''
-  const statusesWhere = statuses.length > 1 ? ` (${statuses.map(status => `le.trx_status = '${status}'`).join(' OR ')}) ` : ` le.trx_status = '${status}' `
+  const statusesWhere = statuses.length > 1 ? ` (${statuses.map(status => `bte.trx_status = '${status}'`).join(' OR ')}) ` : ` bte.trx_status = '${status}' `
   const [accounts] = await sequelize.query(`
-    select a.domain, count(distinct a.id) as accounts
-    from account a
-    join blockchain_trx t on t.account_id = a.id
-    join blockchain_trx_event le on le.id = (
-      select max(le.id)
-      from blockchain_trx lt
-      join blockchain_trx_event le on le.blockchain_trx_id = lt.id
-      where lt.account_id = a.id
+  WITH m AS (
+    select max(bte.id) mid, bt.account_id
+      from blockchain_trx bt
+               join blockchain_trx_event bte on bte.blockchain_trx_id = bt.id
+      where ${statusesWhere}
+      group by bt.account_id
     )
-    where a.wallet_id=${walletId} and
-      ${statusesWhere}
+    select a.domain, count(m.mid) accounts
+    from account a
+             join m on m.account_id = a.id
+    where a.wallet_id = ${walletId}
       ${domainWhere}
-    group by
-      a.domain
+    group by a.domain
   `)
   return accounts
 }

@@ -141,6 +141,7 @@ async function getAccountsByDomainsAndStatus(walletId, domains = [], statuses = 
       ${domainWhere}
     group by a.domain
   `)
+
   return accounts
 }
 
@@ -360,40 +361,36 @@ async function checkIrreversibility() {
 
   nextCheck = 0
 
-  const pendingAccounts = await db.Account.findAll({
-    attributes: ['id', 'address', 'domain', 'owner_key'],
-    include: [
-      {
-        model: db.BlockchainTrx,
-        attributes: ['expiration', 'block_time', 'id'],
-        where: {
-          id: {
-            [Op.eq]: sequelize.literal(
-              `( select max(t.id) from blockchain_trx t ` +
-              `join blockchain_trx_event e on e.blockchain_trx_id = t.id ` +
-              `where account_id = "Account"."id" )`)
-          }
-        },
-        include: [
-          {
-            model: db.BlockchainTrxEvent,
-            attributes: ['id'],
-            where: {
-              trx_status: 'pending',
-              id: {
-                [Op.eq]: sequelize.literal(
-                  `( select max(id) from blockchain_trx_event ` +
-                  `where blockchain_trx_id = "BlockchainTrxes"."id")`)
-              }
-            }
-          }
-        ],
-        where: {
-          type: 'register',
-        }
-      }
-    ]
-  })
+  const [pendingAccounts] = await db.sequelize.query(`
+    with notpend as (
+        -- get highest event that is not pending
+        select max(id) other, max(blockchain_trx_id) blockchain_trx_id
+        from blockchain_trx_event be
+        where be.trx_status != 'pending'
+        group by blockchain_trx_id
+    ),
+         pend as (
+             select max(id) pending, be.blockchain_trx_id
+             from blockchain_trx_event be
+                      -- outer join eliminates rows where highest event is not pending
+                      full outer join notpend on notpend.blockchain_trx_id = be.blockchain_trx_id
+             where be.trx_status = 'pending'
+               and notpend.other is null
+             group by be.blockchain_trx_id
+         )
+    SELECT a.id,
+           a.address,
+           a.domain,
+           a.owner_key,
+           bt.expiration,
+           bt.block_time,
+           bt.id         AS btid,
+           pend.pending
+    FROM account a
+             INNER JOIN blockchain_trx bt
+                        ON a.id = bt.account_id
+             inner join pend on pend.blockchain_trx_id = bt.id
+  `)
 
   if(!pendingAccounts.length) {
     return
@@ -414,63 +411,60 @@ async function checkIrreversibility() {
   const promises = []
   const accountsWithUpdatedEvents = []
   for (let account of pendingAccounts) {
-    const {owner_key} = account
+    const {id, address, domain, owner_key, expiration, block_time, btid} = account
 
-    for (let trx of account.BlockchainTrxes) {
-      const libTime = await getLibTime()
-      const trxBlockTime = new Date(trx.block_time).getTime()
-      const trxExpiration = new Date(trx.expiration).getTime()
+    const libTime = await getLibTime()
+    const trxBlockTime = new Date(block_time).getTime()
+    const trxExpiration = new Date(expiration).getTime()
 
-      const irreversible = libTime >= trxBlockTime
-      const expired = libTime >= trxExpiration
+    const irreversible = libTime >= trxBlockTime
+    const expired = libTime >= trxExpiration
 
-      nextCheck = Date.now() + Math.min(
-        nextCheck === 0 ? Number.MAX_SAFE_INTEGER : nextCheck,
-        trxBlockTime - libTime,
-        trxExpiration - libTime,
-      )
+    nextCheck = Date.now() + Math.min(
+      nextCheck === 0 ? Number.MAX_SAFE_INTEGER : nextCheck,
+      trxBlockTime - libTime,
+      trxExpiration - libTime,
+    )
+
+    if(debug.enabled) {
+      debug('checkIrreversibility', {
+        irreversible, expired,
+        last_irreversible_block: new Date(libTime).toLocaleString(),
+        trx_block_time: new Date(trxBlockTime).toLocaleString(),
+        expiration: new Date(trxExpiration).toLocaleString(),
+      })
+    }
+
+    if(irreversible) {
+
+      // getNames is a hack, get_transaction API call was not available
+      const names = await fio.getNames(owner_key)
+      const found = nameExists(names, address, domain)
 
       if(debug.enabled) {
-        debug('checkIrreversibility', {
-          irreversible, expired,
-          last_irreversible_block: new Date(libTime).toLocaleString(),
-          trx_block_time: new Date(trxBlockTime).toLocaleString(),
-          expiration: new Date(trxExpiration).toLocaleString(),
-        })
+        debug('checkIrreversibility',
+          JSON.stringify({ found, address, domain }, null, 2)
+        )
       }
 
-      if(irreversible) {
-        const {address, domain, owner_key} = account
-
-        // getNames is a hack, get_transaction API call was not available
-        const names = await fio.getNames(owner_key)
-        const found = nameExists(names, address, domain)
-
-        if(debug.enabled) {
-          debug('checkIrreversibility',
-            JSON.stringify({ found, address, domain }, null, 2)
-          )
-        }
-
-        if(found) {
+      if(found) {
+        promises.push(
+          db.BlockchainTrxEvent.create({
+            trx_status: 'success',
+            trx_status_notes: 'irreversible',
+            blockchain_trx_id: btid
+          })
+        )
+        accountsWithUpdatedEvents[id] = true
+      } else {
+        if(expired) {
           promises.push(
             db.BlockchainTrxEvent.create({
-              trx_status: 'success',
-              trx_status_notes: 'irreversible',
-              blockchain_trx_id: trx.id
+              trx_status: 'expire',
+              blockchain_trx_id: btid
             })
           )
-          accountsWithUpdatedEvents[account.id] = true
-        } else {
-          if(expired) {
-            promises.push(
-              db.BlockchainTrxEvent.create({
-                trx_status: 'expire',
-                blockchain_trx_id: trx.id
-              })
-            )
-            accountsWithUpdatedEvents[account.id] = true
-          }
+          accountsWithUpdatedEvents[id] = true
         }
       }
     }

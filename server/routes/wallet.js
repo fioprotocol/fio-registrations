@@ -243,7 +243,10 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   } = req.body
   const processor = await plugins.payment
 
-  const ipAddress = req.headers['x-forwarded-for']
+  let ipAddress = req.headers['x-forwarded-for'] || ''
+  if (ipAddress && ipAddress.indexOf(':') > -1) {
+    ipAddress = ipAddress.split(':')[0]
+  }
   const address = addressFromReq.toLowerCase()
   const ref = referralCode ? referralCode : process.env.DEFAULT_REFERRAL_CODE
   const wallet = await db.Wallet.findOne({

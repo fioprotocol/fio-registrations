@@ -364,6 +364,28 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
         if (parseInt(amountRegistered) > 0) {
           return res.status(400).send({ error: `You have already registered a free address for that domain` })
         }
+        const registeringAccount = await db.Account.findOne({
+          raw: true,
+          where: {
+            owner_key: publicKey,
+            wallet_id: wallet.id,
+            domain: addressArray[1],
+            address: {
+              [Op.ne]: null
+            }
+          },
+          include: [
+            {
+              model: db.AccountPay,
+              where: {
+                pay_source: 'free'
+              }
+            }
+          ]
+        })
+        if (registeringAccount && registeringAccount.id) {
+          return res.status(400).send({ error: `You have already sent a request to register a free address for that domain` })
+        }
       } catch (e) {
         console.log(e);
         return res.status(400).send({ error: `Server error. Please try later` })

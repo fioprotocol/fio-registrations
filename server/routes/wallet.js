@@ -15,7 +15,7 @@ const {Op} = Sequelize
 
 const {PublicKey} = require('@fioprotocol/fiojs').Ecc
 const { isValidAddress } = require('../../src/validate')
-const { getAccountsByDomainsAndStatus, getRegisteredAmountForOwner } = require('../process-events')
+const { getAccountsByDomainsAndStatus, getRegisteredAmountForOwner, getRegisteredAmountByIp } = require('../process-events')
 const geeTest = require('../geetest')
 const { getROE, convert } = require('../roe')
 
@@ -243,6 +243,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   } = req.body
   const processor = await plugins.payment
 
+  const ipAddress = req.headers['x-forwarded-for']
   const address = addressFromReq.toLowerCase()
   const ref = referralCode ? referralCode : process.env.DEFAULT_REFERRAL_CODE
   const wallet = await db.Wallet.findOne({
@@ -386,6 +387,10 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
         if (registeringAccount && registeringAccount.id) {
           return res.status(400).send({ error: `You have already sent a request to register a free address for that domain` })
         }
+        const amountRegisteredByIp = await getRegisteredAmountByIp(wallet.id, ipAddress, true)
+        if (amountRegisteredByIp > 4) {
+          return res.status(400).send({ error: `You have already registered a free address for that domain` })
+        }
       } catch (e) {
         console.log(e);
         return res.status(400).send({ error: `Server error. Please try later` })
@@ -415,7 +420,8 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     const accountObj = {
       domain: addressArray.length === 1 ? addressArray[0] : addressArray[1],
       address: addressArray.length === 1 ? null : addressArray[0],
-      wallet_id: wallet.id
+      wallet_id: wallet.id,
+      ip: ipAddress
     }
 
     const [account] = await db.Account.findOrCreate({

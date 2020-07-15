@@ -32,6 +32,11 @@ module.exports = (sequelize, DataTypes) => {
     wallet_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
+    },
+    ip: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: ''
     }
   }, {
     tableName: 'account',

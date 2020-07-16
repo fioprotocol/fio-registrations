@@ -173,6 +173,49 @@ async function getRegisteredAmountForOwner(walletId, owner_key, domains = [], is
   return res[0] && res[0].accounts ? res[0].accounts : 0
 }
 
+async function getRegisteredAmountByIp(walletId, ip, isFree = false, statuses = ['success', 'pending']) {
+  let amount = 0
+  const statusesWhere = statuses.length > 1 ? ` (${statuses.map(status => `le.trx_status = '${status}'`).join(' OR ')}) ` : ` le.trx_status = '${status}' `
+  const freeWhere = isFree ? ` and ap.pay_source = 'free' ` : ''
+
+  const [res] = await sequelize.query(`
+    select count(distinct a.id) as accounts
+    from account a
+    join account_pay ap on ap.account_id = a.id
+    join blockchain_trx t on t.account_id = a.id
+    join blockchain_trx_event le on le.id = (
+      select max(le.id)
+      from blockchain_trx lt
+      join blockchain_trx_event le on le.blockchain_trx_id = lt.id
+      where lt.account_id = a.id
+    )
+    where a.wallet_id=${walletId} and
+      ${statusesWhere}
+      and a.ip = '${ip}'
+      ${freeWhere}
+    group by
+      a.wallet_id
+  `)
+
+  amount = res[0] && res[0].accounts ? parseInt(res[0].accounts) : 0
+
+  if (isFree) {
+    const [regRequests] = await sequelize.query(`
+      select count(distinct a.id) as accounts
+      from account a
+      join account_pay ap on ap.account_id = a.id
+      where a.wallet_id=${walletId}
+        and a.ip = '${ip}'
+        ${freeWhere}
+        and (select id from blockchain_trx where blockchain_trx.account_id = a.id) IS null
+      group by a.wallet_id;
+  `)
+    amount += regRequests[0] && regRequests[0].accounts ? parseInt(regRequests[0].accounts) : 0
+  }
+
+  return amount
+}
+
 /**
   <h4>any or no status => pending or review</h4>
 
@@ -576,6 +619,7 @@ module.exports = {
   getPaidNeedingAccounts,
   getAccountsByDomainsAndStatus,
   getRegisteredAmountForOwner,
+  getRegisteredAmountByIp,
   broadcastPaidNeedingAccounts,
   broadcastNewAccount,
   checkIrreversibility,

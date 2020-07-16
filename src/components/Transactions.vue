@@ -1,11 +1,11 @@
 <template>
   <div>
-    <b-table bordered sticky-header
+    <b-table bordered
       v-if="transactions.success"
       :fields="fields" :items="transactions.success"
     >
     <template v-slot:cell(total)="data">
-      <Amount :value="round(data.value)"/>
+      <Amount :value="-round(data.value)"/>
     </template>
 
     <template v-slot:cell(balance)="data">

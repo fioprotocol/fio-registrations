@@ -79,7 +79,8 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
       'domain_sale_active',
       'account_sale_active',
       'domain_roe_active',
-      'account_roe_active'
+      'account_roe_active',
+      'allow_pub_domains'
     ],
     where: {
       referral_code: referralCode,

@@ -71,11 +71,12 @@ async function history(publicKey, type = null, options = {}) {
       coalesce(t.block_time, te.created),
       'registration' as type,
       te.id as source_id,
-      trx_id as extern_id,
+      t.trx_id as extern_id,
       case -- offset payments and adjustments until reg success or cancel
         when te.id = le.id and te.trx_status = 'success' then ap.buy_price
         when te.id = le.id and te.trx_status = 'cancel' then 0.00
-        when te.id = le.id then ap.buy_price -- hold at every last step unless success or cancel
+        when t.id = l.id and te.id = le.id and bt.hassuccess is not null and te.trx_status = 'review' then 0.00
+        when t.id = l.id and te.id = le.id then ap.buy_price -- hold at every last step unless success or cancel
         else 0.00 -- prior steps do not create a hold (hold only once)
       end as total,
       0.00 as pending,
@@ -89,8 +90,20 @@ async function history(publicKey, type = null, options = {}) {
       order by id desc limit 1
     )
     join blockchain_trx t on t.account_id = a.id and t.type = 'register'
+    join blockchain_trx l on l.id = (
+        select id from blockchain_trx
+        where account_id = a.id and type = 'register'
+        order by id desc limit 1
+      )
     join blockchain_trx_event te on te.blockchain_trx_id = t.id
     join blockchain_trx_event le on le.id = t.last_trx_event
+    left join (
+        select bt.account_id, 1 as hassuccess
+        from blockchain_trx bt
+        join blockchain_trx_event be on be.id = bt.last_trx_event
+        where be.trx_status = 'success' and bt.type = 'register'
+        limit 1
+      ) as bt on bt.account_id = a.id
     ${publicKey ? 'where a.owner_key = :publicKey' : ''}
 
     order by created, source_id, total asc, pending asc

@@ -78,6 +78,7 @@ export default {
       validAddress: null,
       limitError: false,
       domainIsNotRegistered: false,
+      domainIsNotPublic: false,
       captchaObj: null,
       captchaLoading: false,
       captchaErrored: false
@@ -111,6 +112,7 @@ export default {
     valid(valid) {
       this.limitError = false
       this.domainIsNotRegistered = false
+      this.domainIsNotPublic = false
       this.validAddress = valid
     },
 
@@ -118,6 +120,7 @@ export default {
       if (this.captchaIsLoading) return
       this.limitError = false
       this.domainIsNotRegistered = false
+      this.domainIsNotPublic = false
       this.$store.dispatch('Server/reset', {
         key: 'buyResult'
       })
@@ -130,13 +133,16 @@ export default {
           if (domainLimit !== null && registered >= parseInt(domainLimit)) {
             return this.limitError = true
           }
-          if (this.allowPublicDomains) {
+          if (this.allowPublicDomains && this.domains.indexOf(selectedDomain) < 0) {
             return this.$store.dispatch('Account/checkWithPublicDomain', {
               address,
               publicKey,
               cb: ({ isDomainPublic, isDomainRegistered, isAccountRegistered }) => {
-                if (!isDomainPublic || !isDomainRegistered) {
+                if (!isDomainRegistered) {
                   return this.domainIsNotRegistered = true
+                }
+                if (!isDomainPublic) {
+                  return this.domainIsNotPublic = true
                 }
                 this.afterAvailCheck(isAccountRegistered)
               }
@@ -321,7 +327,11 @@ export default {
       }
 
       if (this.domainIsNotRegistered === true) {
-        return { error: 'Selected FIO Domain is not available' }
+        return { error: 'Domain is not registered' }
+      }
+
+      if (this.domainIsNotPublic === true) {
+        return { error: 'Domain is not public' }
       }
 
       if(this.validAddress === false) {

@@ -61,18 +61,15 @@ export default {
       const domain = address.split('@')[1]
       loading(state.loading[`isCheckedWithPublicDomainLoading`], async () => {
         const isAccountRegReq = fio.isAccountRegistered(address)
-        // todo: check domain is public request
         const isDomainRegisteredReq = fio.isAccountRegistered(domain)
+        const isDomainPublicReq = fio.isDomainPublic(domain)
 
         const balanceReq = server.get(
           '/public-api/balance/' + publicKey
         )
 
-        // todo: get from response
-        const isDomainPublic = true
-
-        const [isDomainRegistered, isAccountRegistered, balanceRes] =
-          await Promise.all([isDomainRegisteredReq, isAccountRegReq, balanceReq])
+        const [isDomainRegistered, isDomainPublic, isAccountRegistered, balanceRes] =
+          await Promise.all([isDomainRegisteredReq, isDomainPublicReq, isAccountRegReq, balanceReq])
 
         let credit = 0
         if(balanceRes.success) {

@@ -263,7 +263,8 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       'domains_limit',
       'domain_roe_active',
       'account_roe_active',
-      'api_enabled'
+      'api_enabled',
+      'allow_pub_domains'
     ],
     where: {
       referral_code: ref,
@@ -297,7 +298,16 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
 
   if (buyAccount) {
     if (wallet.domains.indexOf(addressArray[1]) < 0) {
-      return res.status(400).send({ error: `This domain not allowed for this referrer code` })
+      if (wallet.allow_pub_domains) {
+        if (!await fio.isAccountRegistered(addressArray[1])) {
+          return res.status(404).send({error: `Domain is not registered`})
+        }
+        if (!await fio.isDomainPublic(addressArray[1])) {
+          return res.status(404).send({error: `Domain is not public`})
+        }
+      } else {
+        return res.status(400).send({ error: `This domain not allowed for this referrer code` })
+      }
     }
     const accountsByDomain = await getAccountsByDomainsAndStatus(wallet.id, [addressArray[1]])
     const accountsNumber = accountsByDomain.length ? parseInt(accountsByDomain[0].accounts) : 0

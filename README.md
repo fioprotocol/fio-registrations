@@ -176,6 +176,8 @@ The proxy is not needed when serving pre-built files and `npm start`.
 
 Under the Admin **My Profile** page you can setup and enable a
 **API Bearer Token**.  Each Admin user has a different token.
+Under the Wallet Profile page you can setup and enable a
+**API Token** to use registration endpoint for free addresses. Each Wallet Profile has a different token.
 
 ```
 # Get your profile
@@ -185,5 +187,5 @@ curl -H "Authorization: Bearer I8v...1PM" http://localhost:5000/api/user
 curl --request POST -H "Content-Type: application/json" --data '{"referralCode":"fio","publicKey":"FIO6jN...ZbQ","address":"testing2@pubdomain"}' http://localhost:5000/public-api/buy-address
 
 # Auto-buy an account or domain where the Wallet's referralCode sale price is configured to $0 (free)
-curl --request POST -H "Authorization: Bearer I8v...1PM" -H "Content-Type: application/json" --data '{"referralCode":"fio","publicKey":"FIO6jN...ZbQ","address":"testing2@pubdomain"}' http://localhost:5000/public-api/buy-address
+curl --request POST -H "Content-Type: application/json" --data '{"referralCode":"fio","publicKey":"FIO6jN...ZbQ","address":"testing2@pubdomain","apiToken": "I8v...1PM"}' http://localhost:5000/public-api/buy-address
 ```

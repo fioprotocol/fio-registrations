@@ -9,7 +9,7 @@
     </template>
 
     <template v-slot:cell(balance)="data">
-      <Amount :value="data.value"/>
+      <Amount :value="-data.value"/>
     </template>
 
     <template v-slot:cell(type)="data">

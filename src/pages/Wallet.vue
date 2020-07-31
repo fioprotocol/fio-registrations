@@ -159,6 +159,16 @@
         <!--<small class="text-muted">Provide each @<b>domain</b> on a separate line (omit the preceding at symbol).  These are public domains that will be selling addresses on this server.</small>-->
       <!--</b-form-group>-->
 
+      <b-form-group id="allow-pub-domains" class="mb-4"
+                    label="" label-for="allow-pub-domains-check"
+                    description="Allow user to register address with public domains for this wallet"
+      >
+
+        <b-form-checkbox id="allow-pub-domains-check" v-model="form.allow_pub_domains" class="mt-1">
+          Allow public domains
+        </b-form-checkbox>
+      </b-form-group>
+
       <b-button size="sm float-right" @click="addDomain" variant="primary">Add</b-button>
       <b-form-group id="n-domains-group"
         label="Domains:" label-for="domains"
@@ -206,7 +216,7 @@
           <small>Add your webhook URL then use properties to create the required webhook sigining key.</small>
         </div>
       </b-form-group>
-      
+
       <b-form-group v-if="!newWallet" class="mb-4" label="API Token:" description="Required for free registrations when using API.">
         <div class="row">
           <b-col cols="6">
@@ -313,7 +323,9 @@ function formDefaults () {
     }],
 
     forwardAfterSave: false,
-    api_enabled: false
+    api_enabled: false,
+
+    allow_pub_domains: false
   }
 }
 

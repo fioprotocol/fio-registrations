@@ -10,10 +10,13 @@ export default {
   state: {
     availableAccount: null,
     registeredAccount: null,
+    isDomainRegistered: null,
+    isDomainPublic: null,
     credit: 0,
     loading: loading.defaults([
       'isAddressRegistered',
       'isDomainRegistered',
+      'isCheckedWithPublicDomainLoading',
     ])
   },
 
@@ -48,6 +51,49 @@ export default {
         if (cb) cb(result)
       })
     },
+
+    /**
+      @arg address format: "address@domain"
+      @arg publicKey is used to check for a credit
+      @arg cb callback (optional)
+    */
+    async checkWithPublicDomain({commit, state}, {address, publicKey, cb}) {
+      const domain = address.split('@')[1]
+      loading(state.loading[`isCheckedWithPublicDomainLoading`], async () => {
+        const isAccountRegReq = fio.isAccountRegistered(address)
+        const isDomainRegisteredReq = fio.isAccountRegistered(domain)
+        const isDomainPublicReq = fio.isDomainPublic(domain)
+
+        const balanceReq = server.get(
+          '/public-api/balance/' + publicKey
+        )
+
+        const [isDomainRegistered, isDomainPublic, isAccountRegistered, balanceRes] =
+          await Promise.all([isDomainRegisteredReq, isDomainPublicReq, isAccountRegReq, balanceReq])
+
+        let credit = 0
+        if(balanceRes.success) {
+          const bal = +Number(balanceRes.balance.total)
+          if(bal < 0) {
+            credit = bal
+          }
+        }
+
+        commit('checkWithPublicDomain', {
+          isDomainRegistered, isDomainPublic
+        })
+        if (isDomainRegistered && isDomainPublic) {
+          commit('isAccountRegistered', {
+            isRegistered: isAccountRegistered, address, credit
+          })
+        }
+        if (cb) cb({
+          isDomainPublic,
+          isDomainRegistered,
+          isAccountRegistered
+        })
+      })
+    },
   },
 
   mutations: {
@@ -62,6 +108,10 @@ export default {
       } else {
         state.availableAccount = address
       }
+    },
+    checkWithPublicDomain(state, {isDomainRegistered, isDomainPublic}) {
+      state.isDomainRegistered = isDomainRegistered
+      state.isDomainPublic = isDomainPublic
     },
   }
 }

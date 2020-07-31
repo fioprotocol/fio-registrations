@@ -38,6 +38,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       defaultValue: {}
     },
+    allow_pub_domains: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
     domain_sale_price: {
       type: DataTypes.NUMERIC(9, 2),
       allowNull: true,

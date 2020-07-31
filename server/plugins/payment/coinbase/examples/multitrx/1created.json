@@ -5,7 +5,7 @@
     "created_at": "2020-01-02T14:20:49Z",
     "data": {
       "id": "49c4b632-3941-4882-874e-08ceddc90640",
-      "code": "RH5JLCNC",
+      "code": "RH5JLCKL",
       "name": "FIO Domain Registration",
       "pricing": {
         "usdc": {
@@ -54,7 +54,7 @@
       "cancel_url": "http://localhost:8081/domain?publicKey=FIO5fnvQGmLRv5JLytqgvfWZfPyi4ousY46zdRU9MSSzJksFDZSYu",
       "created_at": "2020-01-02T14:20:48Z",
       "expires_at": "2020-01-02T15:20:48Z",
-      "hosted_url": "https://commerce.coinbase.com/charges/RH5JLCNC",
+      "hosted_url": "https://commerce.coinbase.com/charges/RH5JLCKL",
       "description": "Payment for abc",
       "pricing_type": "fixed_price",
       "redirect_url": "http://localhost:8081/domain?publicKey=FIO5fnvQGmLRv5JLytqgvfWZfPyi4ousY46zdRU9MSSzJksFDZSYu"

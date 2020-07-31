@@ -7,6 +7,7 @@
         :domains="domains"
         :defaultDomain="defaultDomain"
         :buyAddress="buyAddress"
+        :allowPublicDomains="allowPublicDomains"
       >
         <button
           id="check-button"
@@ -76,6 +77,8 @@ export default {
       address: null,
       validAddress: null,
       limitError: false,
+      domainIsNotRegistered: false,
+      domainIsNotPublic: false,
       captchaObj: null,
       captchaLoading: false,
       captchaErrored: false
@@ -108,28 +111,45 @@ export default {
   methods: {
     valid(valid) {
       this.limitError = false
+      this.domainIsNotRegistered = false
+      this.domainIsNotPublic = false
       this.validAddress = valid
     },
 
     submitForm() {
       if (this.captchaIsLoading) return
       this.limitError = false
+      this.domainIsNotRegistered = false
+      this.domainIsNotPublic = false
       this.$store.dispatch('Server/reset', {
         key: 'buyResult'
       })
       if (!this.validatedAddress) {
         const {address, publicKey} = this
-        const selectedDomain = address.split('@')[1]
-        const domainLimit = this.Wallet.wallet.domains_limit[selectedDomain] || {}
-        const registered = this.Wallet.wallet.accountsByDomain[selectedDomain] || 0
-        if (registered >= parseInt(domainLimit)) {
-          return this.limitError = true
-        }
-        this.$store.dispatch('Account/isAccountRegistered', {address, publicKey, cb: isRegistered => {
-          if (this.buyAddress && this.freeSale && !isRegistered) {
-            this.initCaptcha()
+        if (this.buyAddress) {
+          const selectedDomain = address.split('@')[1]
+          const domainLimit = this.Wallet.wallet.domains_limit[selectedDomain] || null
+          const registered = this.Wallet.wallet.accountsByDomain[selectedDomain] || 0
+          if (domainLimit !== null && registered >= parseInt(domainLimit)) {
+            return this.limitError = true
           }
-        }})
+          if (this.allowPublicDomains && this.domains.indexOf(selectedDomain) < 0) {
+            return this.$store.dispatch('Account/checkWithPublicDomain', {
+              address,
+              publicKey,
+              cb: ({ isDomainPublic, isDomainRegistered, isAccountRegistered }) => {
+                if (!isDomainRegistered) {
+                  return this.domainIsNotRegistered = true
+                }
+                if (!isDomainPublic) {
+                  return this.domainIsNotPublic = true
+                }
+                this.afterAvailCheck(isAccountRegistered)
+              }
+            })
+          }
+        }
+        this.$store.dispatch('Account/isAccountRegistered', {address, publicKey, cb: this.afterAvailCheck})
       } else {
         if (this.buyAddress && this.freeSale) {
           if (this.getCaptchaResult.skipCaptcha) return this.register({ skipCaptcha: this.getCaptchaResult.skipCaptcha})
@@ -182,6 +202,12 @@ export default {
       this.$store.dispatch('Server/get', {
         key: 'getCaptchaResult', path: '/public-api/gt/register-slide'
       })
+    },
+
+    afterAvailCheck(isRegistered) {
+      if (this.buyAddress && this.freeSale && !isRegistered) {
+        this.initCaptcha()
+      }
     }
   },
 
@@ -300,6 +326,14 @@ export default {
         return { error: 'FIO Address registrations no longer available for that domain' }
       }
 
+      if (this.domainIsNotRegistered === true) {
+        return { error: 'Domain is not registered' }
+      }
+
+      if (this.domainIsNotPublic === true) {
+        return { error: 'Domain is not public' }
+      }
+
       if(this.validAddress === false) {
         const type = this.buyAddress ? 'address' : 'domain'
         return {error: 'Invalid ' + type}
@@ -341,6 +375,10 @@ export default {
       // Math.max will not let the price go negative
       return +Math.max(0, this.priceBeforeCredit + this.credit).toFixed(2)
     },
+
+    allowPublicDomains() {
+      return this.Wallet.wallet.allow_pub_domains
+    }
   },
 
   components: {

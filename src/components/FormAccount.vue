@@ -26,7 +26,7 @@
           </slot>
         </div>
 
-        <div id="account-group" v-if="domains && domains.length > 0">
+        <div id="account-group" v-if="domains && domains.length > 0 && !allowPublicDomains">
           <input
             v-model="localAddress"
             placeholder="User name search"
@@ -46,6 +46,14 @@
               {{domain}}
             </option>
           </select>
+        </div>
+        <div id="account-group" v-else-if="allowPublicDomains">
+          <input
+                  class="address-pub-domain"
+                  v-model="localAddress"
+                  placeholder="Address search"
+                  :id="`${type}-input`"
+                  :ref="`${type}-input`" >
         </div>
       </div>
     </div>
@@ -85,6 +93,11 @@ export default {
 
     defaultDomain: {
       type: String
+    },
+
+    allowPublicDomains: {
+      type: Boolean,
+      default: false
     }
   },
 
@@ -101,15 +114,14 @@ export default {
         return null
       }
 
-      if(this.buyAddress) {
-        if(!this.selectedDomain) {
+      if (this.buyAddress && !this.allowPublicDomains) {
+        if (!this.selectedDomain) {
           return false
         }
+        return isValidAddress(`${this.localAddress}@${this.selectedDomain}`.toLowerCase())
       }
 
-      return this.buyAddress ?
-        isValidAddress(`${this.localAddress}@${this.selectedDomain}`.toLowerCase()) :
-        isValidAddress(this.localAddress.toLowerCase())
+      return isValidAddress(this.localAddress.toLowerCase())
     },
 
     type() {
@@ -129,7 +141,8 @@ export default {
       this.$emit("valid", this.validAddress);
       if(this.validAddress) {
         if(this.buyAddress) {
-          this.$emit("input", `${newValue}@${this.selectedDomain}`);
+          const address = this.allowPublicDomains ? newValue : `${newValue}@${this.selectedDomain}`
+          this.$emit("input", address);
         } else {
           this.$emit("input", newValue);
         }
@@ -202,5 +215,8 @@ export default {
   background-color: transparent;
   border: 1px dotted;
   border-bottom-style: groove;
+}
+#address-input.address-pub-domain {
+  max-width: 15em;
 }
 </style>

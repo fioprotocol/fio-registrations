@@ -42,7 +42,7 @@
         :fields="['balance']" :items="[{balance: totalBalance}]"
       >
         <template v-slot:cell(balance)="data">
-          <Amount :value="data.value"/>
+          <Amount :value="-data.value"/>
         </template>
       </b-table>
     </div>
@@ -252,7 +252,7 @@
         </template>
 
         <template v-slot:cell(total)="data">
-          <Amount :value="data.value"/>
+          <Amount :value="-data.value"/>
         </template>
       </b-table>
     </div>

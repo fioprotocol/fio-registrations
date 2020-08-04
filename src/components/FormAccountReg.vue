@@ -81,7 +81,9 @@ export default {
       domainIsNotPublic: false,
       captchaObj: null,
       captchaLoading: false,
-      captchaErrored: false
+      captchaErrored: false,
+      captchaLoaded: false,
+      captchaTimeout: 0
     }
   },
 
@@ -199,9 +201,25 @@ export default {
         }
       }
       this.captchaErrored = false
+      this.captchaLoaded = false
       this.$store.dispatch('Server/get', {
         key: 'getCaptchaResult', path: '/public-api/gt/register-slide'
       })
+      setTimeout(() => this.checkCaptchaTimeout(new Date()), 1000)
+    },
+
+    checkCaptchaTimeout(started) {
+      if (!this.captchaLoading || this.captchaLoaded) {
+        return
+      }
+
+      const now = new Date()
+      const diff = Math.round((((now - started) % 86400000) % 3600000) / 1000) // seconds
+      if (diff <= 5) {
+        return setTimeout(() => this.checkCaptchaTimeout(started), 1000)
+      }
+
+      return this.initCaptcha()
     },
 
     afterAvailCheck(isRegistered) {
@@ -250,6 +268,7 @@ export default {
     ['getCaptchaResult._loading']: function(loading) {
       this.captchaLoading = true
       if (loading) return
+      if (this.captchaLoaded) return;
       const data = this.getCaptchaResult
       if (data.skipCaptcha) {
         this.captchaObj = null
@@ -274,8 +293,15 @@ export default {
       }, captchaObj => {
         captchaObj.onReady(() => {
           this.captchaLoading = false
+          this.captchaLoaded = true
+        }).onError(() => {
+          if (!this.captchaLoaded) {
+            this.captchaLoading = false
+            this.captchaErrored = true
+            this.captchaObj = null
+          }
         });
-        this.captchaObj = captchaObj
+        if (!this.captchaLoaded) this.captchaObj = captchaObj
       })
     }
   },

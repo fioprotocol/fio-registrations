@@ -173,7 +173,7 @@
       <b-form-group id="n-domains-group"
         label="Domains:" label-for="domains"
       >
-        <DomainList :domains="form.domains" :removeDomain="removeDomain">
+        <DomainList :referralCode="form.referral_code" :domains="form.domains" :removeDomain="removeDomain">
         </DomainList>
         <small class="text-muted">Click 'add' to create new @<b>domain</b>. These are public domains that will be selling addresses on this server.</small>
       </b-form-group>

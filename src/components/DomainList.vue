@@ -2,7 +2,7 @@
   <div>
     <b-form-group>
       <div class="row domain-item" v-bind:key="key" v-for="(item, key) in this.domains">
-        <div class="col-md-5">
+        <div class="col-md-4">
           <b-form-input id="domain-limit"
                         required
                         v-model="item.domain"
@@ -29,6 +29,15 @@
             Remove
           </b-button>
         </div>
+        <div class="col-md-1 d-flex align-items-center justify-content-end">
+          <b-button size="sm" @click="() => downloadCsvReport(item.domain)" variant="info">
+            <span v-if="csvLoading"
+                 class="mb-1 spinner-grow spinner-grow-sm text-light"
+                 role="status" aria-hidden="true">
+            </span>
+            <span v-else>CSV</span>
+          </b-button>
+        </div>
       </div>
     </b-form-group>
   </div>
@@ -36,10 +45,13 @@
 
 <script>
 
+import {mapState} from "vuex";
+
 export default {
   name: 'DomainList',
 
   props: {
+    referralCode: String,
     domains: Array,
     removeDomain: Function
   },
@@ -51,15 +63,35 @@ export default {
         if (!result) return
       }
       this.removeDomain(key)
+    },
+    downloadCsvReport(domain) {
+      this.$store.dispatch('Server/get', {
+        key: 'csvReport',
+        path: `csv-report?ref=${this.referralCode}&domain=${domain}&after=${new Date('05/05/2019').toISOString()}`
+      })
     }
   },
 
   watch: {
-    //
+    ['csvReport._loading']: function(loading) {
+      if (loading) {
+        this.alert = ''
+      }
+      if (!loading && !this.csvReport.error && this.csvReport.success) {
+        window.open(`/uploads/${this.csvReport.success.filePath}`, '_blank');
+      }
+    },
   },
 
   computed: {
-    //
+    ...mapState({
+      csvReport: state => state.Server.csvReport,
+      Server: state => state.Server,
+    }),
+
+    csvLoading() {
+      return this.csvReport && this.csvReport._loading
+    },
   }
 }
 </script>

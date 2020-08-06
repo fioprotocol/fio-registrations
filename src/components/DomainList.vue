@@ -30,13 +30,7 @@
           </b-button>
         </div>
         <div class="col-md-1 d-flex align-items-center justify-content-end">
-          <b-button size="sm" @click="() => downloadCsvReport(item.domain)" variant="info">
-            <span v-if="csvLoading"
-                 class="mb-1 spinner-grow spinner-grow-sm text-light"
-                 role="status" aria-hidden="true">
-            </span>
-            <span v-else>CSV</span>
-          </b-button>
+          <date-picker class="date-input" :input-class="'w-100 d-none'" v-on:change="downloadCsvReport(item.domain, $event)">CSV</date-picker>
         </div>
       </div>
     </b-form-group>
@@ -46,9 +40,15 @@
 <script>
 
 import {mapState} from "vuex";
+import DatePicker from 'vue2-datepicker';
+import 'vue2-datepicker/index.css';
 
 export default {
   name: 'DomainList',
+
+  components: {
+    DatePicker
+  },
 
   props: {
     referralCode: String,
@@ -64,10 +64,10 @@ export default {
       }
       this.removeDomain(key)
     },
-    downloadCsvReport(domain) {
+    downloadCsvReport(domain, date) {
       this.$store.dispatch('Server/get', {
         key: 'csvReport',
-        path: `csv-report?ref=${this.referralCode}&domain=${domain}&after=${new Date('05/05/2019').toISOString()}`
+        path: `csv-report?ref=${this.referralCode}&domain=${domain}&after=${new Date(date).toISOString()}`
       })
     }
   },
@@ -95,3 +95,10 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+  .date-input {
+    cursor: pointer;
+    background-color: #fafafa;
+  }
+</style>

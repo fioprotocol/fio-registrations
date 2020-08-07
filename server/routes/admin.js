@@ -27,6 +27,7 @@ const {PublicKey} = require('@fioprotocol/fiojs').Ecc
 const {checkEncrypt, checkDecrypt} = require('../encryption-check')
 const { getAccountsByDomainsAndStatus } = require('../process-events')
 const { saveRegistrationsSearchItem, fillRegistrationsSearch, getRegSearchRes } = require('../registrations-search-util')
+const { generateCsvReport } = require('../services/csv-report')
 
 if(!process.env.TITLE) {
   throw new Error('Required: process.env.TITLE')
@@ -816,6 +817,10 @@ router.post('/user', handler(async (req, res) => {
 }))
 
 router.get('/fill-registrations-search', handler(async (req, res) => {
+  const { user_id } = res.state
+  if (!user_id) {
+    return res.status(401).send({error: 'Unauthorized'})
+  }
   try {
     fillRegistrationsSearch()
   } catch (e) {
@@ -823,6 +828,16 @@ router.get('/fill-registrations-search', handler(async (req, res) => {
     console.log(e);
   }
   return res.send({ success: 'Process is launched' })
+}))
+
+/** Generates csv report with registrations */
+router.get('/csv-report', handler(async (req, res) => {
+  const { user_id } = res.state
+  if (!user_id) {
+    return res.status(401).send({ error: 'Unauthorized' })
+  }
+  const filePath = await generateCsvReport(req.query.ref, req.query.domain, req.query.after)
+  return res.send({ success: { filePath }});
 }))
 
 module.exports = router

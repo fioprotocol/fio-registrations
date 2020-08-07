@@ -13,7 +13,7 @@
           id="check-button"
           type="submit"
           class="btn btn-success mt-4"
-          :disabled="address === null || captchaIsLoading || !isCaptchaInitSuccess"
+          :disabled="address === null || captchaIsLoading || (!isCaptchaInitSuccess && validatedAddress)"
         >
           <div v-if="!validatedAddress">
             <div v-if="!checkAddressLoading">
@@ -83,7 +83,8 @@ export default {
       captchaLoading: false,
       captchaErrored: false,
       captchaLoaded: false,
-      captchaTimeout: 0
+      captchaTimeout: 0,
+      captchaCounter: 0
     }
   },
 
@@ -123,6 +124,7 @@ export default {
       this.limitError = false
       this.domainIsNotRegistered = false
       this.domainIsNotPublic = false
+      this.captchaCounter = 0
       this.$store.dispatch('Server/reset', {
         key: 'buyResult'
       })
@@ -202,6 +204,7 @@ export default {
       }
       this.captchaErrored = false
       this.captchaLoaded = false
+      this.captchaCounter++
       this.$store.dispatch('Server/get', {
         key: 'getCaptchaResult', path: '/public-api/gt/register-slide'
       })
@@ -296,9 +299,14 @@ export default {
           this.captchaLoaded = true
         }).onError(() => {
           if (!this.captchaLoaded) {
-            this.captchaLoading = false
-            this.captchaErrored = true
-            this.captchaObj = null
+            if (this.captchaCounter < 2) {
+              this.initCaptcha()
+            } else {
+              this.captchaLoading = false
+              this.captchaErrored = true
+              this.captchaObj = null
+              this.$store.dispatch('Account/resetAvailableAccount')
+            }
           }
         });
         if (!this.captchaLoaded) this.captchaObj = captchaObj
@@ -375,7 +383,7 @@ export default {
       }
 
       if (this.captchaErrored) {
-        return { error: 'Temporarily unavailable' }
+        return { error: 'Captcha service temporarily unavailable, please try again in a few minutes.' }
       }
 
       if(this.validatedAddress) {
@@ -388,7 +396,7 @@ export default {
     },
 
     isCaptchaInitSuccess() {
-      return !this.captchaErrored
+      return this.captchaLoaded
     },
 
     priceBeforeCredit() {

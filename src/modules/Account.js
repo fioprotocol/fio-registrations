@@ -52,6 +52,12 @@ export default {
       })
     },
 
+    async resetAvailableAccount({commit}) {
+      commit('resetAvailableAccount', {
+        availableAccount: null
+      })
+    },
+
     /**
       @arg address format: "address@domain"
       @arg publicKey is used to check for a credit
@@ -108,6 +114,9 @@ export default {
       } else {
         state.availableAccount = address
       }
+    },
+    resetAvailableAccount(state, {availableAccount}) {
+      state.availableAccount = availableAccount
     },
     checkWithPublicDomain(state, {isDomainRegistered, isDomainPublic}) {
       state.isDomainRegistered = isDomainRegistered

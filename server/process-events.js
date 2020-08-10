@@ -620,14 +620,14 @@ function nameExists(names, address, domain) {
 }
 
 async function checkFreeAddressLeft() {
-  const walletRef = 'fio'
-  const wallet = await db.Wallet.findOne({
-    where: { referral_code: walletRef },
+  const wallets = await db.Wallet.findAll({
     include: [db.Notification]
   })
-  if (!wallet) return
-  const accountsByDomains = await getAccountsByDomainsAndStatus(wallet.id, wallet.domains, ['success'])
-  return processNotifications(wallet, accountsByDomains)
+  if (!wallets.length) return
+  for (const wallet of wallets) {
+    const accountsByDomains = await getAccountsByDomainsAndStatus(wallet.id, wallet.domains, ['success'])
+    processNotifications(wallet, accountsByDomains)
+  }
 }
 
 module.exports = {

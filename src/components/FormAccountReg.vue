@@ -13,7 +13,7 @@
           id="check-button"
           type="submit"
           class="btn btn-success mt-4"
-          :disabled="address === null || captchaIsLoading || (!isCaptchaInitSuccess && validatedAddress)"
+          :disabled="address === null || captchaIsLoading || (this.buyAddress && !isCaptchaInitSuccess && validatedAddress)"
         >
           <div v-if="!validatedAddress">
             <div v-if="!checkAddressLoading">

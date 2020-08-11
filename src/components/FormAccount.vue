@@ -121,6 +121,10 @@ export default {
         return isValidAddress(`${this.localAddress}@${this.selectedDomain}`.toLowerCase())
       }
 
+      if (!this.buyAddress && this.localAddress.indexOf('@') > -1) {
+        return false
+      }
+
       return isValidAddress(this.localAddress.toLowerCase())
     },
 

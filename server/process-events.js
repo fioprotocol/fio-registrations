@@ -10,6 +10,7 @@ const {Sequelize, sequelize} = db
 const {Op} = Sequelize
 
 const { saveRegistrationsSearchItem, checkCreatedBcTrxEvents } = require('./registrations-search-util')
+const { processNotifications } = require('./services/notification')
 
 const {Fio, Ecc} = require('@fioprotocol/fiojs')
 const {PrivateKey} = Ecc
@@ -39,6 +40,10 @@ async function all() {
 
   // no status or retry => pending or review
   await trace({broadcastPaidNeedingAccounts})()
+    .catch(err => console.error(err))
+
+  // check how many free addresses left and send notification
+  await trace({checkFreeAddressLeft})()
     .catch(err => console.error(err))
 }
 
@@ -125,7 +130,7 @@ async function getPaidNeedingAccounts() {
 
 async function getAccountsByDomainsAndStatus(walletId, domains = [], statuses = ['success', 'pending']) {
   const domainWhere = domains.length ? ` and a.domain in (${domains.map(domain => `'${domain}'`).join(',')}) ` : ''
-  const statusesWhere = statuses.length > 1 ? ` (${statuses.map(status => `bte.trx_status = '${status}'`).join(' OR ')}) ` : ` bte.trx_status = '${status}' `
+  const statusesWhere = statuses.length > 1 ? ` (${statuses.map(status => `bte.trx_status = '${status}'`).join(' OR ')}) ` : ` bte.trx_status = '${statuses[0]}' `
   const [accounts] = await sequelize.query(`
   WITH m AS (
     select max(bte.id) mid, bt.account_id
@@ -147,7 +152,7 @@ async function getAccountsByDomainsAndStatus(walletId, domains = [], statuses = 
 
 async function getRegisteredAmountForOwner(walletId, owner_key, domains = [], isFree = false, statuses = ['success', 'pending']) {
   const domainWhere = domains.length ? ` and a.domain in (${domains.map(domain => `'${domain}'`).join(',')}) ` : ''
-  const statusesWhere = statuses.length > 1 ? ` (${statuses.map(status => `le.trx_status = '${status}'`).join(' OR ')}) ` : ` le.trx_status = '${status}' `
+  const statusesWhere = statuses.length > 1 ? ` (${statuses.map(status => `le.trx_status = '${status}'`).join(' OR ')}) ` : ` le.trx_status = '${statuses[0]}' `
   const buyPriceWhere = isFree ? ` and a.owner_key = '${owner_key}' ` : ''
 
   const [res] = await sequelize.query(`
@@ -175,7 +180,7 @@ async function getRegisteredAmountForOwner(walletId, owner_key, domains = [], is
 
 async function getRegisteredAmountByIp(walletId, ip, isFree = false, statuses = ['success', 'pending']) {
   let amount = 0
-  const statusesWhere = statuses.length > 1 ? ` (${statuses.map(status => `le.trx_status = '${status}'`).join(' OR ')}) ` : ` le.trx_status = '${status}' `
+  const statusesWhere = statuses.length > 1 ? ` (${statuses.map(status => `le.trx_status = '${status}'`).join(' OR ')}) ` : ` le.trx_status = '${statuses[0]}' `
   const freeWhere = isFree ? ` and ap.pay_source = 'free' ` : ''
 
   const [res] = await sequelize.query(`
@@ -612,6 +617,17 @@ function nameExists(names, address, domain) {
   )
 
   return found === undefined ? false : found
+}
+
+async function checkFreeAddressLeft() {
+  const wallets = await db.Wallet.findAll({
+    include: [db.Notification]
+  })
+  if (!wallets.length) return
+  for (const wallet of wallets) {
+    const accountsByDomains = await getAccountsByDomainsAndStatus(wallet.id, wallet.domains, ['success'])
+    processNotifications(wallet, accountsByDomains)
+  }
 }
 
 module.exports = {

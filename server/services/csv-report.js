@@ -33,8 +33,8 @@ const generateCsvReport = async (referralCode, domain, after) => {
     for (const row of rows) {
       registrations.push({
         ['FIO Address']: `${row.address}@${row.domain}`,
-        ['Paid amount']: row.created,
-        ['Date created']: row.buy_price === '0.00' && row.pay_source === 'free' ? 'free' : row.buy_price,
+        ['Paid amount']: row.buy_price === '0.00' && row.pay_source === 'free' ? 'free' : row.buy_price,
+        ['Date created']: row.created,
         ['Referral Code']: row.referral_code
       })
     }

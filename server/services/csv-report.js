@@ -33,8 +33,8 @@ const generateCsvReport = async (referralCode, domain, after) => {
     for (const row of rows) {
       registrations.push({
         ['FIO Address']: `${row.address}@${row.domain}`,
-        ['Paid amount']: row.created,
-        ['Date created']: row.buy_price === '0.00' && row.pay_source === 'free' ? 'free' : row.buy_price,
+        ['Paid amount']: row.buy_price === '0.00' && row.pay_source === 'free' ? 'free' : row.buy_price,
+        ['Date created']: row.created,
         ['Referral Code']: row.referral_code
       })
     }
@@ -49,45 +49,8 @@ const generateCsvReport = async (referralCode, domain, after) => {
 
   const fileId = new Date().toISOString();
 
-  const uploadPath = path.resolve('public/uploads/')
-  if (!fs.existsSync(uploadPath)) {
-    fs.mkdirSync(uploadPath);
-  }
-
   const fileName = `csv-report-${domain}-from-${new Date(after).toJSON().split('T')[0]}-${hashName(fileId)}.csv`;
-  const filePath = `${uploadPath}/${fileName}`;
-  await fs.writeFileSync(filePath, csv);
-  return fileName
-}
-
-const cleanCsvFiles = async () => {
-  const uploadPath = path.resolve('public/uploads/')
-  if (!fs.existsSync(uploadPath)) {
-    return
-  }
-  try {
-    fs.readdir(uploadPath, async (err, files) => {
-      if (err) throw err;
-
-      for (const file of files) {
-        const { birthtime } = fs.statSync(path.join(uploadPath, file))
-        const diff = diffHours(new Date(), birthtime)
-        if (diff > 24) {
-          fs.unlink(path.join(uploadPath, file), err => {
-            if (err) throw err;
-          });
-        }
-      }
-    });
-  } catch (e) {
-    console.log(e);
-  }
-}
-
-function diffHours(dt2, dt1) {
-  let diff =(dt2.getTime() - dt1.getTime()) / 1000;
-  diff /= (60 * 60);
-  return Math.abs(Math.round(diff));
+  return { csv, fileName }
 }
 
 function hashName(string) {
@@ -101,6 +64,5 @@ function hashName(string) {
 }
 
 module.exports = {
-  generateCsvReport,
-  cleanCsvFiles
+  generateCsvReport
 };

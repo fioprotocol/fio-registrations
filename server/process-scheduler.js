@@ -2,7 +2,6 @@ const debug = require('debug')('fio:process-scheduler')
 
 const processEvents = require('./process-events')
 const processWebhooks = require('./process-webhooks')
-const csvCleaner = require('./process-csv-cleaner')
 
 if(process.env.PROCESS_EVENTS_MS > 0) {
   let running = false
@@ -20,7 +19,6 @@ if(process.env.PROCESS_EVENTS_MS > 0) {
       console.error(err);
       running = false
     })
-    csvCleaner.run()
   }
 
   debug(`event scheduler running ${process.env.PROCESS_EVENTS_MS}ms`)

@@ -836,8 +836,8 @@ router.get('/csv-report', handler(async (req, res) => {
   if (!user_id) {
     return res.status(401).send({ error: 'Unauthorized' })
   }
-  const filePath = await generateCsvReport(req.query.ref, req.query.domain, req.query.after)
-  return res.send({ success: { filePath }});
+  const { csv, fileName } = await generateCsvReport(req.query.ref, req.query.domain, req.query.after)
+  return res.send({ success: { csv, fileName }});
 }))
 
 module.exports = router

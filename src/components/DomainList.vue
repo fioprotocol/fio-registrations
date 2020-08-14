@@ -78,7 +78,14 @@ export default {
         this.alert = ''
       }
       if (!loading && !this.csvReport.error && this.csvReport.success) {
-        window.open(`/uploads/${this.csvReport.success.filePath}`, '_blank');
+        const { csv, fileName } = this.csvReport.success
+        const encodedUri = encodeURI(`data:text/csv;charset=utf-8,${csv}`);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", fileName);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
       }
     },
   },

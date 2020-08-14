@@ -117,6 +117,7 @@ export default {
       this.domainIsNotRegistered = false
       this.domainIsNotPublic = false
       this.validAddress = valid
+      this.$store.dispatch('Account/resetErrors')
     },
 
     submitForm() {
@@ -344,7 +345,7 @@ export default {
 
     checkAddressLoading() {
       const type = this.buyAddress ? 'Address' : 'Domain'
-      return this.Account.loading[`is${type}Registered`]._loading
+      return this.Account.loading[`is${type}Registered`]._loading || this.Account.loading.isCheckedWithPublicDomain._loading
     },
 
     regAccountAlert() {
@@ -376,6 +377,12 @@ export default {
       const type = this.buyAddress ? 'Address' : 'Domain'
       if(this.address === this.Account.registeredAccount) {
         return {error: `${type} "${this.address}" is already registered`}
+      }
+      if (this.Account.loading[`is${type}Registered`]._error) {
+        return {error: this.Account.loading[`is${type}Registered`]._error}
+      }
+      if (this.Account.loading.isCheckedWithPublicDomain._error) {
+        return {error: this.Account.loading.isCheckedWithPublicDomain._error}
       }
 
       if (this.buyResult.error) {

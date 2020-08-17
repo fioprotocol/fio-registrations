@@ -13,7 +13,7 @@
           id="check-button"
           type="submit"
           class="btn btn-success mt-4"
-          :disabled="address === null || captchaIsLoading || !isCaptchaInitSuccess"
+          :disabled="address === null || captchaIsLoading || (this.buyAddress && freeSale && !isCaptchaInitSuccess && validatedAddress)"
         >
           <div v-if="!validatedAddress">
             <div v-if="!checkAddressLoading">
@@ -81,7 +81,10 @@ export default {
       domainIsNotPublic: false,
       captchaObj: null,
       captchaLoading: false,
-      captchaErrored: false
+      captchaErrored: false,
+      captchaLoaded: false,
+      captchaTimeout: 0,
+      captchaCounter: 0
     }
   },
 
@@ -114,6 +117,7 @@ export default {
       this.domainIsNotRegistered = false
       this.domainIsNotPublic = false
       this.validAddress = valid
+      this.$store.dispatch('Account/resetErrors')
     },
 
     submitForm() {
@@ -121,6 +125,7 @@ export default {
       this.limitError = false
       this.domainIsNotRegistered = false
       this.domainIsNotPublic = false
+      this.captchaCounter = 0
       this.$store.dispatch('Server/reset', {
         key: 'buyResult'
       })
@@ -199,9 +204,26 @@ export default {
         }
       }
       this.captchaErrored = false
+      this.captchaLoaded = false
+      this.captchaCounter++
       this.$store.dispatch('Server/get', {
         key: 'getCaptchaResult', path: '/public-api/gt/register-slide'
       })
+      setTimeout(() => this.checkCaptchaTimeout(new Date()), 1000)
+    },
+
+    checkCaptchaTimeout(started) {
+      if (!this.captchaLoading || this.captchaLoaded) {
+        return
+      }
+
+      const now = new Date()
+      const diff = Math.round((((now - started) % 86400000) % 3600000) / 1000) // seconds
+      if (diff <= 5) {
+        return setTimeout(() => this.checkCaptchaTimeout(started), 1000)
+      }
+
+      return this.initCaptcha()
     },
 
     afterAvailCheck(isRegistered) {
@@ -250,6 +272,7 @@ export default {
     ['getCaptchaResult._loading']: function(loading) {
       this.captchaLoading = true
       if (loading) return
+      if (this.captchaLoaded) return;
       const data = this.getCaptchaResult
       if (data.skipCaptcha) {
         this.captchaObj = null
@@ -274,8 +297,20 @@ export default {
       }, captchaObj => {
         captchaObj.onReady(() => {
           this.captchaLoading = false
+          this.captchaLoaded = true
+        }).onError(() => {
+          if (!this.captchaLoaded) {
+            if (this.captchaCounter < 2) {
+              this.initCaptcha()
+            } else {
+              this.captchaLoading = false
+              this.captchaErrored = true
+              this.captchaObj = null
+              this.$store.dispatch('Account/resetAvailableAccount')
+            }
+          }
         });
-        this.captchaObj = captchaObj
+        if (!this.captchaLoaded) this.captchaObj = captchaObj
       })
     }
   },
@@ -310,7 +345,7 @@ export default {
 
     checkAddressLoading() {
       const type = this.buyAddress ? 'Address' : 'Domain'
-      return this.Account.loading[`is${type}Registered`]._loading
+      return this.Account.loading[`is${type}Registered`]._loading || this.Account.loading.isCheckedWithPublicDomain._loading
     },
 
     regAccountAlert() {
@@ -343,13 +378,19 @@ export default {
       if(this.address === this.Account.registeredAccount) {
         return {error: `${type} "${this.address}" is already registered`}
       }
+      if (this.Account.loading[`is${type}Registered`]._error) {
+        return {error: this.Account.loading[`is${type}Registered`]._error}
+      }
+      if (this.Account.loading.isCheckedWithPublicDomain._error) {
+        return {error: this.Account.loading.isCheckedWithPublicDomain._error}
+      }
 
       if (this.buyResult.error) {
         return {error: this.buyResult.error}
       }
 
       if (this.captchaErrored) {
-        return { error: 'Temporarily unavailable' }
+        return { error: 'Captcha service temporarily unavailable, please try again in a few minutes.' }
       }
 
       if(this.validatedAddress) {
@@ -362,7 +403,7 @@ export default {
     },
 
     isCaptchaInitSuccess() {
-      return !this.captchaErrored
+      return this.captchaLoaded
     },
 
     priceBeforeCredit() {

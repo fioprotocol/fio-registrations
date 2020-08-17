@@ -16,7 +16,7 @@ export default {
     loading: loading.defaults([
       'isAddressRegistered',
       'isDomainRegistered',
-      'isCheckedWithPublicDomainLoading',
+      'isCheckedWithPublicDomain',
     ])
   },
 
@@ -35,20 +35,31 @@ export default {
           '/public-api/balance/' + publicKey
         )
 
-        const [result, balanceRes] = await Promise.all([resultReq, balanceReq])
+        try {
+          const [result, balanceRes] = await Promise.all([resultReq, balanceReq])
 
-        let credit = 0
-        if(balanceRes.success) {
-          const bal = +Number(balanceRes.balance.total)
-          if(bal < 0) {
-            credit = bal
+          let credit = 0
+          if(balanceRes.success) {
+            const bal = +Number(balanceRes.balance.total)
+            if(bal < 0) {
+              credit = bal
+            }
           }
-        }
 
-        commit('isAccountRegistered', {
-          isRegistered: result, address, credit
-        })
-        if (cb) cb(result)
+          commit('isAccountRegistered', {
+            isRegistered: result, address, credit
+          })
+          if (cb) cb(result)
+        } catch (e) {
+          console.error(e)
+          throw new Error('There was an issue while checking your address.')
+        }
+      })
+    },
+
+    async resetAvailableAccount({commit}) {
+      commit('resetAvailableAccount', {
+        availableAccount: null
       })
     },
 
@@ -59,7 +70,8 @@ export default {
     */
     async checkWithPublicDomain({commit, state}, {address, publicKey, cb}) {
       const domain = address.split('@')[1]
-      loading(state.loading[`isCheckedWithPublicDomainLoading`], async () => {
+      loading(state.loading[`isCheckedWithPublicDomain`], async () => {
+        if (!domain) throw new Error('Invalid address')
         const isAccountRegReq = fio.isAccountRegistered(address)
         const isDomainRegisteredReq = fio.isAccountRegistered(domain)
         const isDomainPublicReq = fio.isDomainPublic(domain)
@@ -68,9 +80,15 @@ export default {
           '/public-api/balance/' + publicKey
         )
 
-        const [isDomainRegistered, isDomainPublic, isAccountRegistered, balanceRes] =
-          await Promise.all([isDomainRegisteredReq, isDomainPublicReq, isAccountRegReq, balanceReq])
+        let responses = []
+        try {
+          responses = await Promise.all([isDomainRegisteredReq, isDomainPublicReq, isAccountRegReq, balanceReq])
+        } catch (e) {
+          console.error(e)
+          throw new Error('There was an issue while checking your address.')
+        }
 
+        const [isDomainRegistered, isDomainPublic, isAccountRegistered, balanceRes] = responses
         let credit = 0
         if(balanceRes.success) {
           const bal = +Number(balanceRes.balance.total)
@@ -94,6 +112,12 @@ export default {
         })
       })
     },
+
+    async resetErrors({state}) {
+      loading.resetError(state.loading[`isCheckedWithPublicDomain`])
+      loading.resetError(state.loading['isAddressRegistered'])
+      loading.resetError(state.loading['isDomainRegistered'])
+    },
   },
 
   mutations: {
@@ -109,7 +133,11 @@ export default {
         state.availableAccount = address
       }
     },
+    resetAvailableAccount(state, {availableAccount}) {
+      state.availableAccount = availableAccount
+    },
     checkWithPublicDomain(state, {isDomainRegistered, isDomainPublic}) {
+      loading.done(state.loading[`isCheckedWithPublicDomain`])
       state.isDomainRegistered = isDomainRegistered
       state.isDomainPublic = isDomainPublic
     },

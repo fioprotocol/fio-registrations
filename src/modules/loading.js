@@ -8,10 +8,10 @@ export default function init({
     state[error] = null
     try {
       return await fn()
-    } catch (error) {
+    } catch (e) {
       state[loading] = false
-      state[error] = error.message
-      console.error(error)
+      state[error] = e.message
+      console.error(e)
     }
   }
 
@@ -47,6 +47,10 @@ export default function init({
 
   main.done = function(state) {
     state[loading] = false
+  }
+
+  main.resetError = function(state) {
+    state[error] = null
   }
 
   return main

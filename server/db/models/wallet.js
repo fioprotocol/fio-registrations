@@ -121,6 +121,7 @@ module.exports = (sequelize, DataTypes) => {
 
   Wallet.associate = function(models) {
     Wallet.hasMany(models.Account, {foreignKey: 'wallet_id'})
+    Wallet.hasMany(models.Notification, {foreignKey: 'wallet_id'})
     Wallet.hasOne(models.WalletApi, { foreignKey: 'wallet_id', onDelete: 'CASCADE' })
   };
 

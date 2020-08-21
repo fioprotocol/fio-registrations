@@ -615,9 +615,6 @@ router.post('/public-api/renew-account', handler(async (req, res) => {
       'id',
       'name',
       'logo_url',
-      'domain_sale_active',
-      'account_sale_active',
-      'domains_limit',
     ],
     where: {
       referral_code: ref,
@@ -630,32 +627,17 @@ router.post('/public-api/renew-account', handler(async (req, res) => {
   }
 
   const addressArray = address.split('@')
-  const buyAccount = addressArray.length === 2
-  const type = buyAccount ? 'account' : 'domain'
-
-  if(!wallet[`${type}_sale_active`]) {
-    return res.status(400).send(
-      {error: `This referral code is not renewing ${type}s.`}
-    )
-  }
+  const renewAccount = addressArray.length === 2
+  const type = renewAccount ? 'account' : 'domain'
 
   if (!isValidAddress(address)) {
     return res.status(400).send(
       { error: `Invalid ${type}` }
     )
   }
-  
+
   if (!PublicKey.isValid(publicKey)) {
     return res.status(400).send({ error: 'Missing public key' })
-  }
-
-  if (buyAccount) {
-    const accountsByDomain = await getAccountsByDomainsAndStatus(wallet.id, [addressArray[1]])
-    const accountsNumber = accountsByDomain.length ? parseInt(accountsByDomain[0].accounts) : 0
-    const domainsLimit = wallet.domains_limit[addressArray[1]] || null
-    if (domainsLimit !== null && accountsNumber >= parseInt(domainsLimit)) {
-      return res.status(400).send({ error: `FIO Address registrations no longer available for that domain` })
-    }
   }
 
   try {
@@ -668,8 +650,8 @@ router.post('/public-api/renew-account', handler(async (req, res) => {
   }
 
   const {name, logo_url} = wallet
-  let price = +Number(wallet[`${type}_sale_price`])
-  
+  let price
+
   try {
     const roe = await getROE()
     const fee = type === 'account' ? await fio.getFeeRenewAddress('') : await fio.getFeeRenewDomain('')
@@ -679,8 +661,8 @@ router.post('/public-api/renew-account', handler(async (req, res) => {
     return res.status(400).send({ error: `Server error. Please try again later.` })
   }
 
-  if (type === 'account' && price < process.env.MIN_ADDRESS_PRICE) {
-    return res.status(400).send({ error: `Price is too low` })
+  if (!price) {
+    return res.status(400).send({ error: `Price was not calculated. Please try again later.` })
   }
 
   const adjPrice = Math.max(0, +Number(price).toFixed(2))
@@ -699,19 +681,33 @@ router.post('/public-api/renew-account', handler(async (req, res) => {
       where: {
         domain: accountObj.domain,
         address: accountObj.address || null,
-        owner_key: publicKey
+        owner_key: publicKey,
+        wallet_id: wallet.id
       },
       transaction
     })
+    await saveRegistrationsSearchItem(
+      {
+        account_id: account.id,
+        domain: accountObj.domain,
+        address: accountObj.address || null,
+        owner_key: publicKey,
+        ap_type: 'renew'
+      },
+      {},
+      account,
+      transaction,
+      true
+    )
 
     const charge = await processor.createCharge({
-      name, 
-      logoUrl: logo_url, 
-      price: adjPrice, 
-      type, 
-      address, 
+      name,
+      logoUrl: logo_url,
+      price: adjPrice,
+      type,
+      address,
       publicKey,
-      accountId: account.id, 
+      accountId: account.id,
       redirectUrl
     })
 
@@ -747,13 +743,25 @@ router.post('/public-api/renew-account', handler(async (req, res) => {
       pay_status = 'review'
     }
 
-    await db.AccountPayEvent.create({
+    const accountPayEvent = await db.AccountPayEvent.create({
       pay_status,
       event_id: String(event_id),
       extern_time,
       extern_status,
       account_pay_id: accountPay.id
     }, tr)
+    // Updating RegistrationsSearch table record
+    await saveRegistrationsSearchItem(
+      {
+        pay_status: accountPayEvent.pay_status,
+        extern_id: accountPay.extern_id,
+        account_pay_id: accountPay.id,
+        account_pay_event_id: accountPayEvent.id,
+      },
+      { account_id: account.id },
+      account,
+      transaction
+    )
 
     return { success: {charge}, account_id: account.id }
   })

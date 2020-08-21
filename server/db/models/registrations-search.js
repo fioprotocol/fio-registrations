@@ -60,6 +60,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE,
       defaultValue: Sequelize.fn('now'),
       allowNull: false
+    },
+    ap_type: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'register'
     }
   }, {
     tableName: 'registrations-search',
@@ -67,7 +72,7 @@ module.exports = (sequelize, DataTypes) => {
     indexes: [
       {
         unique: true,
-        fields: ['account_id']
+        fields: ['account_id', 'ap_type']
       },
       {
         fields: ['account_id', 'pay_status', 'trx_status', 'account_pay_id', 'account_pay_event_id', 'blockchain_trx_id', 'blockchain_trx_event_id']

@@ -92,8 +92,9 @@ class Coinbase {
       cancel_url: redirectUrl
     }
 
-    const result = await this.coinbase.post('/charges', charge)
+    // const result = await this.coinbase.post('/charges', charge)
     // const result = require('./examples/multitrx/1created.json').event
+    const result = require('./examples/multitrx/3confirmed2.json').event
 
     if(result.data) {
       const {code, timeline, hosted_url} = result.data

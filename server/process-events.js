@@ -85,7 +85,7 @@ const regaddress = async (address, ownerPublic, tpid, walletActor = '', walletPe
   }, options)
 }
 
-const renewdomain = async (domain, ownerPublic, tpid, walletActor = '', walletPermission = '') => {
+const renewdomain = async (domain, tpid, walletActor = '', walletPermission = '') => {
   const maxFee = await fio.getFeeRenewDomain(actor)
   const options = {}
   if (walletActor && walletPermission) {
@@ -97,14 +97,13 @@ const renewdomain = async (domain, ownerPublic, tpid, walletActor = '', walletPe
   }
   return fio.renewDomain({
     domain,
-    ownerPublic,
     maxFee,
     tpid,
     actor
   }, options)
 }
 
-const renewaddress = async (address, ownerPublic, tpid, walletActor = '', walletPermission = '') => {
+const renewaddress = async (address, tpid, walletActor = '', walletPermission = '') => {
   const maxFee = await fio.getFeeRenewAddress(actor)
   const options = {}
   if (walletActor && walletPermission) {
@@ -116,7 +115,6 @@ const renewaddress = async (address, ownerPublic, tpid, walletActor = '', wallet
   }
   return fio.renewAddress({
     address,
-    ownerPublic,
     maxFee,
     tpid,
     actor
@@ -139,12 +137,12 @@ async function broadcastPaidNeedingAccounts() {
 async function getPaidNeedingAccounts() {
   const [newRegs] = await sequelize.query(`
     WITH last AS (
-        select max(bte.id) over (partition by account_id) mid, account_id
+        select max(bte.id) over (partition by account_id) mid, account_id, type
             from blockchain_trx bt
             left outer join blockchain_trx_event bte on bte.blockchain_trx_id = bt.id
-            group by bte.id, account_id
+            group by bte.id, account_id, type
     ), acc_payer AS (
-        select account_id
+        select account_id, type
             from account_pay ap
             inner join account_pay_event ape on ape.account_pay_id = ap.id
             where ape.pay_status = 'success'
@@ -152,13 +150,14 @@ async function getPaidNeedingAccounts() {
                       a.address,
                       a.domain,
                       a.owner_key,
-                      acc_payer.type
+                      acc_payer.account_id,
+                      acc_payer.type,
                       w.tpid,
                       w.actor,
                       w.permission
         from account a
             inner join acc_payer on acc_payer.account_id = a.id
-            left join last on last.account_id = acc_payer.account_id
+            left join last on last.account_id = acc_payer.account_id and last.type = acc_payer.type
             left join blockchain_trx_event bte on bte.id = last.mid
             left join wallet w on a.wallet_id = w.id
         where last.account_id is null OR bte.trx_status = 'retry'
@@ -175,7 +174,7 @@ async function getAccountsByDomainsAndStatus(walletId, domains = [], statuses = 
     select max(bte.id) mid, bt.account_id
       from blockchain_trx bt
                join blockchain_trx_event bte on bte.blockchain_trx_id = bt.id
-      where ${statusesWhere}
+      where ${statusesWhere} and bt.type = 'register'
       group by bt.account_id
     )
     select a.domain, count(m.mid) accounts
@@ -203,7 +202,7 @@ async function getRegisteredAmountForOwner(walletId, owner_key, domains = [], is
       select max(le.id)
       from blockchain_trx lt
       join blockchain_trx_event le on le.blockchain_trx_id = lt.id
-      where lt.account_id = a.id
+      where lt.account_id = a.id and lt.type = 'register'
     )
     where a.wallet_id=${walletId} and
       ${statusesWhere}
@@ -232,7 +231,7 @@ async function getRegisteredAmountByIp(walletId, ip, isFree = false, statuses = 
       select max(le.id)
       from blockchain_trx lt
       join blockchain_trx_event le on le.blockchain_trx_id = lt.id
-      where lt.account_id = a.id
+      where lt.account_id = a.id and lt.type = 'register'
     )
     where a.wallet_id=${walletId} and
       ${statusesWhere}
@@ -252,8 +251,9 @@ async function getRegisteredAmountByIp(walletId, ip, isFree = false, statuses = 
       join account_pay ap on ap.account_id = a.id
       where a.wallet_id=${walletId}
         and a.ip = '${ip}'
+        and ap.type = 'register'
         ${freeWhere}
-        and (select id from blockchain_trx where blockchain_trx.account_id = a.id) IS null
+        and (select id from blockchain_trx where blockchain_trx.account_id = a.id and blockchain_trx.type = 'register') IS null
       group by a.wallet_id;
   `)
     amount += regRequests[0] && regRequests[0].accounts ? parseInt(regRequests[0].accounts) : 0
@@ -285,10 +285,10 @@ async function broadcastNewAccount({
     fioAction = address ?
       await regaddress( account, owner_key, tpid, actor, permission ) :
       await regdomain( domain, owner_key, tpid, actor, permission )
-  } else if(type === 'renew') {
+  } else if (type === 'renew') {
     fioAction = address ?
-      await renewaddress( account, owner_key, tpid, actor, permission ) :
-      await renewdomain( domain, owner_key, tpid, actor, permission )
+      await renewaddress( account, tpid, actor, permission ) :
+      await renewdomain( domain, tpid, actor, permission )
   }
 
   let transaction, trx_id, expiration
@@ -299,7 +299,7 @@ async function broadcastNewAccount({
     expiration = transaction.expiration
   } catch(error) {
     const dbTrx = await db.BlockchainTrx.create({
-      type: 'register',
+      type,
       account_id
     })
 
@@ -338,7 +338,7 @@ async function broadcastNewAccount({
       // debug(JSON.stringify(bc.processed, null, 4));
 
       const dbTrx = await db.BlockchainTrx.create({
-        type: 'register',
+        type,
         expiration: expiration + 'Z',
         trx_id,
         block_num: bc.processed.block_num,
@@ -380,7 +380,7 @@ async function broadcastNewAccount({
       notes === 'FIO address already registered'
     ) {
       const dbTrx = await db.BlockchainTrx.create({
-        type: 'register',
+        type,
         account_id
       })
 
@@ -407,7 +407,7 @@ async function broadcastNewAccount({
       )
     } else {
       const dbTrx = await db.BlockchainTrx.create({
-        type: 'register',
+        type,
         expiration: expiration + 'Z',
         trx_id,
         account_id

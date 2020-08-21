@@ -12,7 +12,7 @@ async function saveRegistrationsSearchItem(params, where, logParams, tr = null, 
     }
     if (isNew) {
       if (params.account_id) {
-        const rsItem = await db.RegistrationsSearch.findOne({ where: { account_id: params.account_id } }, options)
+        const rsItem = await db.RegistrationsSearch.findOne({ where: { account_id: params.account_id, ap_type: params.ap_type || 'register' } }, options)
         if (rsItem && rsItem.id) return
       }
       await db.RegistrationsSearch.create(params, options)
@@ -174,6 +174,7 @@ async function getRegistrations(accountWhere, accountPayWhere) {
               `where account_id = "Account"."id" )`
             )
           },
+          type: 'register',
           ...accountPayWhere,
         },
         include: [
@@ -251,7 +252,14 @@ async function getRegSearchRes(accountWhere, accountPayWhere, limit, offset) {
     limit,
     offset,
     attributes: ['account_id', 'address', 'domain', 'owner_key', 'created', 'extern_id', 'pay_status', 'trx_status'],
-    where: accountWhere,
+    where: {
+      [Op.and]: [
+        {
+          ap_type: 'register',
+        },
+        accountWhere
+      ]
+    },
     order: [['created', 'asc']],
     include: [
       {
@@ -281,6 +289,7 @@ async function getRegSearchRes(accountWhere, accountPayWhere, limit, offset) {
             ],
             required: Object.keys(accountPayWhere).length !== 0,
             where: {
+              type: 'register',
               ...accountPayWhere,
             }
           },

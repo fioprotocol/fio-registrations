@@ -144,7 +144,7 @@
                   </div>
                 </div>
               </div>
-              
+
               <div v-if="renewAddress" class="col-sm">
                 <h4>Renew FIO Address</h4>
                 <p class="h5"><strong>username</strong>@domain</p>
@@ -184,7 +184,7 @@
                   </div>
                 </div>
               </div>
-              
+
             </div>
           </div>
         </div>
@@ -210,6 +210,16 @@
     </div>
 
     <div class="footer text-center py-3">
+      <div class="container mt-4">
+        <div class="d-flex justify-content-around" v-if="regAddress || regDomain">
+          <a :href="`/address/renew/${referralCode}?publicKey=${regPublicKey}`">Renew existing Address</a>
+          <a :href="`/domain/renew/${referralCode}?publicKey=${regPublicKey}`">Renew existing Domain</a>
+        </div>
+        <div class="d-flex justify-content-around" v-if="renewAddress || renewDomain">
+          <a :href="`/address/${referralCode}?publicKey=${regPublicKey}`">Register new Address</a>
+          <a :href="`/domain/${referralCode}?publicKey=${regPublicKey}`">Register new Domain</a>
+        </div>
+      </div>
       <br/>
       <div class="container">
         <span class="text-muted">fioprotocol.io</span>
@@ -292,7 +302,7 @@ export default {
       this.accountReg = false
       this.refresh = Date.now()
     },
-    
+
     refreshWallet(referralCode) {
       setTimeout(() => {
         this.$store.dispatch('Wallet/refreshWallet', {
@@ -378,7 +388,7 @@ export default {
 
     regDomain() {
       const reg = (!document.location.pathname ||
-        document.location.pathname === '/' || 
+        document.location.pathname === '/' ||
         /^\/ref\/?/.test(document.location.pathname) ||
         /^\/domain\/?/.test(document.location.pathname)) &&
         !/\/renew\/?/.test(document.location.pathname)

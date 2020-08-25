@@ -114,6 +114,12 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: false,
       comment: 'Enable / disable secret API Bearer token'
+    },
+    disable_reg: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      comment: 'Enable / disable registration using site'
     }
   }, {
     tableName: 'wallet'

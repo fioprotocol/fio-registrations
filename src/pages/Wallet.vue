@@ -247,6 +247,15 @@
         </div>
       </b-form-group>
 
+      <b-form-group id="disable-reg" class="mb-4"
+                    label="" label-for="disable-reg-check"
+                    description="Disable registration on website"
+      >
+        <b-form-checkbox id="disable-reg-check" v-model="form.disable_reg" class="mt-1">
+          Disable registration on website
+        </b-form-checkbox>
+      </b-form-group>
+
       <b-modal id="success-modal" title="Save Wallet" variant="info" @ok="resetUpsert" ok-only>
         {{upsertWallet.success}}
       </b-modal>
@@ -325,7 +334,8 @@ function formDefaults () {
     forwardAfterSave: false,
     api_enabled: false,
 
-    allow_pub_domains: false
+    allow_pub_domains: false,
+    disable_reg: false,
   }
 }
 

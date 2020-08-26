@@ -281,10 +281,6 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     return res.status(404).send({error: 'Referral code not found'})
   }
 
-  if (!req.body.apiToken && wallet.disable_reg) {
-    return res.status(404).send({error: 'Sale Closed. Please try back soon…'})
-  }
-
   const addressArray = address.split('@')
   const buyAccount = addressArray.length === 2
   const type = buyAccount ? 'account' : 'domain'
@@ -355,6 +351,11 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     // checking wallet API token
     let walletApiAuthorized = false
     const { apiToken } = req.body
+
+    if (!apiToken && wallet.disable_reg) {
+      return res.status(404).send({ error: 'Sale Closed. Please try back soon…' })
+    }
+
     if (wallet.api_enabled && apiToken) {
       try {
         const hash = crypto.createHash('sha256')

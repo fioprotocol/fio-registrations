@@ -80,17 +80,21 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
       'account_sale_active',
       'domain_roe_active',
       'account_roe_active',
-      'allow_pub_domains'
+      'allow_pub_domains',
+      'disable_reg'
     ],
     where: {
       referral_code: referralCode,
       active: true
     }
   })
-  const accountsByDomain = await getAccountsByDomainsAndStatus(wallet.id, wallet.domains)
 
   const plainWallet = wallet ? wallet.get({ plain: true }) : {}
   if (plainWallet.id) {
+    if (plainWallet.disable_reg) {
+      return res.send({success: {}});
+    }
+    const accountsByDomain = await getAccountsByDomainsAndStatus(wallet.id, wallet.domains)
     plainWallet.accountsByDomain = accountsByDomain.reduce((acc, data) => {
       acc[data.domain] = parseInt(data.accounts)
       return acc
@@ -264,7 +268,8 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       'domain_roe_active',
       'account_roe_active',
       'api_enabled',
-      'allow_pub_domains'
+      'allow_pub_domains',
+      'disable_reg'
     ],
     where: {
       referral_code: ref,
@@ -272,7 +277,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     }
   })
 
-  if(!wallet) {
+  if (!wallet) {
     return res.status(404).send({error: 'Referral code not found'})
   }
 
@@ -346,6 +351,11 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     // checking wallet API token
     let walletApiAuthorized = false
     const { apiToken } = req.body
+
+    if (!apiToken && wallet.disable_reg) {
+      return res.status(404).send({ error: 'Sale Closed. Please try back soon…' })
+    }
+
     if (wallet.api_enabled && apiToken) {
       try {
         const hash = crypto.createHash('sha256')
@@ -373,7 +383,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       return res.status(401).send({error: `Unauthorized: Due to the referral code sale price, a user API Token is required`})
     }
 
-    if (buyAccount) {
+    if (buyAccount && !wallet.disable_reg) {
       try {
         const amountRegistered = await getRegisteredAmountForOwner(wallet.id, publicKey, [addressArray[1]], true)
         if (parseInt(amountRegistered) > 0) {

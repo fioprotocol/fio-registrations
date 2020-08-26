@@ -34,8 +34,8 @@ async function processNotifications(wallet, accountsByDomains) {
         params: notification,
       })
       const messageBody = {
-        'username': 'Limit free address reached notifier',
-        'text': `Free address registrations amount on ${walletRef} reached to ${notification.reached} for ${notification.domain} domain`,
+        'username': `${process.env.TITLE}`,
+        'text': `Limit free address reached notifier. Free address registrations amount on ${walletRef} reached to ${notification.reached} for ${notification.domain} domain`,
         'icon_emoji': ':bangbang:',
         'attachments': [{
           'color': '#eed140',

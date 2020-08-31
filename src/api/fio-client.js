@@ -121,6 +121,7 @@ class FioClient {
     await this.init
     const ret = await this.chain.post('/get_pub_address', {
       fio_address: fio_address.replace(/:/, '@'),
+      chain_code: token,
       token_code: token
     })
     return ret.public_address

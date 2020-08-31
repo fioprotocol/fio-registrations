@@ -81,7 +81,7 @@ export default {
     },
     publicKey: {
       type: String,
-      required: true
+      required: false
     },
     renewAddress: {
       type: Boolean,
@@ -103,6 +103,9 @@ export default {
         this.$store.dispatch('Account/isAccountRegistered', {
           address, publicKey, cb: isRegistered => {
             if (isRegistered) {
+              this.$store.dispatch('Account/getPubAddress', {
+                address
+              })
               this.renew()
             }
           }
@@ -180,7 +183,7 @@ export default {
       }
 
       const type = this.renewAddress ? 'Address' : 'Domain'
-      
+
       if (this.validAddress === false) {
         return {error: 'Invalid ' + type}
       }
@@ -192,7 +195,7 @@ export default {
       if (this.address === this.Account.availableAccount) {
         return { error: `${type} not registered` }
       }
-      
+
       return {}
     },
 

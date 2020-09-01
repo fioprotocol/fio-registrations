@@ -206,6 +206,7 @@ export default {
       this.captchaErrored = false
       this.captchaLoaded = false
       this.captchaCounter++
+      this.captchaLoading = true
       this.$store.dispatch('Server/get', {
         key: 'getCaptchaResult', path: '/public-api/gt/register-slide'
       })
@@ -270,9 +271,9 @@ export default {
       }
     },
     ['getCaptchaResult._loading']: function(loading) {
-      this.captchaLoading = true
       if (loading) return
       if (this.captchaLoaded) return;
+      if (!this.buyAddress) return;
       const data = this.getCaptchaResult
       if (data.skipCaptcha) {
         this.captchaObj = null

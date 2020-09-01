@@ -211,7 +211,7 @@
 
     <div class="footer text-center py-3">
       <div class="container mt-4">
-        <div class="d-flex justify-content-around" v-if="regAddress || regDomain">
+        <div class="d-flex justify-content-around" v-if="(regAddress || regDomain) && referralCode">
           <a :href="`/address/renew/${referralCode}?publicKey=${regPublicKey}`">Renew existing Address</a>
           <a :href="`/domain/renew/${referralCode}?publicKey=${regPublicKey}`">Renew existing Domain</a>
         </div>
@@ -419,11 +419,7 @@ export default {
     },
 
     renewDomain() {
-      const renew = !document.location.pathname ||
-        document.location.pathname === '/' ||
-        /^\/(domain|ref)\/renew\/?/.test(document.location.pathname)
-
-      if (!renew) {
+      if (!/^\/(domain|ref)\/renew\/?/.test(document.location.pathname)) {
         return false
       }
 
@@ -433,11 +429,7 @@ export default {
     },
 
     renewAddress() {
-      const renew = !document.location.pathname ||
-              document.location.pathname === '/' ||
-              /^\/(address|ref)\/renew\/?/.test(document.location.pathname)
-
-      if (!renew) {
+      if (!/^\/(address|ref)\/renew\/?/.test(document.location.pathname)) {
         return false
       }
 

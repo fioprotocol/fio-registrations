@@ -126,6 +126,42 @@ class FioClient {
     })
     return ret.public_address
   }
+
+  async getPubAddressByDomain(domain) {
+    await this.init
+    const hash = crypto.createHash('sha1')
+    const bound = '0x' + hash.update(domain).digest().slice(0,16).reverse().toString("hex")
+    const result = await this.chain.post('/get_table_rows', {
+      code: 'fio.address',
+      scope: 'fio.address',
+      table: 'domains',
+      lower_bound: bound,
+      upper_bound: bound,
+      key_type: 'i128',
+      index_position: '4',
+      json: true
+    })
+    if (result.rows && result.rows.length) {
+      const account = result.rows[0].account
+      if (account) {
+        const accountData = await this.chain.post('/get_table_rows', {
+          code: 'fio.address',
+          scope: 'fio.address',
+          table: 'accountmap',
+          lower_bound: account,
+          upper_bound: account,
+          key_type: 'name',
+          index_position: '1',
+          json: true
+        })
+
+        if (accountData.rows && accountData.rows.length) {
+          return accountData.rows[0].clientkey
+        }
+      }
+    }
+    return ''
+  }
 }
 
 module.exports = FioClient

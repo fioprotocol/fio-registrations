@@ -119,7 +119,7 @@ export default {
 
       this.$store.dispatch('Server/post', {
         key: 'renewResult', path: '/public-api/renew-account',
-        body: { address, referralCode, publicKey, redirectUrl }
+        body: { address, referralCode, publicKey: publicKey || this.Account.pubAddress, redirectUrl }
       })
     }
   },

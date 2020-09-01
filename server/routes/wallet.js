@@ -602,10 +602,8 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
  -
  */
 router.post('/public-api/renew-account', handler(async (req, res) => {
-  const {
-    address: addressFromReq, referralCode, publicKey,
-    redirectUrl
-  } = req.body
+  const { address: addressFromReq, referralCode, redirectUrl } = req.body
+  let { publicKey } = req.body
   const processor = await plugins.payment
 
   const address = addressFromReq.toLowerCase()
@@ -634,6 +632,11 @@ router.post('/public-api/renew-account', handler(async (req, res) => {
     return res.status(400).send(
       { error: `Invalid ${type}` }
     )
+  }
+
+  if (!publicKey) {
+    publicKey = renewAccount ? await fio.getAddress(address) : await fio.getPubAddressByDomain(address)
+    console.log(publicKey);
   }
 
   if (!PublicKey.isValid(publicKey)) {

@@ -121,11 +121,11 @@ export default {
         if (address.indexOf('@') > -1) {
           resultReq = fio.getAddress(address)
         } else {
-          // todo: get pub address from domain
+          resultReq = fio.getPubAddressByDomain(address)
         }
 
         const result = await Promise.resolve(resultReq)
-        console.log(result);
+
         commit('getPubAddress', {
           pubAddress: result, address
         })

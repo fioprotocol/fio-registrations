@@ -130,6 +130,7 @@ const renewaddress = async (address, tpid, walletActor = '', walletPermission = 
 async function broadcastPaidNeedingAccounts() {
   const newRegs = await getPaidNeedingAccounts()
 
+  // todo: need to add account_pay_id to blockchain_trx table for renewal to track if renew was applied for the payment.
   return Promise.all(newRegs.map(newReg =>
     broadcastNewAccount(newReg)))
 }

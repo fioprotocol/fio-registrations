@@ -6,7 +6,7 @@ const geeTest = require('../geetest')
 
 router.get("/public-api/gt/register-slide", handler(async (req, res) => {
   if (process.env.GEETEST_CAPTCHA_SKIP) {
-    const captchaHash = skipCaptchaHash(`${req.headers['x-forwarded-for']}${Date.now()}`)
+    const captchaHash = skipCaptchaHash(`${req.headers[process.env.IP_HEADER_PROP_NAME]}${Date.now()}`)
     global.captchaHashes[captchaHash] = true
     return res.send({ skipCaptcha: captchaHash, success: false });
   }

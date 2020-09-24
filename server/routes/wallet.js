@@ -248,9 +248,9 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   } = req.body
   const processor = await plugins.payment
 
-  let ipAddress = req.headers['x-forwarded-for'] || ''
-  if (ipAddress && ipAddress.indexOf(':') > -1) {
-    ipAddress = ipAddress.split(':')[0]
+  let ipAddress = req.headers[process.env.IP_HEADER_PROP_NAME] || ''
+  if (ipAddress && ipAddress.indexOf(',') > -1) {
+    ipAddress = ipAddress.split(',')[0]
   }
   const address = addressFromReq.toLowerCase()
   const ref = referralCode ? referralCode : process.env.DEFAULT_REFERRAL_CODE

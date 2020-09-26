@@ -248,10 +248,24 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   } = req.body
   const processor = await plugins.payment
 
-  let ipAddress = req.headers[process.env.IP_HEADER_PROP_NAME] || ''
+  let ipAddress = ''
+  if (Boolean(process.env.TRUST_PROXY) && process.env.IP_HEADER_PROP_NAME) {
+    ipAddress = req.headers[process.env.IP_HEADER_PROP_NAME.toLowerCase()]
+  }
+  // first address of xff, list is comma separated
   if (ipAddress && ipAddress.indexOf(',') > -1) {
     ipAddress = ipAddress.split(',')[0]
+  } else if (ipAddress === '') {
+    ipAddress = req.ip
   }
+  // strip the port if present.
+  const stripPort = ipAddress.split(':')
+  if (stripPort.length === 2) {
+    ipAddress = stripPort[0]
+  } else if (stripPort.length === 7) {
+    ipAddress = stripPort.pop().join(':')
+  }
+
   const address = addressFromReq.toLowerCase()
   const ref = referralCode ? referralCode : process.env.DEFAULT_REFERRAL_CODE
   const wallet = await db.Wallet.findOne({

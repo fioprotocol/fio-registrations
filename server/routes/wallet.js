@@ -249,7 +249,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   const processor = await plugins.payment
 
   let ipAddress = ''
-  if (Boolean(process.env.TRUST_PROXY) && process.env.IP_HEADER_PROP_NAME) {
+  if (process.env.TRUST_PROXY && process.env.IP_HEADER_PROP_NAME) {
     ipAddress = req.headers[process.env.IP_HEADER_PROP_NAME.toLowerCase()]
   }
   // first address of xff, list is comma separated
@@ -261,9 +261,13 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   // strip the port if present.
   const stripPort = ipAddress.split(':')
   if (stripPort.length === 2) {
+    if (process.env.IP_HEADER_PROP_NAME && process.env.IP_HEADER_PROP_NAME.toLowerCase() !== 'x-forwarded-for') {
+      console.log(`warning: could not get IP address from "${process.env.IP_HEADER_PROP_NAME}" IP_HEADER_PROP_NAME`)
+    }
     ipAddress = stripPort[0]
   } else if (stripPort.length === 7) {
-    ipAddress = stripPort.pop().join(':')
+    stripPort.pop()
+    ipAddress = stripPort.join(':')
   }
 
   const address = addressFromReq.toLowerCase()

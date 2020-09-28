@@ -249,7 +249,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   const processor = await plugins.payment
 
   let ipAddress = ''
-  if (process.env.TRUST_PROXY && process.env.IP_HEADER_PROP_NAME) {
+  if (Boolean(process.env.TRUST_PROXY) && process.env.IP_HEADER_PROP_NAME) {
     ipAddress = req.headers[process.env.IP_HEADER_PROP_NAME.toLowerCase()]
   }
   // first address of xff, list is comma separated

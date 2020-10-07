@@ -12,11 +12,13 @@ export default {
     registeredAccount: null,
     isDomainRegistered: null,
     isDomainPublic: null,
+    pubAddress: null,
     credit: 0,
     loading: loading.defaults([
       'isAddressRegistered',
       'isDomainRegistered',
       'isCheckedWithPublicDomain',
+      'getPubAddress'
     ])
   },
 
@@ -113,6 +115,24 @@ export default {
       })
     },
 
+    async getPubAddress({commit, state}, {address, cb}) {
+      loading(state.loading[`getPubAddress`], async () => {
+        let resultReq
+        if (address.indexOf('@') > -1) {
+          resultReq = fio.getAddress(address)
+        } else {
+          resultReq = fio.getPubAddressByDomain(address)
+        }
+
+        const result = await Promise.resolve(resultReq)
+
+        commit('getPubAddress', {
+          pubAddress: result, address
+        })
+        if (cb) cb(result)
+      })
+    },
+
     async resetErrors({state}) {
       loading.resetError(state.loading[`isCheckedWithPublicDomain`])
       loading.resetError(state.loading['isAddressRegistered'])
@@ -141,5 +161,9 @@ export default {
       state.isDomainRegistered = isDomainRegistered
       state.isDomainPublic = isDomainPublic
     },
+    getPubAddress(state, {pubAddress, address}) {
+      loading.done(state.loading[`getPubAddress`])
+      state.pubAddress = pubAddress
+    }
   }
 }

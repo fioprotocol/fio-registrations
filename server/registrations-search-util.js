@@ -1,6 +1,7 @@
 const db = require('./db/models');
 const { Sequelize, sequelize } = db
 const { Op } = Sequelize
+const { ACCOUNT_TYPES } = require('./constants')
 const { trimKeys } = require('./db/helper')
 
 async function saveRegistrationsSearchItem(params, where, logParams, tr = null, isNew = false) {
@@ -12,18 +13,22 @@ async function saveRegistrationsSearchItem(params, where, logParams, tr = null, 
     }
     if (isNew) {
       if (params.account_id) {
-        const rsItem = await db.RegistrationsSearch.findOne({ where: { account_id: params.account_id } }, options)
-        if (rsItem && rsItem.id) return
+        const rsItem = await db.RegistrationsSearch.findOne({
+          where: { account_id: params.account_id, account_type: params.account_type || ACCOUNT_TYPES.register },
+          order: [['id', 'DESC']]
+        }, options)
+        if (rsItem && rsItem.id) return rsItem
       }
-      await db.RegistrationsSearch.create(params, options)
+      return await db.RegistrationsSearch.create(params, options)
     } else {
       options.where = where
-      await db.RegistrationsSearch.update(params, options)
+      return await db.RegistrationsSearch.update(params, options)
     }
     console.log(`${isNew ? 'Create' : 'Update'} RegistrationsSearch record success - ${JSON.stringify({ params, where, logParams })} === `);
   } catch (e) {
     console.log(`${isNew ? 'Create' : 'Update'} RegistrationsSearch record error - ${JSON.stringify({ params, where, logParams })}`);
     console.log(e);
+    return {}
   }
 }
 
@@ -203,7 +208,7 @@ async function getRegistrations(accountWhere, accountPayWhere) {
         ],
         required: false,
         where: {
-          type: 'register',
+          type: ACCOUNT_TYPES.register,
           id: {
             [Op.eq]: sequelize.literal(
               `( select max(t.id) from blockchain_trx t ` +
@@ -250,8 +255,12 @@ async function getRegSearchRes(accountWhere, accountPayWhere, limit, offset) {
     raw: true,
     limit,
     offset,
-    attributes: ['account_id', 'address', 'domain', 'owner_key', 'created', 'extern_id', 'pay_status', 'trx_status'],
-    where: accountWhere,
+    attributes: ['id', 'account_id', 'account_pay_id', 'address', 'domain', 'owner_key', 'created', 'extern_id', 'pay_status', 'trx_status', 'account_type'],
+    where: {
+      [Op.and]: [
+        accountWhere
+      ]
+    },
     order: [['created', 'asc']],
     include: [
       {
@@ -272,6 +281,7 @@ async function getRegSearchRes(accountWhere, accountPayWhere, limit, offset) {
           ['created_by', 'pay_created_by'], 'extern_status', 'extern_time',
           'confirmed_total', 'pending_total', 'metadata', 'id'
         ],
+        required: Object.keys(accountPayWhere).length !== 0,
         include: [
           {
             model: db.AccountPay,
@@ -292,10 +302,10 @@ async function getRegSearchRes(accountWhere, accountPayWhere, limit, offset) {
           ['type', 'blockchain_trx_type'], 'trx_id',
           'expiration', 'block_num'
         ],
-        required: false,
-        where: {
-          type: 'register',
-        }
+        // required: false,
+        // where: {
+        //   type: ACCOUNT_TYPES.register,
+        // }
       },
       {
         model: db.BlockchainTrxEvent,

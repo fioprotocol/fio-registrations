@@ -174,6 +174,8 @@
                     :address="row.item.address"
                     :domain="row.item.domain"
                     :publicKey="row.item.owner_key"
+                    :type="row.item.account_type"
+                    :accountPayId="row.item.account_pay_id"
                     @pending="pending"
                   />
                 </b-col>
@@ -316,6 +318,10 @@ export default {
       accountFields: [
         'address',
         {
+          label: 'Type',
+          key: 'account_type',
+        },
+        {
           label: 'Purchase Date',
           key: 'pay_created',
           formatter: 'date',
@@ -375,7 +381,7 @@ export default {
         },
         {
           key: 'pay_monitor',
-          label: 'Registration Status',
+          label: 'Payment Status',
         },
         {
           key: 'trx_monitor',
@@ -415,11 +421,12 @@ export default {
     // },
 
     async updateTrxStatus(new_status) {
-      const {account_id} = this.rowSelect.item
+      // todo: check if `account_pay_id` and `type` is in the `this.rowSelect.item`
+      const {account_id, account_pay_id, account_type} = this.rowSelect.item
       this.$store.dispatch('Server/post', {
         key: 'updateTrx' + account_id,
         path: 'update-trx-status',
-        body: {account_id, new_status}
+        body: {account_id, account_pay_id, new_status, type: account_type}
       })
 
       // this can change the balance
@@ -447,11 +454,10 @@ export default {
     },
 
     refreshRowSelect() {
+      // todo: why do we need to refresh by address/domain name?
       this.$store.dispatch('Server/get', {
         key: 'findRefresh',
-        path: 'find/' + encodeURIComponent(
-          `${this.rowSelect.item.address || ''}@${this.rowSelect.item.domain}`
-        )
+        path: 'find/' + encodeURIComponent(this.rowSelect.item.extern_id)
       })
       this.refreshTransactions = Date.now()
     },

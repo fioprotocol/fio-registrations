@@ -122,6 +122,7 @@ router.get('/find/:search/:page?', handler(async (req, res) => {
           address: search
         }
       } else {
+        // todo: change search by address, support renewals, now it finds first row with address/domain
         const [address, domain = ''] = search.split('@')
         if (address !== '') {
           accountWhere.address = address
@@ -412,7 +413,7 @@ router.post('/update-trx-status', handler(async (req, res) => {
     return res.status(401).send({error: 'Unauthorized'})
   }
 
-  const {account_id, new_status, trx_status_notes} = req.body
+  const {account_id, new_status, trx_status_notes, type} = req.body
   assert(typeof account_id === 'number', 'Required number: account_id')
   assert(/retry|cancel|review/.test(new_status),
     'new_status should be: retry, cancel, or review')
@@ -421,7 +422,7 @@ router.post('/update-trx-status', handler(async (req, res) => {
     const tr = {transaction}
 
     const trx = await db.BlockchainTrx.create({
-      account_id, type: 'register'
+      account_id, type
     }, tr)
 
     const event = await db.BlockchainTrxEvent.create({

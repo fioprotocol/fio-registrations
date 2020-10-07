@@ -81,7 +81,7 @@ export default {
     },
     publicKey: {
       type: String,
-      required: true
+      required: false
     },
     renewAddress: {
       type: Boolean,
@@ -103,20 +103,32 @@ export default {
         this.$store.dispatch('Account/isAccountRegistered', {
           address, publicKey, cb: isRegistered => {
             if (isRegistered) {
-              this.renew()
+              this.$store.dispatch('Account/getPubAddress', {
+                address,
+                cb: () => {
+                  this.renew()
+                }
+              })
             }
+          }
+        })
+      } else {
+        this.$store.dispatch('Account/getPubAddress', {
+          address: this.address,
+          cb: () => {
+            this.renew()
           }
         })
       }
     },
 
     renew() {
-      const { referralCode, address, publicKey } = this
+      const { referralCode, address } = this
       const redirectUrl = window.location.href
 
       this.$store.dispatch('Server/post', {
         key: 'renewResult', path: '/public-api/renew-account',
-        body: { address, referralCode, publicKey, redirectUrl }
+        body: { address, referralCode, publicKey: this.Account.pubAddress, redirectUrl }
       })
     }
   },
@@ -180,7 +192,7 @@ export default {
       }
 
       const type = this.renewAddress ? 'Address' : 'Domain'
-      
+
       if (this.validAddress === false) {
         return {error: 'Invalid ' + type}
       }
@@ -192,7 +204,7 @@ export default {
       if (this.address === this.Account.availableAccount) {
         return { error: `${type} not registered` }
       }
-      
+
       return {}
     },
 

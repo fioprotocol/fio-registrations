@@ -1,5 +1,6 @@
 const Sequelize = require('sequelize')
 const {Op} = Sequelize
+const { ACCOUNT_TYPES } = require('../../constants')
 
 module.exports = (sequelize, DataTypes) => {
   const Account = sequelize.define('Account', {
@@ -37,6 +38,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
       defaultValue: ''
+    },
+    type: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: ACCOUNT_TYPES.register
     }
   }, {
     tableName: 'account',
@@ -44,12 +50,13 @@ module.exports = (sequelize, DataTypes) => {
     indexes: [
       {
         unique: true,
-        fields: ['address', 'domain', 'owner_key', 'wallet_id']
+        fields: ['address', 'domain', 'owner_key', 'wallet_id'],
+        where: { type: ACCOUNT_TYPES.register },
       },
       {
         unique: true,
         fields: ['domain', 'owner_key', 'wallet_id'],
-        where: { address: {[Op.is]: null} }, // nullbuster
+        where: { address: { [Op.is]: null }, type: ACCOUNT_TYPES.register }, // nullbuster
       },
       // {
       //   unique: true,

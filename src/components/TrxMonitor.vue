@@ -73,6 +73,8 @@ export default {
     address: String,
     domain: String,
     externId: String,
+    type: String,
+    accountPayId: Number,
     topActive: Boolean,
     afterTopActive: Boolean,
     refresh: Number,
@@ -217,7 +219,6 @@ export default {
       if(!this.publicKey && !this.domain) {
         return
       }
-
       this.$store.dispatch('Server/post', {
         key: 'summary' + this.uid,
         path: '/public-api/summary',
@@ -226,6 +227,8 @@ export default {
           publicKey: this.publicKey,
           address: this.address,
           domain: this.domain,
+          type: this.type,
+          accountPayId: this.accountPayId,
           externId: this.externId
         }
       })

@@ -35,11 +35,6 @@ module.exports = (sequelize, DataTypes) => {
     last_pay_event: {
       type: DataTypes.INTEGER,
       allowNull: true,
-    },
-    type: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      defaultValue: 'register'
     }
   }, {
     tableName: 'account_pay',

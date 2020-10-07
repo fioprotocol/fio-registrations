@@ -237,7 +237,7 @@
         <div class="text-left" v-if="paidEnough && !allConfirmed">
           <small>
             Payment collected, your {{wallet.address ? 'address' : 'domain'}}
-            will be registered.  You may return at any time for an update.
+            will be {{/\/renew\/?/.test(this.returnUrl) ? 'renewed' : 'registered'}}. You may return at any time for an update.
           </small>
         </div>
 

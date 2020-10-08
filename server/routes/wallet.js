@@ -50,6 +50,32 @@ async function validateCaptcha(req) {
   })
 }
 
+function getIpAddress(req) {
+  let ipAddress = ''
+  if (Boolean(process.env.TRUST_PROXY) && process.env.IP_HEADER_PROP_NAME) {
+    ipAddress = req.headers[process.env.IP_HEADER_PROP_NAME.toLowerCase()]
+  }
+  // first address of xff, list is comma separated
+  if (ipAddress && ipAddress.indexOf(',') > -1) {
+    ipAddress = ipAddress.split(',')[0]
+  } else if (ipAddress === '') {
+    ipAddress = req.ip
+  }
+  // strip the port if present.
+  const stripPort = ipAddress.split(':')
+  if (stripPort.length === 2) {
+    if (process.env.IP_HEADER_PROP_NAME && process.env.IP_HEADER_PROP_NAME.toLowerCase() !== 'x-forwarded-for') {
+      console.log(`warning: could not get IP address from "${process.env.IP_HEADER_PROP_NAME}" IP_HEADER_PROP_NAME`)
+    }
+    ipAddress = stripPort[0]
+  } else if (stripPort.length === 7) {
+    stripPort.pop()
+    ipAddress = stripPort.join(':')
+  }
+
+  return ipAddress
+}
+
 /**
   @api {get} /public-api/check-public-key/:publicKey check-public-key
   @apiGroup Registration
@@ -257,27 +283,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   } = req.body
   const processor = await plugins.payment
 
-  let ipAddress = ''
-  if (Boolean(process.env.TRUST_PROXY) && process.env.IP_HEADER_PROP_NAME) {
-    ipAddress = req.headers[process.env.IP_HEADER_PROP_NAME.toLowerCase()]
-  }
-  // first address of xff, list is comma separated
-  if (ipAddress && ipAddress.indexOf(',') > -1) {
-    ipAddress = ipAddress.split(',')[0]
-  } else if (ipAddress === '') {
-    ipAddress = req.ip
-  }
-  // strip the port if present.
-  const stripPort = ipAddress.split(':')
-  if (stripPort.length === 2) {
-    if (process.env.IP_HEADER_PROP_NAME && process.env.IP_HEADER_PROP_NAME.toLowerCase() !== 'x-forwarded-for') {
-      console.log(`warning: could not get IP address from "${process.env.IP_HEADER_PROP_NAME}" IP_HEADER_PROP_NAME`)
-    }
-    ipAddress = stripPort[0]
-  } else if (stripPort.length === 7) {
-    stripPort.pop()
-    ipAddress = stripPort.join(':')
-  }
+  const ipAddress = getIpAddress(req)
 
   const address = addressFromReq.toLowerCase()
   const ref = referralCode ? referralCode : process.env.DEFAULT_REFERRAL_CODE
@@ -609,6 +615,8 @@ router.post('/public-api/renew-account', handler(async (req, res) => {
   let { publicKey } = req.body
   const processor = await plugins.payment
 
+  const ipAddress = getIpAddress(req)
+
   const address = addressFromReq.toLowerCase()
   const ref = referralCode ? referralCode : process.env.DEFAULT_REFERRAL_CODE
   const wallet = await db.Wallet.findOne({
@@ -682,10 +690,10 @@ router.post('/public-api/renew-account', handler(async (req, res) => {
       owner_key: publicKey,
       wallet_id: wallet.id,
       type: ACCOUNT_TYPES.renew,
+      ip: ipAddress,
       created: new Date()
     }
 
-    // todo: do we need to leave time restriction for new renewal?
     const [account] = await db.Account.findOrCreate({
       defaults: accountObj,
       where: {
@@ -693,7 +701,7 @@ router.post('/public-api/renew-account', handler(async (req, res) => {
         address: accountObj.address || null,
         wallet_id: wallet.id,
         type: ACCOUNT_TYPES.renew,
-        created: {[Op.gte]: new Date(new Date().getTime() + 15 * 60000)}
+        created: {[Op.gte]: new Date(new Date().getTime() + 5 * 60000)} // was renewal created is last 5 min
       },
       transaction,
       logging: console.log

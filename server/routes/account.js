@@ -226,6 +226,8 @@ router.post('/public-api/summary', handler(async (req, res) => {
     walletWhere.referral_code = referralCode
   }
 
+  if (type) accountWhere.type = type
+
   const result = await db.Account.findAll({
     raw: true,
     attributes: ['address', 'domain', 'owner_key'],

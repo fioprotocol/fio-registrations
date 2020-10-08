@@ -128,6 +128,7 @@ async function fillRegistrationsSearch() {
           blockchain_trx_id: trimmedItem.blockchain_trx_id,
           blockchain_trx_event_id: trimmedItem['BlockchainTrxEvents.id'],
           created: trimmedItem.created,
+          account_type: trimmedItem.type,
         })
 
         console.log(`fillRegistrationsSearch LOG - ITEM ADDED (${JSON.stringify({
@@ -155,7 +156,7 @@ async function fillRegistrationsSearch() {
 async function getRegistrations(accountWhere, accountPayWhere) {
   const result = await db.Account.findAll({
     raw: true,
-    attributes: [['id', 'account_id'], 'address', 'domain', 'owner_key', 'created'],
+    attributes: [['id', 'account_id'], 'address', 'domain', 'owner_key', 'created', 'type'],
     where: accountWhere,
     order: [['created', 'asc']],
     include: [
@@ -208,7 +209,6 @@ async function getRegistrations(accountWhere, accountPayWhere) {
         ],
         required: false,
         where: {
-          type: ACCOUNT_TYPES.register,
           id: {
             [Op.eq]: sequelize.literal(
               `( select max(t.id) from blockchain_trx t ` +
@@ -302,10 +302,6 @@ async function getRegSearchRes(accountWhere, accountPayWhere, limit, offset) {
           ['type', 'blockchain_trx_type'], 'trx_id',
           'expiration', 'block_num'
         ],
-        // required: false,
-        // where: {
-        //   type: ACCOUNT_TYPES.register,
-        // }
       },
       {
         model: db.BlockchainTrxEvent,

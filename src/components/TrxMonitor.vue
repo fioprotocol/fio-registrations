@@ -165,7 +165,6 @@ export default {
     status(row) {
       let ret
       try {
-        console.log(row);
         const {trx_status, pay_status, trx_type} = row
         const successLabel = { 'renew': 'Renewed', 'register': 'Registered' }
 

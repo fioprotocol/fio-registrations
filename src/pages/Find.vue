@@ -202,7 +202,7 @@
                   <div class="row">
                     <b-col cols="auto" v-if="canRetry(row)">
                       <b-button size="sm" v-b-modal.retry-modal>
-                        Retry Registration
+                        Retry {{row.item.account_type === 'register' ? 'Registration' : 'Renewal'}}
                       </b-button>
                       <b-modal id="retry-modal" @ok="updateTrxStatus('retry')"
                         title="Retry Registration"
@@ -343,6 +343,10 @@ export default {
       domainFields: [
         'domain',
         {
+          label: 'Type',
+          key: 'account_type',
+        },
+        {
           label: 'Purchase Date',
           key: 'pay_created',
           formatter: 'date',
@@ -421,7 +425,6 @@ export default {
     // },
 
     async updateTrxStatus(new_status) {
-      // todo: check if `account_pay_id` and `type` is in the `this.rowSelect.item`
       const {account_id, account_pay_id, account_type} = this.rowSelect.item
       this.$store.dispatch('Server/post', {
         key: 'updateTrx' + account_id,
@@ -454,10 +457,9 @@ export default {
     },
 
     refreshRowSelect() {
-      // todo: why do we need to refresh by address/domain name?
       this.$store.dispatch('Server/get', {
         key: 'findRefresh',
-        path: 'find/' + encodeURIComponent(this.rowSelect.item.extern_id)
+        path: 'find/' + encodeURIComponent(this.rowSelect.item.id)
       })
       this.refreshTransactions = Date.now()
     },

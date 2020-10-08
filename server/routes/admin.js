@@ -109,20 +109,23 @@ router.get('/find/:search/:page?', handler(async (req, res) => {
     const noSeparator = search.indexOf('@') === -1
 
     if (noSeparator) {
-      const count = await db.AccountPay.count({ where: { extern_id: search } })
-      if (count === 1) {
-        accountPayWhere.extern_id = search
+      if (parseInt(search)) {
+        accountWhere.id = parseInt(search)
+      } else {
+        const count = await db.AccountPay.count({ where: { extern_id: search } })
+        if (count === 1) {
+          accountPayWhere.extern_id = search
+        }
       }
     }
 
-    if (!accountPayWhere.extern_id) {
+    if (!accountPayWhere.extern_id && !accountWhere.id) {
       if (noSeparator) {
         accountWhere[Op.or] = {
           domain: search,
           address: search
         }
       } else {
-        // todo: change search by address, support renewals, now it finds first row with address/domain
         const [address, domain = ''] = search.split('@')
         if (address !== '') {
           accountWhere.address = address

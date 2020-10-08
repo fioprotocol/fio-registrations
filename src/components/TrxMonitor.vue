@@ -165,12 +165,14 @@ export default {
     status(row) {
       let ret
       try {
-        const {trx_status, pay_status} = row
+        console.log(row);
+        const {trx_status, pay_status, trx_type} = row
+        const successLabel = { 'renew': 'Renewed', 'register': 'Registered' }
 
         if(trx_status) {
           if(trx_status === 'pending') { return ret = 'Pending: Awaiting blockchain finality' }
           if(trx_status === 'retry') { return ret = 'Pending: Retrying' }
-          if(trx_status === 'success') { return ret = 'Registered' }
+          if(trx_status === 'success') { return ret = successLabel[trx_type] || 'Registered' }
           if(trx_status === 'expire') { return ret = 'Failed' }
           if(trx_status === 'cancel') { return ret = 'Cancelled' }
           if(pay_status === 'success' && trx_status === 'review') {

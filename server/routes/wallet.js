@@ -24,6 +24,21 @@ const { saveRegistrationsSearchItem } = require('../registrations-search-util')
 if(process.env.MIN_ADDRESS_PRICE == null) {
   throw new Error('Required: process.env.MIN_ADDRESS_PRICE')
 }
+const errorCodes = {
+  ONE_FREE_ADDRESS_PER_DOMAIN_ERROR: 'ONE_FREE_ADDRESS_PER_DOMAIN_ERROR',
+  REF_NOT_FOUND: 'REF_NOT_FOUND',
+  SALE_IS_CLOSED: 'SALE_IS_CLOSED',
+  PRICE_AMOUNT_ERROR: 'PRICE_AMOUNT_ERROR',
+  INVALID_FIO_NAME: 'INVALID_FIO_NAME',
+  NO_PUBLIC_KEY_SPECIFIED: 'NO_PUBLIC_KEY_SPECIFIED',
+  DOMAIN_IS_NOT_REGISTERED: 'DOMAIN_IS_NOT_REGISTERED',
+  DOMAIN_IS_NOT_PUBLIC: 'DOMAIN_IS_NOT_PUBLIC',
+  DOMAIN_IS_NOT_ALLOWED_FOR_REF: 'DOMAIN_IS_NOT_ALLOWED_FOR_REF',
+  REGISTRATION_NOT_AVAILABLE: 'REGISTRATION_NOT_AVAILABLE',
+  SERVER_ERROR: 'SERVER_ERROR',
+  CAPTCHA_FAILED: 'CAPTCHA_FAILED',
+  ALREADY_SENT_REGISTRATION_REQ_FOR_DOMAIN: 'ALREADY_SENT_REGISTRATION_REQ_FOR_DOMAIN',
+}
 
 async function validateCaptcha(req) {
   if (process.env.GEETEST_CAPTCHA_SKIP && global.captchaHashes[req.body.skipCaptcha]) {
@@ -296,7 +311,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   })
 
   if (!wallet) {
-    return res.status(404).send({error: 'Referral code not found'})
+    return res.status(404).send({error: 'Referral code not found', errorCode: errorCodes.REF_NOT_FOUND})
   }
 
   const addressArray = address.split('@')
@@ -305,38 +320,38 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
 
   if(!wallet[`${type}_sale_active`]) {
     return res.status(400).send(
-      {error: `This referral code is not selling ${type}s.`}
+      {error: `This referral code is not selling ${type}s.`, errorCode: errorCodes.SALE_IS_CLOSED}
     )
   }
 
   if (!isValidAddress(address)) {
     return res.status(400).send(
-      {error: `Invalid ${type}`}
+      {error: `Invalid ${type}`, errorCode: errorCodes.INVALID_FIO_NAME}
     )
   }
 
   if (!PublicKey.isValid(publicKey)) {
-    return res.status(400).send({ error: 'Missing public key' })
+    return res.status(400).send({ error: 'Missing public key', errorCode: errorCodes.NO_PUBLIC_KEY_SPECIFIED })
   }
 
   if (buyAccount) {
     if (wallet.domains.indexOf(addressArray[1]) < 0) {
       if (wallet.allow_pub_domains) {
         if (!await fio.isAccountRegistered(addressArray[1])) {
-          return res.status(404).send({error: `Domain is not registered`})
+          return res.status(404).send({error: `Domain is not registered`, errorCode: errorCodes.DOMAIN_IS_NOT_REGISTERED})
         }
         if (!await fio.isDomainPublic(addressArray[1])) {
-          return res.status(404).send({error: `Domain is not public`})
+          return res.status(404).send({error: `Domain is not public`, errorCode: errorCodes.DOMAIN_IS_NOT_PUBLIC})
         }
       } else {
-        return res.status(400).send({ error: `This domain not allowed for this referrer code` })
+        return res.status(400).send({ error: `This domain not allowed for this referrer code`, errorCode: errorCodes.DOMAIN_IS_NOT_ALLOWED_FOR_REF })
       }
     }
     const accountsByDomain = await getAccountsByDomainsAndStatus(wallet.id, [addressArray[1]])
     const accountsNumber = accountsByDomain.length ? parseInt(accountsByDomain[0].accounts) : 0
     const domainsLimit = wallet.domains_limit[addressArray[1]] || null
     if (domainsLimit !== null && accountsNumber >= parseInt(domainsLimit)) {
-      return res.status(400).send({ error: `FIO Address registrations no longer available for that domain` })
+      return res.status(400).send({ error: `FIO Address registrations no longer available for that domain`, errorCode: errorCodes.REGISTRATION_NOT_AVAILABLE })
     }
   }
 
@@ -354,7 +369,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       price = +Number(convert(fee, roe))
     } catch (e) {
       console.log(e);
-      return res.status(400).send({ error: `Server error. Please try later.` })
+      return res.status(400).send({ error: `Server error. Please try later.`, errorCode: errorCodes.SERVER_ERROR })
     }
   }
 
@@ -363,7 +378,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     try {
       isCaptchaSuccess = await validateCaptcha(req)
     } catch (e) {
-      return res.status(400).send({ captchaStatus: 'fail' })
+      return res.status(400).send({ captchaStatus: 'fail', errorCode: errorCodes.CAPTCHA_FAILED })
     }
 
     // checking wallet API token
@@ -371,7 +386,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     const { apiToken } = req.body
 
     if (!apiToken && wallet.disable_reg) {
-      return res.status(404).send({ error: 'Sale Closed. Please try back soon…' })
+      return res.status(404).send({ error: 'Sale Closed. Please try back soon…', errorCode: errorCodes.SALE_IS_CLOSED })
     }
 
     if (wallet.api_enabled && apiToken) {
@@ -405,7 +420,10 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       try {
         const amountRegistered = await getRegisteredAmountForOwner(wallet.id, publicKey, [addressArray[1]], true)
         if (parseInt(amountRegistered) > 0) {
-          return res.status(400).send({ error: `You have already registered a free address for that domain` })
+          return res.status(400).send({
+            error: `You have already registered a free address for that domain`,
+            errorCode: errorCodes.ONE_FREE_ADDRESS_PER_DOMAIN_ERROR
+          })
         }
         const registeringAccount = await db.Account.findOne({
           raw: true,
@@ -427,21 +445,27 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
           ]
         })
         if (registeringAccount && registeringAccount.id) {
-          return res.status(400).send({ error: `You have already sent a request to register a free address for that domain` })
+          return res.status(400).send({
+            error: `You have already sent a request to register a free address for that domain`,
+            errorCode: errorCodes.ALREADY_SENT_REGISTRATION_REQ_FOR_DOMAIN
+          })
         }
         const amountRegisteredByIp = await getRegisteredAmountByIp(wallet.id, ipAddress, true)
         if (amountRegisteredByIp > 4) {
-          return res.status(400).send({ error: `You have already registered a free address for that domain` })
+          return res.status(400).send({
+            error: `You have already registered a free address for that domain`,
+            errorCode: errorCodes.ONE_FREE_ADDRESS_PER_DOMAIN_ERROR
+          })
         }
       } catch (e) {
         console.log(e);
-        return res.status(400).send({ error: `Server error. Please try later` })
+        return res.status(400).send({ error: `Server error. Please try later`, errorCode: errorCodes.SERVER_ERROR })
       }
     }
   }
 
   if (type === 'account' && price < process.env.MIN_ADDRESS_PRICE) {
-    return res.status(400).send({error: `Price is too low`})
+    return res.status(400).send({error: `Price is too low`, errorCode: errorCodes.PRICE_AMOUNT_ERROR})
   }
 
   // apply credit

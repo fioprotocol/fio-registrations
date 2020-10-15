@@ -37,7 +37,7 @@
           </div>
 
           <div class="mt-3">
-            <h5>Blockchain Registration</h5>
+            <h5>Blockchain {{isRenewal ? 'Renewal' : 'Registration'}}</h5>
           </div>
           <div class="mt-2 mb-4">
             <TrxMonitor
@@ -237,12 +237,12 @@
         <div class="text-left" v-if="paidEnough && !allConfirmed">
           <small>
             Payment collected, your {{wallet.address ? 'address' : 'domain'}}
-            will be {{/\/renew\/?/.test(this.returnUrl) ? 'renewed' : 'registered'}}. You may return at any time for an update.
+            will be {{isRenewal ? 'renewed' : 'registered'}}. You may return at any time for an update.
           </small>
         </div>
 
         <div
-          v-if="/^Registered$|Awaiting blockchain finality/.test(status)"
+          v-if="/^Registered$|^Renewed$|Awaiting blockchain finality/.test(status)"
           class="mb-4 container"
         >
           <div class="alert alert-success" role="alert">
@@ -273,7 +273,8 @@ export default {
   props: {
     extern_id: String,
     network: String,
-    returnUrl: String
+    returnUrl: String,
+    accountType: String
   },
 
   data() {
@@ -324,6 +325,10 @@ export default {
       info: state => state.AppInfo.info,
       charge: state => state.Payment.charge
     }),
+
+    isRenewal() {
+      return this.accountType === 'renewal'
+    },
 
     loading() {
       if(!this.extern_id) {

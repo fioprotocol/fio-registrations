@@ -144,7 +144,7 @@ export default {
           const { extern_id } = success.charge
           const { returnUrl } = document.location
 
-          this.$router.push({ name: 'checkout', params: { extern_id }, props: { returnUrl } })
+          this.$router.push({ name: 'checkout', params: { extern_id }, props: { returnUrl, accountType: 'renewal' } })
 
         } else {
           const {forward_url} = success.charge

@@ -604,13 +604,13 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
 
 /**
  *
- @api {post} /public-api/renew-account
+ @api {post} /public-api/renew
  @apiGroup Renew
  @apiName PostRenewAccount
  @apiDescription
  -
  */
-router.post('/public-api/renew-account', handler(async (req, res) => {
+router.post('/public-api/renew', handler(async (req, res) => {
   const { address: addressFromReq, referralCode, redirectUrl } = req.body
   let { publicKey } = req.body
   const processor = await plugins.payment

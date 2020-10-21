@@ -7,6 +7,7 @@
         :domains="domains"
         :defaultDomain="defaultDomain"
         :buyAddress="renewAddress"
+        :allowPublicDomains="allowPublicDomains"
       >
         <button
           id="check-button"
@@ -127,7 +128,7 @@ export default {
       const redirectUrl = window.location.href
 
       this.$store.dispatch('Server/post', {
-        key: 'renewResult', path: '/public-api/renew-account',
+        key: 'renewResult', path: '/public-api/renew',
         body: { address, referralCode, publicKey: this.Account.pubAddress, redirectUrl }
       })
     }
@@ -217,6 +218,10 @@ export default {
     priceAfterCredit() {
       // Math.max will not let the price go negative
       return +Math.max(0, this.priceBeforeCredit + this.credit).toFixed(2)
+    },
+
+    allowPublicDomains() {
+      return this.Wallet.wallet.allow_pub_domains
     }
   },
 

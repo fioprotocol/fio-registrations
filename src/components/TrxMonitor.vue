@@ -73,6 +73,8 @@ export default {
     address: String,
     domain: String,
     externId: String,
+    type: String,
+    accountPayId: Number,
     topActive: Boolean,
     afterTopActive: Boolean,
     refresh: Number,
@@ -163,12 +165,13 @@ export default {
     status(row) {
       let ret
       try {
-        const {trx_status, pay_status} = row
+        const {trx_status, pay_status, trx_type} = row
+        const successLabel = { 'renew': 'Renewed', 'register': 'Registered' }
 
         if(trx_status) {
           if(trx_status === 'pending') { return ret = 'Pending: Awaiting blockchain finality' }
           if(trx_status === 'retry') { return ret = 'Pending: Retrying' }
-          if(trx_status === 'success') { return ret = 'Registered' }
+          if(trx_status === 'success') { return ret = successLabel[trx_type] || 'Registered' }
           if(trx_status === 'expire') { return ret = 'Failed' }
           if(trx_status === 'cancel') { return ret = 'Cancelled' }
           if(pay_status === 'success' && trx_status === 'review') {
@@ -217,7 +220,6 @@ export default {
       if(!this.publicKey && !this.domain) {
         return
       }
-
       this.$store.dispatch('Server/post', {
         key: 'summary' + this.uid,
         path: '/public-api/summary',
@@ -226,6 +228,8 @@ export default {
           publicKey: this.publicKey,
           address: this.address,
           domain: this.domain,
+          type: this.type,
+          accountPayId: this.accountPayId,
           externId: this.externId
         }
       })

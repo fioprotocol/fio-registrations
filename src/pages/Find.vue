@@ -174,6 +174,8 @@
                     :address="row.item.address"
                     :domain="row.item.domain"
                     :publicKey="row.item.owner_key"
+                    :type="row.item.account_type"
+                    :accountPayId="row.item.account_pay_id"
                     @pending="pending"
                   />
                 </b-col>
@@ -200,7 +202,7 @@
                   <div class="row">
                     <b-col cols="auto" v-if="canRetry(row)">
                       <b-button size="sm" v-b-modal.retry-modal>
-                        Retry Registration
+                        Retry {{row.item.account_type === 'register' ? 'Registration' : 'Renewal'}}
                       </b-button>
                       <b-modal id="retry-modal" @ok="updateTrxStatus('retry')"
                         title="Retry Registration"
@@ -316,6 +318,10 @@ export default {
       accountFields: [
         'address',
         {
+          label: 'Type',
+          key: 'account_type',
+        },
+        {
           label: 'Purchase Date',
           key: 'pay_created',
           formatter: 'date',
@@ -336,6 +342,10 @@ export default {
 
       domainFields: [
         'domain',
+        {
+          label: 'Type',
+          key: 'account_type',
+        },
         {
           label: 'Purchase Date',
           key: 'pay_created',
@@ -375,7 +385,7 @@ export default {
         },
         {
           key: 'pay_monitor',
-          label: 'Registration Status',
+          label: 'Payment Status',
         },
         {
           key: 'trx_monitor',
@@ -415,11 +425,11 @@ export default {
     // },
 
     async updateTrxStatus(new_status) {
-      const {account_id} = this.rowSelect.item
+      const {account_id, account_pay_id, account_type} = this.rowSelect.item
       this.$store.dispatch('Server/post', {
         key: 'updateTrx' + account_id,
         path: 'update-trx-status',
-        body: {account_id, new_status}
+        body: {account_id, account_pay_id, new_status, type: account_type}
       })
 
       // this can change the balance
@@ -449,9 +459,7 @@ export default {
     refreshRowSelect() {
       this.$store.dispatch('Server/get', {
         key: 'findRefresh',
-        path: 'find/' + encodeURIComponent(
-          `${this.rowSelect.item.address || ''}@${this.rowSelect.item.domain}`
-        )
+        path: 'find/' + encodeURIComponent(this.rowSelect.item.id)
       })
       this.refreshTransactions = Date.now()
     },

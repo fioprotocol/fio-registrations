@@ -4,7 +4,7 @@
       <img v-if="Wallet.wallet" :src="logo" id="logo">
     </div>
 
-    <div v-if="!regPublicKey && !inputPublicKey">
+    <div v-if="!regPublicKey && !inputPublicKey && (regAddress || regDomain)">
       <div class="container text-center">
         <div class="card mx-auto">
           <div class="card-header">
@@ -54,8 +54,8 @@
       </div>
     </div>
 
-    <div v-if="regPublicKey && validPublicKey && Wallet.wallet">
-      <div v-if="!regAddress && !regDomain">
+    <div v-if="Wallet.wallet">
+      <div v-if="!regAddress && !regDomain && !renewDomain && !renewAddress">
         <div>
           <b>Sale Closed</b>
         </div>
@@ -64,7 +64,7 @@
         </div>
       </div>
 
-      <div v-if="!buyAgain">
+      <div v-if="regPublicKey && validPublicKey && !buyAgain">
         <div class="mb-4">
           <TrxMonitor
             topActive
@@ -78,7 +78,7 @@
       </div>
 
       <div
-        v-if="/^Registered$|Awaiting blockchain finality/.test(status)"
+        v-if="/^Registered$|^Renewed$|Awaiting blockchain finality/.test(status)"
         class="mb-4 container"
       >
         <div class="alert alert-success" role="alert">
@@ -87,7 +87,10 @@
       </div>
 
       <div v-if="pending === true && !buyAgain">
-        <button class="btn btn-success" @click="buyAgainClick()">
+        <button v-if="renewDomain || renewAddress" class="btn btn-success" @click="buyAgainClick()">
+          Renew Another Name
+        </button>
+        <button v-if="regDomain || regAddress" class="btn btn-success" @click="buyAgainClick()">
           Buy Another Name
         </button>
       </div>
@@ -96,7 +99,7 @@
         <div class="container">
           <div>
             <div class="row">
-              <div v-if="regAddress" class="col-sm">
+              <div v-if="regPublicKey && validPublicKey && regAddress" class="col-sm">
                 <h4>Register FIO Address</h4>
                 <p class="h5"><strong>username</strong>@domain</p>
                 <br/>
@@ -121,7 +124,7 @@
                 </div>
               </div>
 
-              <div v-if="regDomain" class="col-sm">
+              <div v-if="regPublicKey && validPublicKey && regDomain" class="col-sm">
                 <h4>Register FIO Domain</h4>
                 <p class="h5">username@<strong>domain</strong></p>
                 <br/>
@@ -141,12 +144,53 @@
                   </div>
                 </div>
               </div>
+
+              <div v-if="renewAddress" class="col-sm">
+                <h4>Renew FIO Address</h4>
+                <p class="h5"><strong>username</strong>@domain</p>
+                <br/>
+                <FormAccountRenew
+                        :referralCode="referralCode"
+                        :defaultDomain="defaultDomain"
+                        :publicKey="regPublicKey"
+                        :renewAddress="true"
+                        :renewPending="accountReg"
+                        @renewPending="accountReg = $event"
+                />
+                <div class="text-left mb-4">
+                  <div class="list-group">
+                    <small class="list-group-item marketing">
+                      &rsaquo;&nbsp;Renew now for {{Wallet.wallet.account_renew_price}} USDC or equivalent
+                    </small>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="renewDomain" class="col-sm">
+                <h4>Renew FIO Domain</h4>
+                <p class="h5">username@<strong>domain</strong></p>
+                <br/>
+                <FormAccountRenew
+                        :referralCode="referralCode"
+                        :defaultDomain="defaultDomain"
+                        :publicKey="regPublicKey"
+                        :renewAddress="false"
+                />
+                <div class="text-left">
+                  <div class="list-group">
+                    <small class="list-group-item">
+                      &rsaquo;&nbsp;Renew now for {{Wallet.wallet.domain_renew_price}} USDC or equivalent
+                    </small>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
       </div>
 
-      <div class="mt-3">
+      <div class="mt-3" v-if="regPublicKey && validPublicKey && (regAddress || regDomain)">
         <TrxMonitor
           :afterTopActive="!buyAgain"
           :refresh="refresh"
@@ -166,6 +210,16 @@
     </div>
 
     <div class="footer text-center py-3">
+      <div class="container mt-4">
+        <div class="d-flex justify-content-around" v-if="(regAddress || regDomain) && referralCode">
+          <a :href="`/address/renew/${referralCode}?publicKey=${regPublicKey}`">Renew existing Address</a>
+          <a :href="`/domain/renew/${referralCode}?publicKey=${regPublicKey}`">Renew existing Domain</a>
+        </div>
+        <div class="d-flex justify-content-around" v-if="(renewAddress || renewDomain) && (this.Account.pubAddress || regPublicKey)">
+          <a :href="`/address/${referralCode}?publicKey=${this.Account.pubAddress || regPublicKey}`">Register new Address</a>
+          <a :href="`/domain/${referralCode}?publicKey=${this.Account.pubAddress || regPublicKey}`">Register new Domain</a>
+        </div>
+      </div>
       <br/>
       <div class="container">
         <span class="text-muted">fioprotocol.io</span>
@@ -195,6 +249,7 @@ import '../assets/custom.scss'
 
 import PublicKeyInput from '../components/PublicKeyInput.vue'
 import FormAccountReg from '../components/FormAccountReg.vue'
+import FormAccountRenew from '../components/FormAccountRenew.vue'
 import TrxMonitor from '../components/TrxMonitor.vue'
 import ServerMixin from '../components/ServerMixin'
 import {mapState} from 'vuex'
@@ -215,6 +270,7 @@ export default {
   components: {
     PublicKeyInput,
     FormAccountReg,
+    FormAccountRenew,
     TrxMonitor
   },
 
@@ -225,7 +281,7 @@ export default {
       inputPublicKey: null,
       href: '',
       buyAgain: false,
-      pending: null,
+      pending: false,
       validPublicKey: null,
       accountRegPending: false,
       refresh: null,
@@ -246,7 +302,7 @@ export default {
       this.accountReg = false
       this.refresh = Date.now()
     },
-    
+
     refreshWallet(referralCode) {
       setTimeout(() => {
         this.$store.dispatch('Wallet/refreshWallet', {
@@ -267,7 +323,7 @@ export default {
       })
     }
 
-    if(!publicKey) {
+    if(!publicKey && (this.regAddress || this.regDomain)) {
       if(localStorage.buyAddressLocation) {
         // recover from a lost window
         if(localStorage.buyAddressLocationDate) {
@@ -331,10 +387,11 @@ export default {
     },
 
     regDomain() {
-      const reg = !document.location.pathname ||
+      const reg = (!document.location.pathname ||
         document.location.pathname === '/' ||
         /^\/ref\/?/.test(document.location.pathname) ||
-        /^\/domain\/?/.test(document.location.pathname)
+        /^\/domain\/?/.test(document.location.pathname)) &&
+        !/\/renew\/?/.test(document.location.pathname)
 
       if(!reg) {
         return false
@@ -348,8 +405,10 @@ export default {
     regAddress() {
       const reg = !document.location.pathname ||
         document.location.pathname === '/' ||
-        /^\/ref\/?/.test(document.location.pathname) ||
-        /^\/address\/?/.test(document.location.pathname)
+          (
+            /^\/(address|ref)\/?/.test(document.location.pathname) &&
+            !/\/renew\/?/.test(document.location.pathname)
+          )
 
       if(!reg) {
         return false
@@ -357,6 +416,25 @@ export default {
 
       return this.Wallet.wallet &&
         this.Wallet.wallet.account_sale_active
+    },
+
+    renewDomain() {
+      if (!/^\/(domain|ref)\/renew\/?/.test(document.location.pathname)) {
+        return false
+      }
+
+      return this.Wallet.wallet &&
+              this.Wallet.wallet.domain_sale_active &&
+              this.Wallet.wallet.domains.length > 0
+    },
+
+    renewAddress() {
+      if (!/^\/(address|ref)\/renew\/?/.test(document.location.pathname)) {
+        return false
+      }
+
+      return this.Wallet.wallet &&
+              this.Wallet.wallet.account_sale_active
     },
 
     accountReg: {

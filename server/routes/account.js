@@ -189,7 +189,7 @@ router.get('/public-api/balance/:publicKey', hourlyLimit(200), handler(async (re
 router.post('/public-api/summary', handler(async (req, res) => {
   const {publicKey} = req.body
   let {referralCode, trxStatus} = req.body
-  let {address, domain, externId} = req.body
+  let {address, domain, externId, type, accountPayId} = req.body
 
   if(address === '') address = null
   if(domain === '') domain = null
@@ -225,6 +225,8 @@ router.post('/public-api/summary', handler(async (req, res) => {
     accountWhere.owner_key = publicKey
     walletWhere.referral_code = referralCode
   }
+
+  if (type) accountWhere.type = type
 
   const result = await db.Account.findAll({
     raw: true,
@@ -287,6 +289,7 @@ router.post('/public-api/summary', handler(async (req, res) => {
                 (externId ?
                   'and extern_id = ' + sequelize.escape(externId) : ''
                 ) +
+              ` ${accountPayId ? `and p.id = ${accountPayId} ` : ''}` +
               `)`
             )
           }

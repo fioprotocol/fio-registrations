@@ -873,4 +873,23 @@ router.get('/public-api/get-domains/:referralCode', handler(async (req, res) => 
   return res.send({ success: true, domains })
 }))
 
+/**
+ * @api {get} /public-api/is-domain-public/:domain is-domain-public
+ * @apiGroup Information
+ * @apiName Check if domain is public
+ * @apiDescription
+ * Returns isPublic value for domain.
+ */
+router.get('/public-api/is-domain-public/:domain', handler(async (req, res) => {
+  const { domain } = req.params
+  assert(typeof domain === 'string', 'Required parameter: domain')
+
+  if (!await fio.isAccountRegistered(domain)) {
+    return res.status(404).send({error: `Domain is not registered`})
+  }
+  const isPublic = await fio.isDomainPublic(domain)
+
+  return res.send({ success: true, isPublic })
+}))
+
 module.exports = router;

@@ -228,6 +228,7 @@ async function getRegisteredAmountByIp(walletId, ip, isFree = false, statuses = 
   const [res] = await sequelize.query(`
     select count(distinct a.id) as accounts
     from account a
+    join account_pay ap on ap.account_id = a.id
     join blockchain_trx t on t.account_id = a.id
     join blockchain_trx_event le on le.id = (
       select max(le.id)
@@ -250,6 +251,7 @@ async function getRegisteredAmountByIp(walletId, ip, isFree = false, statuses = 
     const [regRequests] = await sequelize.query(`
       select count(distinct a.id) as accounts
       from account a
+      join account_pay ap on ap.account_id = a.id
       where a.wallet_id=${walletId}
         and a.ip = '${ip}'
         and a.type = '${ACCOUNT_TYPES.register}'

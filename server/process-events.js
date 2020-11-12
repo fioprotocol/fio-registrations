@@ -11,6 +11,7 @@ const {Op} = Sequelize
 
 const { saveRegistrationsSearchItem, checkCreatedBcTrxEvents } = require('./registrations-search-util')
 const { processNotifications } = require('./services/notification')
+const { ACCOUNT_TYPES } = require('./constants')
 
 const {Fio, Ecc} = require('@fioprotocol/fiojs')
 const {PrivateKey} = Ecc
@@ -85,6 +86,42 @@ const regaddress = async (address, ownerPublic, tpid, walletActor = '', walletPe
   }, options)
 }
 
+const renewdomain = async (domain, tpid, walletActor = '', walletPermission = '') => {
+  const maxFee = await fio.getFeeRenewDomain(actor)
+  const options = {}
+  if (walletActor && walletPermission) {
+    options.authorization = [{
+      actor: walletActor,
+      permission: walletPermission
+    }]
+    options.actor = walletActor
+  }
+  return fio.renewDomain({
+    domain,
+    maxFee,
+    tpid,
+    actor
+  }, options)
+}
+
+const renewaddress = async (address, tpid, walletActor = '', walletPermission = '') => {
+  const maxFee = await fio.getFeeRenewAddress(actor)
+  const options = {}
+  if (walletActor && walletPermission) {
+    options.authorization = [{
+      actor: walletActor,
+      permission: walletPermission
+    }]
+    options.actor = walletActor
+  }
+  return fio.renewAddress({
+    address,
+    maxFee,
+    tpid,
+    actor
+  }, options)
+}
+
 /**
   <h4>paid accounts with no status or retry => pending or review</h4>
 
@@ -93,20 +130,21 @@ const regaddress = async (address, ownerPublic, tpid, walletActor = '', walletPe
 */
 async function broadcastPaidNeedingAccounts() {
   const newRegs = await getPaidNeedingAccounts()
+  // const newRenewals = await getPaidNeedingRenewals()
 
-  return Promise.all(newRegs.map(newReg =>
-    broadcastNewAccount(newReg)))
+  return Promise.all([...newRegs].map(newReg =>
+    broadcastNewAccountOrRenew(newReg)))
 }
 
 async function getPaidNeedingAccounts() {
   const [newRegs] = await sequelize.query(`
     WITH last AS (
-        select max(bte.id) over (partition by account_id) mid, account_id
+        select max(bte.id) over (partition by account_id) mid, account_id, type
             from blockchain_trx bt
             left outer join blockchain_trx_event bte on bte.blockchain_trx_id = bt.id
-            group by bte.id, account_id
+            group by bte.id, account_id, type
     ), acc_payer AS (
-        select account_id
+        select ap.id, account_id
             from account_pay ap
             inner join account_pay_event ape on ape.account_pay_id = ap.id
             where ape.pay_status = 'success'
@@ -114,12 +152,15 @@ async function getPaidNeedingAccounts() {
                       a.address,
                       a.domain,
                       a.owner_key,
+                      a.type,
+                      acc_payer.id account_pay_id,
+                      acc_payer.account_id,
                       w.tpid,
                       w.actor,
                       w.permission
         from account a
             inner join acc_payer on acc_payer.account_id = a.id
-            left join last on last.account_id = acc_payer.account_id
+            left join last on last.account_id = acc_payer.account_id and last.type = a.type
             left join blockchain_trx_event bte on bte.id = last.mid
             left join wallet w on a.wallet_id = w.id
         where last.account_id is null OR bte.trx_status = 'retry'
@@ -136,7 +177,7 @@ async function getAccountsByDomainsAndStatus(walletId, domains = [], statuses = 
     select max(bte.id) mid, bt.account_id
       from blockchain_trx bt
                join blockchain_trx_event bte on bte.blockchain_trx_id = bt.id
-      where ${statusesWhere}
+      where ${statusesWhere} and bt.type = '${ACCOUNT_TYPES.register}'
       group by bt.account_id
     )
     select a.domain, count(m.mid) accounts
@@ -164,13 +205,14 @@ async function getRegisteredAmountForOwner(walletId, owner_key, domains = [], is
       select max(le.id)
       from blockchain_trx lt
       join blockchain_trx_event le on le.blockchain_trx_id = lt.id
-      where lt.account_id = a.id
+      where lt.account_id = a.id and lt.type = '${ACCOUNT_TYPES.register}'
     )
     where a.wallet_id=${walletId} and
       ${statusesWhere}
       ${domainWhere}
       ${buyPriceWhere}
       and ap.buy_price = 0
+      and a.type = '${ACCOUNT_TYPES.register}'
     group by
       a.wallet_id
   `)
@@ -192,12 +234,13 @@ async function getRegisteredAmountByIp(walletId, ip, isFree = false, statuses = 
       select max(le.id)
       from blockchain_trx lt
       join blockchain_trx_event le on le.blockchain_trx_id = lt.id
-      where lt.account_id = a.id
+      where lt.account_id = a.id and lt.type = '${ACCOUNT_TYPES.register}'
     )
     where a.wallet_id=${walletId} and
       ${statusesWhere}
       and a.ip = '${ip}'
       ${freeWhere}
+      and a.type = '${ACCOUNT_TYPES.register}'
     group by
       a.wallet_id
   `)
@@ -211,8 +254,9 @@ async function getRegisteredAmountByIp(walletId, ip, isFree = false, statuses = 
       join account_pay ap on ap.account_id = a.id
       where a.wallet_id=${walletId}
         and a.ip = '${ip}'
+        and a.type = '${ACCOUNT_TYPES.register}'
         ${freeWhere}
-        and (select id from blockchain_trx where blockchain_trx.account_id = a.id) IS null
+        and (select id from blockchain_trx where blockchain_trx.account_id = a.id and blockchain_trx.type = '${ACCOUNT_TYPES.register}') IS null
       group by a.wallet_id;
   `)
     amount += regRequests[0] && regRequests[0].accounts ? parseInt(regRequests[0].accounts) : 0
@@ -228,29 +272,49 @@ async function getRegisteredAmountByIp(walletId, ip, isFree = false, statuses = 
   blockchain_trx and blockchain_trx_event records in the "pending" (worked)
   or "review" (error broadcasting) status.
 */
-async function broadcastNewAccount({
+async function broadcastNewAccountOrRenew({
   account_id,
+  account_pay_id,
   domain,
   address,
   owner_key,
   tpid,
   actor,
-  permission
+  permission,
+  type
 }) {
+  console.log({
+    account_id,
+    account_pay_id,
+    domain,
+    address,
+    owner_key,
+    tpid,
+    actor,
+    permission,
+    type
+  })
   const account = (address ? address + '@' : '') + domain
-  const regAction = address ?
-    await regaddress( account, owner_key, tpid, actor, permission ) :
-    await regdomain( domain, owner_key, tpid, actor, permission )
+  let fioAction
+  if (type === ACCOUNT_TYPES.register) {
+    fioAction = address ?
+      await regaddress( account, owner_key, tpid, actor, permission ) :
+      await regdomain( domain, owner_key, tpid, actor, permission )
+  } else if (type === ACCOUNT_TYPES.renew) {
+    fioAction = address ?
+      await renewaddress( account, tpid, actor, permission ) :
+      await renewdomain( domain, tpid, actor, permission )
+  }
 
   let transaction, trx_id, expiration
 
   try {
-    transaction = await fio.transaction([regAction])
+    transaction = await fio.transaction([fioAction])
     trx_id = await fio.transactionId(transaction)
     expiration = transaction.expiration
   } catch(error) {
     const dbTrx = await db.BlockchainTrx.create({
-      type: 'register',
+      type,
       account_id
     })
 
@@ -267,10 +331,12 @@ async function broadcastNewAccount({
         trx_status: newBcTrxEvent.trx_status
       },
       {
-        account_id
+        account_id,
+        account_pay_id
       },
       {
         account_id,
+        account_pay_id,
         dbTrx,
         newBcTrxEvent
       }
@@ -289,7 +355,7 @@ async function broadcastNewAccount({
       // debug(JSON.stringify(bc.processed, null, 4));
 
       const dbTrx = await db.BlockchainTrx.create({
-        type: 'register',
+        type,
         expiration: expiration + 'Z',
         trx_id,
         block_num: bc.processed.block_num,
@@ -309,10 +375,12 @@ async function broadcastNewAccount({
           trx_status: newBcTrxEvent.trx_status
         },
         {
-          account_id
+          account_id,
+          account_pay_id
         },
         {
           account_id,
+          account_pay_id,
           dbTrx,
           newBcTrxEvent
         }
@@ -331,7 +399,7 @@ async function broadcastNewAccount({
       notes === 'FIO address already registered'
     ) {
       const dbTrx = await db.BlockchainTrx.create({
-        type: 'register',
+        type,
         account_id
       })
 
@@ -348,7 +416,8 @@ async function broadcastNewAccount({
           trx_status: newBcTrxEvent.trx_status
         },
         {
-          account_id
+          account_id,
+          account_pay_id
         },
         {
           account_id,
@@ -358,7 +427,7 @@ async function broadcastNewAccount({
       )
     } else {
       const dbTrx = await db.BlockchainTrx.create({
-        type: 'register',
+        type,
         expiration: expiration + 'Z',
         trx_id,
         account_id
@@ -377,7 +446,8 @@ async function broadcastNewAccount({
           trx_status: newBcTrxEvent.trx_status
         },
         {
-          account_id
+          account_id,
+          account_pay_id
         },
         {
           account_id,
@@ -457,7 +527,7 @@ async function checkIrreversibility() {
   let libTime
 
   const promises = []
-  const accountsWithUpdatedEvents = []
+  const accountsWithUpdatedEvents = {}
   for (let account of pendingAccounts) {
     const {id, address, domain, owner_key, expiration, block_time, btid} = account
 
@@ -632,12 +702,10 @@ async function checkFreeAddressLeft() {
 
 module.exports = {
   all: trace({all}),
-  getPaidNeedingAccounts,
   getAccountsByDomainsAndStatus,
   getRegisteredAmountForOwner,
   getRegisteredAmountByIp,
   broadcastPaidNeedingAccounts,
-  broadcastNewAccount,
   checkIrreversibility,
   expireRetry
 }

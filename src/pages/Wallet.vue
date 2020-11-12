@@ -308,6 +308,9 @@ function formDefaults () {
     domain_sale_price: null,
     account_sale_price: null,
 
+    domain_renew_price: null,
+    account_renew_price: null,
+
     domain_sale_active: false,
     account_sale_active: false,
 

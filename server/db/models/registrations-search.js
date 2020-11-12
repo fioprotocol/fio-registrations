@@ -1,4 +1,5 @@
 const Sequelize = require('sequelize')
+const { ACCOUNT_TYPES } = require('../../constants')
 
 module.exports = (sequelize, DataTypes) => {
   const RegistrationsSearch = sequelize.define('RegistrationsSearch', {
@@ -60,15 +61,16 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE,
       defaultValue: Sequelize.fn('now'),
       allowNull: false
+    },
+    account_type: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: ACCOUNT_TYPES.register
     }
   }, {
     tableName: 'registrations-search',
     comment: 'Data to search for admin',
     indexes: [
-      {
-        unique: true,
-        fields: ['account_id']
-      },
       {
         fields: ['account_id', 'pay_status', 'trx_status', 'account_pay_id', 'account_pay_event_id', 'blockchain_trx_id', 'blockchain_trx_event_id']
       }

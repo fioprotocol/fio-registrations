@@ -18,7 +18,7 @@ async function history(publicKey, type = null, options = {}) {
     ${sumSelect1}
     select -- payment
       coalesce(ape.extern_time, ape.created) as created,
-      'payment' as type, ape.id as source_id, extern_id,
+      'payment' as type, a.type as account_type, ape.id as source_id, extern_id,
       coalesce(ape.confirmed_total * -1, 0.00) as total,
       coalesce(ape.pending_total * -1, 0.00) as pending,
       ape.created_by, coalesce(ape.extern_status, ap.pay_source) as notes,
@@ -33,7 +33,7 @@ async function history(publicKey, type = null, options = {}) {
 
     select -- "hold" until registration starts or payment expires
       coalesce(ae.extern_time, ae.created) as created,
-      'payment' as type, ae.id as source_id, extern_id,
+      'payment' as type, a.type as account_type, ae.id as source_id, extern_id,
       coalesce(ap.buy_price, 0.00) as total,
       0.00 as pending,
       ae.created_by, 'hold' as notes,
@@ -59,7 +59,7 @@ async function history(publicKey, type = null, options = {}) {
     union all
 
     select
-      created, 'adjustment' as type, adj.id as source_id, '' as extern_id,
+      created, 'adjustment' as type, '' as account_type, adj.id as source_id, '' as extern_id,
       amount as total, cast(0.00 as numeric) as pending,
       created_by, notes, null as address, null as domain, owner_key
     from account_adj adj
@@ -69,7 +69,8 @@ async function history(publicKey, type = null, options = {}) {
 
     select
       coalesce(t.block_time, te.created),
-      'registration' as type,
+      a.type as type,
+      a.type as account_type,
       te.id as source_id,
       t.trx_id as extern_id,
       case -- offset payments and adjustments until reg success or cancel
@@ -89,10 +90,12 @@ async function history(publicKey, type = null, options = {}) {
       where account_id = a.id
       order by id desc limit 1
     )
-    join blockchain_trx t on t.account_id = a.id and t.type = 'register'
+    /* join blockchain_trx t on t.account_id = a.id and t.type = 'register' */
+    join blockchain_trx t on t.account_id = a.id
     join blockchain_trx l on l.id = (
         select id from blockchain_trx
-        where account_id = a.id and type = 'register'
+        /* where account_id = a.id and type = 'register' */
+        where account_id = a.id
         order by id desc limit 1
       )
     join blockchain_trx_event te on te.blockchain_trx_id = t.id
@@ -101,7 +104,8 @@ async function history(publicKey, type = null, options = {}) {
         select bt.account_id, 1 as hassuccess
         from blockchain_trx bt
         join blockchain_trx_event be on be.id = bt.last_trx_event
-        where be.trx_status = 'success' and bt.type = 'register'
+        /*where be.trx_status = 'success' and bt.type = 'register'*/
+        where be.trx_status = 'success'
         limit 1
       ) as bt on bt.account_id = a.id
     ${publicKey ? 'where a.owner_key = :publicKey' : ''}

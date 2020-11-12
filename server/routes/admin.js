@@ -109,13 +109,17 @@ router.get('/find/:search/:page?', handler(async (req, res) => {
     const noSeparator = search.indexOf('@') === -1
 
     if (noSeparator) {
-      const count = await db.AccountPay.count({ where: { extern_id: search } })
-      if (count === 1) {
-        accountPayWhere.extern_id = search
+      if (parseInt(search)) {
+        accountWhere.id = parseInt(search)
+      } else {
+        const count = await db.AccountPay.count({ where: { extern_id: search } })
+        if (count === 1) {
+          accountPayWhere.extern_id = search
+        }
       }
     }
 
-    if (!accountPayWhere.extern_id) {
+    if (!accountPayWhere.extern_id && !accountWhere.id) {
       if (noSeparator) {
         accountWhere[Op.or] = {
           domain: search,
@@ -412,7 +416,7 @@ router.post('/update-trx-status', handler(async (req, res) => {
     return res.status(401).send({error: 'Unauthorized'})
   }
 
-  const {account_id, new_status, trx_status_notes} = req.body
+  const {account_id, new_status, trx_status_notes, type} = req.body
   assert(typeof account_id === 'number', 'Required number: account_id')
   assert(/retry|cancel|review/.test(new_status),
     'new_status should be: retry, cancel, or review')
@@ -421,7 +425,7 @@ router.post('/update-trx-status', handler(async (req, res) => {
     const tr = {transaction}
 
     const trx = await db.BlockchainTrx.create({
-      account_id, type: 'register'
+      account_id, type
     }, tr)
 
     const event = await db.BlockchainTrxEvent.create({

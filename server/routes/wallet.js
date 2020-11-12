@@ -20,9 +20,25 @@ const geeTest = require('../geetest')
 const { getROE, convert } = require('../roe')
 
 const { saveRegistrationsSearchItem } = require('../registrations-search-util')
+const { ACCOUNT_TYPES } = require('../constants')
 
 if(process.env.MIN_ADDRESS_PRICE == null) {
   throw new Error('Required: process.env.MIN_ADDRESS_PRICE')
+}
+const errorCodes = {
+  ONE_FREE_ADDRESS_PER_DOMAIN_ERROR: 'ONE_FREE_ADDRESS_PER_DOMAIN_ERROR',
+  REF_NOT_FOUND: 'REF_NOT_FOUND',
+  SALE_IS_CLOSED: 'SALE_IS_CLOSED',
+  PRICE_AMOUNT_ERROR: 'PRICE_AMOUNT_ERROR',
+  INVALID_FIO_NAME: 'INVALID_FIO_NAME',
+  NO_PUBLIC_KEY_SPECIFIED: 'NO_PUBLIC_KEY_SPECIFIED',
+  DOMAIN_IS_NOT_REGISTERED: 'DOMAIN_IS_NOT_REGISTERED',
+  DOMAIN_IS_NOT_PUBLIC: 'DOMAIN_IS_NOT_PUBLIC',
+  DOMAIN_IS_NOT_ALLOWED_FOR_REF: 'DOMAIN_IS_NOT_ALLOWED_FOR_REF',
+  REGISTRATION_NOT_AVAILABLE: 'REGISTRATION_NOT_AVAILABLE',
+  SERVER_ERROR: 'SERVER_ERROR',
+  CAPTCHA_FAILED: 'CAPTCHA_FAILED',
+  ALREADY_SENT_REGISTRATION_REQ_FOR_DOMAIN: 'ALREADY_SENT_REGISTRATION_REQ_FOR_DOMAIN',
 }
 
 async function validateCaptcha(req) {
@@ -47,6 +63,32 @@ async function validateCaptcha(req) {
       }
     });
   })
+}
+
+function getIpAddress(req) {
+  let ipAddress = ''
+  if (Boolean(process.env.TRUST_PROXY) && process.env.IP_HEADER_PROP_NAME) {
+    ipAddress = req.headers[process.env.IP_HEADER_PROP_NAME.toLowerCase()]
+  }
+  // first address of xff, list is comma separated
+  if (ipAddress && ipAddress.indexOf(',') > -1) {
+    ipAddress = ipAddress.split(',')[0]
+  } else if (ipAddress === '') {
+    ipAddress = req.ip
+  }
+  // strip the port if present.
+  const stripPort = ipAddress.split(':')
+  if (stripPort.length === 2) {
+    if (process.env.IP_HEADER_PROP_NAME && process.env.IP_HEADER_PROP_NAME.toLowerCase() !== 'x-forwarded-for') {
+      console.log(`warning: could not get IP address from "${process.env.IP_HEADER_PROP_NAME}" IP_HEADER_PROP_NAME`)
+    }
+    ipAddress = stripPort[0]
+  } else if (stripPort.length === 7) {
+    stripPort.pop()
+    ipAddress = stripPort.join(':')
+  }
+
+  return ipAddress
 }
 
 /**
@@ -100,8 +142,8 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
       return acc
     }, {})
 
+    const roe = await getROE()
     if (wallet.account_roe_active || wallet.domain_roe_active) {
-      const roe = await getROE()
       if (wallet.account_roe_active) {
         const accountRegFee = await fio.getFeeAddress('')
         plainWallet.account_sale_price = convert(accountRegFee, roe)
@@ -110,6 +152,14 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
         const domainRegFee = await fio.getFeeDomain('')
         plainWallet.domain_sale_price = convert(domainRegFee, roe)
       }
+    }
+    if (wallet.account_sale_active) {
+      const accountRenewFee = await fio.getFeeRenewAddress('')
+      plainWallet.account_renew_price = convert(accountRenewFee, roe)
+    }
+    if (wallet.domain_sale_active) {
+      const domainRenewFee = await fio.getFeeRenewDomain('')
+      plainWallet.domain_renew_price = convert(domainRenewFee, roe)
     }
 
   }
@@ -248,10 +298,8 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   } = req.body
   const processor = await plugins.payment
 
-  let ipAddress = req.headers[process.env.IP_HEADER_PROP_NAME] || ''
-  if (ipAddress && ipAddress.indexOf(',') > -1) {
-    ipAddress = ipAddress.split(',')[0]
-  }
+  const ipAddress = getIpAddress(req)
+
   const address = addressFromReq.toLowerCase()
   const ref = referralCode ? referralCode : process.env.DEFAULT_REFERRAL_CODE
   const wallet = await db.Wallet.findOne({
@@ -278,7 +326,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   })
 
   if (!wallet) {
-    return res.status(404).send({error: 'Referral code not found'})
+    return res.status(404).send({error: 'Referral code not found', errorCode: errorCodes.REF_NOT_FOUND})
   }
 
   const addressArray = address.split('@')
@@ -287,38 +335,38 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
 
   if(!wallet[`${type}_sale_active`]) {
     return res.status(400).send(
-      {error: `This referral code is not selling ${type}s.`}
+      {error: `This referral code is not selling ${type}s.`, errorCode: errorCodes.SALE_IS_CLOSED}
     )
   }
 
   if (!isValidAddress(address)) {
     return res.status(400).send(
-      {error: `Invalid ${type}`}
+      {error: `Invalid ${type}`, errorCode: errorCodes.INVALID_FIO_NAME}
     )
   }
 
   if (!PublicKey.isValid(publicKey)) {
-    return res.status(400).send({ error: 'Missing public key' })
+    return res.status(400).send({ error: 'Missing public key', errorCode: errorCodes.NO_PUBLIC_KEY_SPECIFIED })
   }
 
   if (buyAccount) {
     if (wallet.domains.indexOf(addressArray[1]) < 0) {
       if (wallet.allow_pub_domains) {
         if (!await fio.isAccountRegistered(addressArray[1])) {
-          return res.status(404).send({error: `Domain is not registered`})
+          return res.status(404).send({error: `Domain is not registered`, errorCode: errorCodes.DOMAIN_IS_NOT_REGISTERED})
         }
         if (!await fio.isDomainPublic(addressArray[1])) {
-          return res.status(404).send({error: `Domain is not public`})
+          return res.status(404).send({error: `Domain is not public`, errorCode: errorCodes.DOMAIN_IS_NOT_PUBLIC})
         }
       } else {
-        return res.status(400).send({ error: `This domain not allowed for this referrer code` })
+        return res.status(400).send({ error: `This domain not allowed for this referrer code`, errorCode: errorCodes.DOMAIN_IS_NOT_ALLOWED_FOR_REF })
       }
     }
     const accountsByDomain = await getAccountsByDomainsAndStatus(wallet.id, [addressArray[1]])
     const accountsNumber = accountsByDomain.length ? parseInt(accountsByDomain[0].accounts) : 0
     const domainsLimit = wallet.domains_limit[addressArray[1]] || null
     if (domainsLimit !== null && accountsNumber >= parseInt(domainsLimit)) {
-      return res.status(400).send({ error: `FIO Address registrations no longer available for that domain` })
+      return res.status(400).send({ error: `FIO Address registrations no longer available for that domain`, errorCode: errorCodes.REGISTRATION_NOT_AVAILABLE })
     }
   }
 
@@ -336,7 +384,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       price = +Number(convert(fee, roe))
     } catch (e) {
       console.log(e);
-      return res.status(400).send({ error: `Server error. Please try later.` })
+      return res.status(400).send({ error: `Server error. Please try later.`, errorCode: errorCodes.SERVER_ERROR })
     }
   }
 
@@ -345,7 +393,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     try {
       isCaptchaSuccess = await validateCaptcha(req)
     } catch (e) {
-      return res.status(400).send({ captchaStatus: 'fail' })
+      return res.status(400).send({ captchaStatus: 'fail', errorCode: errorCodes.CAPTCHA_FAILED })
     }
 
     // checking wallet API token
@@ -353,7 +401,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     const { apiToken } = req.body
 
     if (!apiToken && wallet.disable_reg) {
-      return res.status(404).send({ error: 'Sale Closed. Please try back soon…' })
+      return res.status(404).send({ error: 'Sale Closed. Please try back soon…', errorCode: errorCodes.SALE_IS_CLOSED })
     }
 
     if (wallet.api_enabled && apiToken) {
@@ -387,7 +435,10 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       try {
         const amountRegistered = await getRegisteredAmountForOwner(wallet.id, publicKey, [addressArray[1]], true)
         if (parseInt(amountRegistered) > 0) {
-          return res.status(400).send({ error: `You have already registered a free address for that domain` })
+          return res.status(400).send({
+            error: `You have already registered a free address for that domain`,
+            errorCode: errorCodes.ONE_FREE_ADDRESS_PER_DOMAIN_ERROR
+          })
         }
         const registeringAccount = await db.Account.findOne({
           raw: true,
@@ -409,21 +460,27 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
           ]
         })
         if (registeringAccount && registeringAccount.id) {
-          return res.status(400).send({ error: `You have already sent a request to register a free address for that domain` })
+          return res.status(400).send({
+            error: `You have already sent a request to register a free address for that domain`,
+            errorCode: errorCodes.ALREADY_SENT_REGISTRATION_REQ_FOR_DOMAIN
+          })
         }
         const amountRegisteredByIp = await getRegisteredAmountByIp(wallet.id, ipAddress, true)
         if (amountRegisteredByIp > 4) {
-          return res.status(400).send({ error: `You have already registered a free address for that domain` })
+          return res.status(400).send({
+            error: `You have already registered a free address for that domain`,
+            errorCode: errorCodes.ONE_FREE_ADDRESS_PER_DOMAIN_ERROR
+          })
         }
       } catch (e) {
         console.log(e);
-        return res.status(400).send({ error: `Server error. Please try later` })
+        return res.status(400).send({ error: `Server error. Please try later`, errorCode: errorCodes.SERVER_ERROR })
       }
     }
   }
 
   if (type === 'account' && price < process.env.MIN_ADDRESS_PRICE) {
-    return res.status(400).send({error: `Price is too low`})
+    return res.status(400).send({error: `Price is too low`, errorCode: errorCodes.PRICE_AMOUNT_ERROR})
   }
 
   // apply credit
@@ -445,7 +502,8 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       domain: addressArray.length === 1 ? addressArray[0] : addressArray[1],
       address: addressArray.length === 1 ? null : addressArray[0],
       wallet_id: wallet.id,
-      ip: ipAddress
+      ip: ipAddress,
+      type: ACCOUNT_TYPES.register
     }
 
     const [account] = await db.Account.findOrCreate({
@@ -454,7 +512,8 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
         domain: accountObj.domain,
         address: accountObj.address || null,
         owner_key: publicKey,
-        wallet_id: wallet.id
+        wallet_id: wallet.id,
+        type: ACCOUNT_TYPES.register
       },
       transaction
     })
@@ -567,6 +626,193 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
   return res.send(result);
 }))
 
+/**
+ *
+ @api {post} /public-api/renew
+ @apiGroup Renew
+ @apiName PostRenewAccount
+ @apiDescription
+ -
+ */
+router.post('/public-api/renew', handler(async (req, res) => {
+  const { address: addressFromReq, referralCode, redirectUrl } = req.body
+  let { publicKey } = req.body
+  const processor = await plugins.payment
+
+  const ipAddress = getIpAddress(req)
+
+  const address = addressFromReq.toLowerCase()
+  const ref = referralCode ? referralCode : process.env.DEFAULT_REFERRAL_CODE
+  const wallet = await db.Wallet.findOne({
+    attributes: [
+      'id',
+      'name',
+      'logo_url',
+    ],
+    where: {
+      referral_code: ref,
+      active: true
+    }
+  })
+
+  if (!wallet) {
+    return res.status(404).send({error: 'Referral code not found'})
+  }
+
+  const addressArray = address.split('@')
+  const renewAccount = addressArray.length === 2
+  const type = renewAccount ? 'account' : 'domain'
+
+  if (!isValidAddress(address)) {
+    return res.status(400).send(
+      { error: `Invalid ${type}` }
+    )
+  }
+
+  if (!publicKey) {
+    publicKey = renewAccount ? await fio.getAddress(address) : await fio.getPubAddressByDomain(address)
+    console.log(publicKey);
+  }
+
+  if (!PublicKey.isValid(publicKey)) {
+    return res.status(400).send({ error: 'Missing public key' })
+  }
+
+  try {
+    if (!await fio.isAccountRegistered(address)) {
+      return res.status(404).send({error: `${type} not registered`})
+    }
+  } catch (e) {
+    console.log(e);
+    return res.status(400).send({ error: `Server error. Please try again later.` })
+  }
+
+  const {name, logo_url} = wallet
+  let price
+
+  try {
+    const roe = await getROE()
+    const fee = type === 'account' ? await fio.getFeeRenewAddress('') : await fio.getFeeRenewDomain('')
+    price = +Number(convert(fee, roe))
+  } catch (e) {
+    console.log(e);
+    return res.status(400).send({ error: `Server error. Please try again later.` })
+  }
+
+  if (!price) {
+    return res.status(400).send({ error: `Price was not calculated. Please try again later.` })
+  }
+
+  const adjPrice = Math.max(0, +Number(price).toFixed(2))
+
+  const result = await db.sequelize.transaction(async transaction => {
+    const tr = {transaction}
+
+    const accountObj = {
+      domain: addressArray.length === 1 ? addressArray[0] : addressArray[1],
+      address: addressArray.length === 1 ? null : addressArray[0],
+      owner_key: publicKey,
+      wallet_id: wallet.id,
+      type: ACCOUNT_TYPES.renew,
+      ip: ipAddress,
+      created: new Date()
+    }
+
+    const [account] = await db.Account.findOrCreate({
+      defaults: accountObj,
+      where: {
+        domain: accountObj.domain,
+        address: accountObj.address || null,
+        wallet_id: wallet.id,
+        type: ACCOUNT_TYPES.renew,
+        created: {[Op.gte]: new Date(new Date().getTime() + 5 * 60000)} // was renewal created is last 5 min
+      },
+      transaction,
+      logging: console.log
+    })
+    await saveRegistrationsSearchItem(
+      {
+        account_id: account.id,
+        domain: accountObj.domain,
+        address: accountObj.address || null,
+        owner_key: publicKey,
+        account_type: ACCOUNT_TYPES.renew
+      },
+      {},
+      account,
+      transaction,
+      true
+    )
+
+    const charge = await processor.createCharge({
+      name,
+      logoUrl: logo_url,
+      price: adjPrice,
+      type,
+      address,
+      publicKey,
+      accountId: account.id,
+      redirectUrl
+    })
+
+    charge.pay_source = process.env.PLUGIN_PAYMENT
+
+    const {
+      event_id = 0,
+      extern_id,
+      extern_status,
+      extern_time,
+      forward_url
+    } = charge
+
+    const metadata = charge.metadata && Object.keys(charge.metadata).length ?
+      charge.metadata : null
+
+    const accountPay = await db.AccountPay.create({
+      pay_source: process.env.PLUGIN_PAYMENT,
+      extern_id,
+      buy_price: price,
+      metadata,
+      account_id: account.id,
+      forward_url,
+      type: 'renew'
+    }, tr)
+
+    let pay_status
+    if (charge.pending === false) {
+      pay_status = 'cancel'
+    } else if(charge.pending === true) {
+      pay_status = 'pending'
+    } else { // event.pending === undefined
+      pay_status = 'review'
+    }
+
+    const accountPayEvent = await db.AccountPayEvent.create({
+      pay_status,
+      event_id: String(event_id),
+      extern_time,
+      extern_status,
+      account_pay_id: accountPay.id
+    }, tr)
+    // Updating RegistrationsSearch table record
+    await saveRegistrationsSearchItem(
+      {
+        pay_status: accountPayEvent.pay_status,
+        extern_id: accountPay.extern_id,
+        account_pay_id: accountPay.id,
+        account_pay_event_id: accountPayEvent.id
+      },
+      { account_id: account.id },
+      account,
+      transaction
+    )
+
+    return { success: {charge}, account_id: account.id }
+  })
+
+  return res.send(result);
+}))
+
 /** For In-app Checkout.vue */
 // router.post('/public-api/cancel-charge/:extern_id', handler(async (req, res) => {
 //   const {extern_id} = req.params
@@ -649,6 +895,25 @@ router.get('/public-api/get-domains/:referralCode', handler(async (req, res) => 
   }
 
   return res.send({ success: true, domains })
+}))
+
+/**
+ * @api {get} /public-api/is-domain-public/:domain is-domain-public
+ * @apiGroup Information
+ * @apiName Check if domain is public
+ * @apiDescription
+ * Returns isPublic value for domain.
+ */
+router.get('/public-api/is-domain-public/:domain', handler(async (req, res) => {
+  const { domain } = req.params
+  assert(typeof domain === 'string', 'Required parameter: domain')
+
+  if (!await fio.isAccountRegistered(domain)) {
+    return res.status(404).send({error: `Domain is not registered`})
+  }
+  const isPublic = await fio.isDomainPublic(domain)
+
+  return res.send({ success: true, isPublic })
 }))
 
 module.exports = router;

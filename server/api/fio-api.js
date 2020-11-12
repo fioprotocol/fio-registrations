@@ -77,6 +77,34 @@ class FioApi extends FioClient {
     }
   }
 
+  renewDomain({domain, maxFee, tpid, actor}, options = {}) {
+    return {
+      account: 'fio.address',
+      name: 'renewdomain',
+      authorization: options.authorization || this.options.authorization,
+      data: {
+        fio_domain: domain,
+        max_fee: maxFee,
+        tpid,
+        actor: options.actor || actor
+      }
+    }
+  }
+
+  renewAddress({address, maxFee, tpid, actor}, options = {}) {
+    return {
+      account: 'fio.address',
+      name: 'renewaddress',
+      authorization: options.authorization || this.options.authorization,
+      data: {
+        fio_address: address,
+        max_fee: maxFee,
+        tpid,
+        actor: options.actor || actor
+      }
+    }
+  }
+
   async transaction(actions = [], {
     privateKeys = null
   } = {}) {

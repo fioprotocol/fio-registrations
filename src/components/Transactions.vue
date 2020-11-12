@@ -80,6 +80,10 @@ export default {
         },
         'balance',
         {
+          key: 'ap_type',
+          label: 'Type',
+        },
+        {
           key: 'type',
           label: 'Description',
         },

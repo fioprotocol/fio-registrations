@@ -17,6 +17,7 @@ const {Sequelize, sequelize} = db
 const {Op} = Sequelize
 
 const { saveRegistrationsSearchItem } = require('../registrations-search-util')
+const { ACCOUNT_TYPES } = require('../constants')
 
 /**
   Create or update a payment in the system.  A pay_status of `success` will trigger a domain registration.
@@ -41,7 +42,8 @@ router.post('/buy', handler(async (req, res) => {
     extern_time = null,
     confirmed_total = null,
     pending_total = null,
-    metadata = null
+    metadata = null,
+    type = ACCOUNT_TYPES.register,
   } = req.body
 
   let { address } = req.body
@@ -109,7 +111,8 @@ router.post('/buy', handler(async (req, res) => {
         wallet_id,
         domain,
         address,
-        owner_key
+        owner_key,
+        type
       }, tr)
       await saveRegistrationsSearchItem(
         {
@@ -117,7 +120,8 @@ router.post('/buy', handler(async (req, res) => {
           address,
           owner_key,
           account_id: account.id,
-          created: account.created
+          created: account.created,
+          account_type: type
         },
         {},
         account,

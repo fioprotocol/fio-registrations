@@ -35,7 +35,7 @@ module.exports = (sequelize, DataTypes) => {
     last_pay_event: {
       type: DataTypes.INTEGER,
       allowNull: true,
-    },
+    }
   }, {
     tableName: 'account_pay',
     // comment: '',

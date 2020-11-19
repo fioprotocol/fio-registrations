@@ -1,5 +1,8 @@
 const https = require('https');
+const Discord = require('discord.js');
 const db = require('../db/models');
+
+const discordWebhookClient = new Discord.WebhookClient(process.env.DISCORD_WEBHOOK_ID, process.env.DISCORD_WEBHOOK_TOKEN);
 
 async function processNotifications(wallet, accountsByDomains) {
   const notifications = []
@@ -33,33 +36,16 @@ async function processNotifications(wallet, accountsByDomains) {
         status: 'inprogress',
         params: notification,
       })
-      const messageBody = {
+      const notificationMessage = {
         'username': `${process.env.TITLE}`,
-        'text': `Limit free address reached notifier. Free address registrations amount on ${walletRef} reached to ${notification.reached} for ${notification.domain} domain`,
-        'icon_emoji': ':bangbang:',
-        'attachments': [{
-          'color': '#eed140',
-          'fields': [
-            {
-              'title': 'Ref',
-              'value': walletRef,
-              'short': true
-            },
-            {
-              'title': 'Amount left',
-              'value': notification.reached,
-              'short': true
-            },
-            {
-              'title': 'Domain',
-              'value': notification.domain,
-              'short': true
-            }
-          ]
-        }]
+        'text': `Limit free address reached notifier. Free address registrations amount on '${walletRef}' reached to ${notification.reached} for '${notification.domain}' domain`,
+        walletRef,
+        reached: notification.reached,
+        domain: notification.domain,
       }
       try {
-        await sendSlackMessage(messageBody)
+        await sendSlackMessage(notificationMessage)
+        await sendDiscordMessage(notificationMessage)
         newNotification.status = 'success'
         await newNotification.save()
       } catch (e) {
@@ -69,9 +55,36 @@ async function processNotifications(wallet, accountsByDomains) {
   }
 }
 
-function sendSlackMessage(messageBody) {
+function sendSlackMessage(notification) {
+  let messageBody
+  const messageJson = {
+    'username': notification.username,
+    'text': notification.text,
+    'icon_emoji': ':bangbang:',
+    'attachments': [{
+      'color': '#eed140',
+      'fields': [
+        {
+          'title': 'Ref',
+          'value': notification.walletRef,
+          'short': true
+        },
+        {
+          'title': 'Amount left',
+          'value': notification.reached,
+          'short': true
+        },
+        {
+          'title': 'Domain',
+          'value': notification.domain,
+          'short': true
+        }
+      ]
+    }]
+  }
+
   try {
-    messageBody = JSON.stringify(messageBody);
+    messageBody = JSON.stringify(messageJson);
   } catch (e) {
     throw new Error('Failed to stringify messageBody', e);
   }
@@ -103,6 +116,28 @@ function sendSlackMessage(messageBody) {
     req.write(messageBody);
     req.end();
   });
+}
+
+function sendDiscordMessage(notification) {
+  try {
+    const embed = new Discord.MessageEmbed()
+      .setColor('#eed140')
+      .setTitle('Alert. Limit free address reached.')
+      .setAuthor(notification.username)
+      .setDescription(notification.text)
+      .setThumbnail('https://reg.fioprotocol.io/upload/fio/images/fio-logo.png')
+      .addFields(
+        { name: 'Ref', value: notification.walletRef, inline: true },
+        { name: 'Amount left', value: notification.reached, inline: true },
+        { name: 'Domain', value: notification.domain },
+      )
+    discordWebhookClient.send('', {
+      username: notification.username,
+      embeds: [embed],
+    });
+  } catch (e) {
+    console.log(e);
+  }
 }
 
 module.exports = {

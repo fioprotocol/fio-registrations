@@ -465,12 +465,14 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
             errorCode: errorCodes.ALREADY_SENT_REGISTRATION_REQ_FOR_DOMAIN
           })
         }
-        const amountRegisteredByIp = await getRegisteredAmountByIp(wallet.id, ipAddress, true)
-        if (amountRegisteredByIp > 4) {
-          return res.status(400).send({
-            error: `You have already registered a free address for that domain`,
-            errorCode: errorCodes.ONE_FREE_ADDRESS_PER_DOMAIN_ERROR
-          })
+        if (!walletApiAuthorized) {
+          const amountRegisteredByIp = await getRegisteredAmountByIp(wallet.id, ipAddress, true)
+          if (amountRegisteredByIp > 4) {
+            return res.status(400).send({
+              error: `You have already registered a free address for that domain`,
+              errorCode: errorCodes.ONE_FREE_ADDRESS_PER_DOMAIN_ERROR
+            })
+          }
         }
       } catch (e) {
         console.log(e);

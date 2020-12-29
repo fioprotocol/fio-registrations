@@ -19,7 +19,7 @@ module.exports = (sequelize, DataTypes) => {
       comment: 'A "review" is an unexpected system or broadcast exception.  An "expire" will resend several times and move to "success" or "review".  The admin will "review" then "retry" or "cancel".'
     },
     trx_status_notes: {
-      type: DataTypes.STRING(350),
+      type: DataTypes.STRING(700),
       allowNull: true,
       comment: 'Error or message for review'
     },

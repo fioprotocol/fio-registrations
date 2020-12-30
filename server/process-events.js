@@ -299,11 +299,11 @@ async function broadcastNewAccountOrRenew({
   if (type === ACCOUNT_TYPES.register) {
     fioAction = address ?
       await regaddress( account, owner_key, tpid, actor, permission ) :
-      await regdomain( domain, owner_key, tpid, actor, permission )
+      await regdomain( domain, owner_key, tpid )
   } else if (type === ACCOUNT_TYPES.renew) {
     fioAction = address ?
       await renewaddress( account, tpid, actor, permission ) :
-      await renewdomain( domain, tpid, actor, permission )
+      await renewdomain( domain, tpid )
   }
 
   let transaction, trx_id, expiration

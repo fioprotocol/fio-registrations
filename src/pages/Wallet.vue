@@ -92,6 +92,17 @@
         </b-form-checkbox>
       </b-form-group>
 
+      <b-form-group id="limit-ip-whitelist-group" class="mb-4"
+                    label="IP address whitelist:" label-for="limit-ip-whitelist"
+                    description="Free Registration IP address whitelist. New line for each IP address."
+      >
+        <b-form-textarea id="limit-ip-whitelist"
+                      v-model="form.limit_ip_whitelist" rows="4"
+                      placeholder="Set IP address list"
+        >
+        </b-form-textarea>
+      </b-form-group>
+
       <b-form-group id="domain-price-group" class="mb-4"
         label="New Domain Sale Price:" label-for="domain-price" required
         description="Sale price for new domains (in USD / USDC)"
@@ -339,6 +350,7 @@ function formDefaults () {
 
     allow_pub_domains: false,
     disable_reg: false,
+    limit_ip_whitelist: '',
   }
 }
 
@@ -487,6 +499,7 @@ export default {
         }
         form[key] = value
       }
+      console.log(this.wallet.limit_ip_whitelist.indexOf('120'));
       return form
     },
 

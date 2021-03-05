@@ -120,6 +120,12 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: false,
       comment: 'Enable / disable registration using site'
+    },
+    limit_ip_whitelist: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      defaultValue: '',
+      comment: 'Disables limit registrations of free addresses for these IP addresses'
     }
   }, {
     tableName: 'wallet'

@@ -317,7 +317,8 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
       'account_roe_active',
       'api_enabled',
       'allow_pub_domains',
-      'disable_reg'
+      'disable_reg',
+      'limit_ip_whitelist'
     ],
     where: {
       referral_code: ref,
@@ -465,7 +466,8 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
             errorCode: errorCodes.ALREADY_SENT_REGISTRATION_REQ_FOR_DOMAIN
           })
         }
-        if (!walletApiAuthorized) {
+        const whiteList = wallet.limit_ip_whitelist || ''
+        if (!walletApiAuthorized && whiteList.indexOf(ipAddress) < 0) {
           const amountRegisteredByIp = await getRegisteredAmountByIp(wallet.id, ipAddress, true)
           if (amountRegisteredByIp > 4) {
             return res.status(400).send({

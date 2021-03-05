@@ -12,6 +12,13 @@ Show the registration form with only an address or domain (respectively):
 Select a default domain (wallet) other than the one shown:
 * https://example.com/address/fio/wallet?publicKey=FIO...
 
+Renew a FIO Address:
+* https://reg.fioprotocol.io/address/renew/fio
+
+Renew a FIO Domain:
+* https://reg.fioprotocol.io/domain/renew/fio
+
+
 Route Rules
 
 * /(address|ref)/:referralCode?/:defaultDomain?

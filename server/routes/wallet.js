@@ -920,4 +920,119 @@ router.get('/public-api/is-domain-public/:domain', handler(async (req, res) => {
   return res.send({ success: true, isPublic })
 }))
 
+/**
+ * @api {get} /public-api/get-pricing/:referralCode This call is intended to return current pricing of FIO Addresses and Domains based on Wallet Profile provided.
+ * @apiGroup Information
+ * @apiName Get Pricing
+ * @apiDescription
+ * Returns current pricing of FIO Addresses and Domains based on Wallet Profile provided.
+ */
+router.get('/public-api/get-pricing/:referralCode', handler(async (req, res) => {
+  const { referralCode } = req.params
+  assert(typeof referralCode === 'string', 'Required parameter: referralCode')
+
+  const wallet = await db.Wallet.findOne({
+    attributes: [
+      'id',
+      'domain_sale_price',
+      'account_sale_price',
+      'domain_sale_active',
+      'account_sale_active',
+      'domain_roe_active',
+      'account_roe_active',
+    ],
+    where: {
+      referral_code: referralCode,
+      active: true
+    }
+  })
+
+  const plainWallet = wallet ? wallet.get({ plain: true }) : {}
+  if (plainWallet.id) {
+    const accountRegFee = await fio.getFeeAddress('')
+    const domainRegFee = await fio.getFeeDomain('')
+    let accountUsdt = plainWallet.account_sale_price
+    let domainUsdt = plainWallet.domain_sale_price
+    if (wallet.account_roe_active || wallet.domain_roe_active) {
+      const roe = await getROE()
+      if (wallet.account_roe_active) {
+        accountUsdt = convert(accountRegFee, roe)
+      }
+      if (wallet.domain_roe_active) {
+        domainUsdt = convert(domainRegFee, roe)
+      }
+    }
+    const pricing = {
+      fio: {
+        domain: domainRegFee,
+        address: accountRegFee
+      },
+      usdt: {
+        domain: domainUsdt,
+        address: accountUsdt
+      }
+    }
+
+    return res.send({ success: true, pricing })
+  }
+
+  return res.send({ success: false, pricing: {} })
+}))
+
+router.post('/public-api/buy-fio-tokens', handler(async (req, res) => {
+  const {
+    referralCode,
+    domainRegistrations,
+    addressRegistrations,
+    publicKey,
+    apiToken,
+    webHook
+  } = req.body
+  assert(typeof referralCode === 'string', 'Required parameter: referralCode')
+
+  const wallet = await db.Wallet.findOne({
+    attributes: [
+      'id',
+      'domain_sale_price',
+      'account_sale_price',
+      'domain_sale_active',
+      'account_sale_active',
+      'domain_roe_active',
+      'account_roe_active',
+    ],
+    where: {
+      referral_code: referralCode,
+      active: true
+    }
+  })
+
+  let walletApiAuthorized = false
+  if (wallet.api_enabled && apiToken) {
+    try {
+      const hash = crypto.createHash('sha256')
+        .update(apiToken).digest().toString('hex')
+      const walletApi = await db.WalletApi.findOne({
+        where: { api_bearer_hash: hash, wallet_id: wallet.id },
+        include: {
+          model: db.Wallet,
+          required: true,
+          attributes: ['id'],
+          where: { api_enabled: true }
+        }
+      })
+      if (walletApi && walletApi.wallet_id) {
+        walletApiAuthorized = true
+        walletApi.last_used = new Date().toISOString()
+        walletApi.save()
+      }
+    } catch (e) {
+      //
+    }
+  }
+
+  if (!walletApiAuthorized) return res.status(401).send({error: `Unauthorized: user API Token is required`})
+
+  // todo:
+}))
+
 module.exports = router;

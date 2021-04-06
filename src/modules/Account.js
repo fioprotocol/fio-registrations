@@ -13,11 +13,13 @@ export default {
     isDomainRegistered: null,
     isDomainPublic: null,
     pubAddress: null,
+    notRenewable: null,
     credit: 0,
     loading: loading.defaults([
       'isAddressRegistered',
       'isDomainRegistered',
       'isCheckedWithPublicDomain',
+      'isAccountCouldBeRenewed',
       'getPubAddress'
     ])
   },
@@ -133,6 +135,17 @@ export default {
       })
     },
 
+    async isAccountCouldBeRenewed({commit, state}, {address, cb}) {
+      loading(state.loading[`isAccountCouldBeRenewed`], async () => {
+        const result = await fio.isAccountCouldBeRenewed(address)
+
+        commit('isAccountCouldBeRenewed', {
+          renewable: result, address
+        })
+        if (cb) cb(result)
+      })
+    },
+
     async resetErrors({state}) {
       loading.resetError(state.loading[`isCheckedWithPublicDomain`])
       loading.resetError(state.loading['isAddressRegistered'])
@@ -164,6 +177,10 @@ export default {
     getPubAddress(state, {pubAddress, address}) {
       loading.done(state.loading[`getPubAddress`])
       state.pubAddress = pubAddress
+    },
+    isAccountCouldBeRenewed(state, {renewable, address}) {
+      loading.done(state.loading[`isAccountCouldBeRenewed`])
+      state.notRenewable = renewable ? null : address
     }
   }
 }

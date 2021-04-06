@@ -38,10 +38,34 @@ class FioClient {
     await this.init
     address = address.replace(/:/, '@')
     const check = await this.chain.post('/avail_check', {fio_name: address})
-    if(typeof check.is_registered === 'number') {
+    if (typeof check.is_registered === 'number') {
       return check.is_registered === 1
     }
     throw new Error(JSON.stringify(check))
+  }
+
+  async isAccountCouldBeRenewed(address) {
+    await this.init
+    address = address.replace(/:/, '@')
+    const isAddress = address.indexOf('@') > 0
+
+    const hash = crypto.createHash('sha1')
+    const bound = '0x' + hash.update(address).digest().slice(0,16).reverse().toString("hex")
+    const result = await this.chain.post('/get_table_rows', {
+      code: 'fio.address',
+      scope: 'fio.address',
+      table: isAddress ? 'fionames' : 'domains',
+      lower_bound: bound,
+      upper_bound: bound,
+      key_type: 'i128',
+      index_position: isAddress ? '5' : '4',
+      json: true
+    })
+
+    if (result.rows && result.rows.length) {
+      return !!result.rows[0].id
+    }
+    return false
   }
 
   async isDomainPublic(domain) {

@@ -101,9 +101,9 @@ export default {
       })
       if (!this.validatedAddress) {
         const { address, publicKey } = this
-        this.$store.dispatch('Account/isAccountRegistered', {
-          address, publicKey, cb: isRegistered => {
-            if (isRegistered) {
+        this.$store.dispatch('Account/isAccountCouldBeRenewed', {
+          address, publicKey, cb: renewable => {
+            if (renewable) {
               this.$store.dispatch('Account/getPubAddress', {
                 address,
                 cb: () => {
@@ -183,8 +183,7 @@ export default {
     },
 
     checkAddressLoading() {
-      const type = this.renewAddress ? 'Address' : 'Domain'
-      return this.Account.loading[`is${type}Registered`]._loading
+      return this.Account.loading[`isAccountCouldBeRenewed`]._loading
     },
 
     renewAccountAlert() {
@@ -202,7 +201,7 @@ export default {
         return { error: this.renewResult.error }
       }
 
-      if (this.address === this.Account.availableAccount) {
+      if (this.address === this.Account.notRenewable) {
         return { error: `${type} not registered` }
       }
 

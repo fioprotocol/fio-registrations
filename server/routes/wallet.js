@@ -920,4 +920,68 @@ router.get('/public-api/is-domain-public/:domain', handler(async (req, res) => {
   return res.send({ success: true, isPublic })
 }))
 
+/**
+ * @api {get} /public-api/get-pricing/:referralCode This call is intended to return current pricing of FIO Addresses and Domains based on Wallet Profile provided.
+ * @apiGroup Information
+ * @apiName Get Pricing
+ * @apiDescription
+ * Returns current pricing of FIO Addresses and Domains based on Wallet Profile provided.
+ */
+router.get('/public-api/get-pricing/:referralCode', handler(async (req, res) => {
+  const { referralCode } = req.params
+  assert(typeof referralCode === 'string', 'Required parameter: referralCode')
+
+  const wallet = await db.Wallet.findOne({
+    attributes: [
+      'id',
+      'domain_sale_price',
+      'account_sale_price',
+      'domain_sale_active',
+      'account_sale_active',
+      'domain_roe_active',
+      'account_roe_active',
+    ],
+    where: {
+      referral_code: referralCode,
+      active: true
+    }
+  })
+
+  const plainWallet = wallet ? wallet.get({ plain: true }) : {}
+  if (plainWallet.id && plainWallet.account_sale_active && plainWallet.domain_sale_active) {
+    const pricing = {
+      fio: {
+        domain: null,
+        address: null
+      },
+      usdt: {
+        domain: null,
+        address: null
+      }
+    }
+
+    const roe = await getROE()
+    if (plainWallet.account_roe_active) {
+      const accountRegFee = await fio.getFeeAddress('')
+      const accountUsdt = convert(accountRegFee, roe)
+      pricing.fio.address = accountRegFee
+      pricing.usdt.address = accountUsdt
+    } else {
+      pricing.usdt.address = plainWallet.account_sale_price
+    }
+    if (plainWallet.domain_roe_active) {
+      const domainRegFee = await fio.getFeeDomain('')
+      const domainUsdt = convert(domainRegFee, roe)
+      pricing.fio.domain = domainRegFee
+      pricing.usdt.domain = domainUsdt
+    } else {
+      pricing.usdt.domain = plainWallet.domain_sale_price
+    }
+
+    return res.send({ success: true, pricing })
+  }
+
+  return res.send({ success: false, pricing: {} })
+}))
+
 module.exports = router;

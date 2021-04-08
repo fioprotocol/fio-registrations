@@ -683,7 +683,7 @@ router.post('/public-api/renew', handler(async (req, res) => {
   }
 
   try {
-    if (!await fio.isAccountRegistered(address)) {
+    if (!await fio.isAccountCouldBeRenewed(address)) {
       return res.status(404).send({error: `${type} not registered`})
     }
   } catch (e) {

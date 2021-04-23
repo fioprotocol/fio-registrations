@@ -302,7 +302,7 @@ async function broadcastNewAccountOrRenew({
       await regdomain( domain, owner_key, tpid )
   } else if (type === ACCOUNT_TYPES.renew) {
     fioAction = address ?
-      await renewaddress( account, tpid, actor, permission ) :
+      await renewaddress( account, tpid ) :
       await renewdomain( domain, tpid )
   }
 

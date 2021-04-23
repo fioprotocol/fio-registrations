@@ -20,6 +20,14 @@ async function processNotifications(wallet, accountsByDomains) {
     }
     if (limit - parseInt(accounts) < 100) {
       notifications.push({ domain, reached: 100, limit })
+      continue
+    }
+    if (limit - parseInt(accounts) < 1000) {
+      notifications.push({ domain, reached: 1000, limit })
+      continue
+    }
+    if (limit - parseInt(accounts) < 1500) {
+      notifications.push({ domain, reached: 1500, limit })
     }
   }
   for (const notification of notifications) {

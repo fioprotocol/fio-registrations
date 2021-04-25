@@ -170,6 +170,11 @@ async function getPaidNeedingAccounts() {
 }
 
 async function getAccountsByDomainsAndStatus(walletId, domains = [], statuses = ['success', 'pending']) {
+  // todo: skip temporary
+  return domains.map(domain => ({
+    domain,
+    accounts: 1
+  }))
   const domainWhere = domains.length ? ` and a.domain in (${domains.map(domain => `'${domain}'`).join(',')}) ` : ''
   const statusesWhere = statuses.length > 1 ? ` (${statuses.map(status => `bte.trx_status = '${status}'`).join(' OR ')}) ` : ` bte.trx_status = '${statuses[0]}' `
   const [accounts] = await sequelize.query(`

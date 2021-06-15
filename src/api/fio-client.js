@@ -36,7 +36,7 @@ class FioClient {
   */
   async isAccountRegistered(address) {
     await this.init
-    address = address.replace(/:/, '@')
+    address = address.replace(/:/, '@').toLowerCase()
     const isAddress = address.indexOf('@') > 0
 
     const hash = crypto.createHash('sha1')
@@ -69,7 +69,7 @@ class FioClient {
 
   async isAccountCouldBeRenewed(address) {
     await this.init
-    address = address.replace(/:/, '@')
+    address = address.replace(/:/, '@').toLowerCase()
     const isAddress = address.indexOf('@') > 0
 
     const hash = crypto.createHash('sha1')
@@ -94,7 +94,7 @@ class FioClient {
   async isDomainPublic(domain) {
     await this.init
     const hash = crypto.createHash('sha1')
-    const bound = '0x' + hash.update(domain).digest().slice(0,16).reverse().toString("hex")
+    const bound = '0x' + hash.update(domain.toLowerCase()).digest().slice(0,16).reverse().toString("hex")
     const result = await this.chain.post('/get_table_rows', {
       code: 'fio.address',
       scope: 'fio.address',
@@ -177,7 +177,7 @@ class FioClient {
   async getPubAddressByDomain(domain) {
     await this.init
     const hash = crypto.createHash('sha1')
-    const bound = '0x' + hash.update(domain).digest().slice(0,16).reverse().toString("hex")
+    const bound = '0x' + hash.update(domain.toLowerCase()).digest().slice(0,16).reverse().toString("hex")
     const result = await this.chain.post('/get_table_rows', {
       code: 'fio.address',
       scope: 'fio.address',

@@ -91,6 +91,11 @@ export default {
       }
     },
 
+    defaultAddress: {
+      type: String,
+      default: ''
+    },
+
     defaultDomain: {
       type: String
     },
@@ -110,7 +115,7 @@ export default {
 
   computed: {
     validAddress() {
-      if(!this.localAddress) {
+      if (!this.localAddress) {
         return null
       }
 
@@ -135,8 +140,14 @@ export default {
 
   created() {
     this.localAddress = this.value;
-    if(this.defaultDomain) {
+    if (this.defaultDomain) {
       this.selectedDomain = this.defaultDomain
+      if (!this.buyAddress) this.$nextTick(() => {
+        this.localAddress = this.defaultDomain
+      })
+      if (this.buyAddress && this.defaultAddress) this.$nextTick(() => {
+        this.localAddress = this.defaultAddress
+      })
     } else if(this.domains !== null) {
       this.selectedDomain = this.domains[0]
     }
@@ -164,9 +175,12 @@ export default {
     });
 
     this.$watch("domains", newValue => {
-      if(newValue !== null) {
-        if(this.defaultDomain) {
+      if (newValue !== null) {
+        if (this.defaultDomain) {
           this.selectedDomain = this.defaultDomain
+          if (this.buyAddress && this.defaultAddress) this.$nextTick(() => {
+            this.localAddress = this.defaultAddress
+          })
         } else {
           this.selectedDomain = newValue[0]
         }

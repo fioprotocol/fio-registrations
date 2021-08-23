@@ -252,7 +252,7 @@ export default {
       const type = this.renewAddress ? 'Address' : 'Domain'
 
       if (this.ownerPublicKey && this.publicKey && this.ownerPublicKey !== this.publicKey) {
-        return { warning: `${type} is owned by a public key that is different from the key that was sent in. Please confirm you are renewing the correct FIO Address.` }
+        return { warning: `${type} is owned by a public key that is different from the key that was sent in. Please confirm you are renewing the correct ${type}.` }
       }
 
       return {}

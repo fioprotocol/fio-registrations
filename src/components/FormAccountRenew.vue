@@ -5,7 +5,8 @@
         v-model="address"
         v-on:valid="valid"
         :domains="domains"
-        :defaultDomain="defaultDomain"
+        :defaultDomain="defaultDomainValue"
+        :defaultAddress="defaultAddressValue"
         :buyAddress="renewAddress"
         :allowPublicDomains="allowPublicDomains"
       >
@@ -13,9 +14,9 @@
           id="check-button"
           type="submit"
           class="btn btn-success mt-4"
-          :disabled="address === null"
+          :disabled="address === null || checkAddressLoading || processingRenew || checkAddressPubKeyLoading"
         >
-          <div v-if="!checkAddressLoading && !processingRenew">
+          <div v-if="!checkAddressLoading && !processingRenew && !checkAddressPubKeyLoading">
             Renew
           </div>
           <div v-else
@@ -46,6 +47,11 @@
           :timeout="0" singleton
         >
         </alert>
+        <alert id="renewAccountWarning" class="mt-4"
+          :object="renewAccountWarning"
+          :timeout="0"
+        >
+        </alert>
       </FormAccount>
     </form>
   </div>
@@ -53,8 +59,10 @@
 
 <script>
 import {mapState} from 'vuex'
+import { debounce } from 'lodash'
 import FormAccount from '../components/FormAccount.vue'
 import Alert from '../components/Alert.vue'
+import { FIO_ADDRESS_DELIMITER } from '../constants';
 import ServerMixin from './ServerMixin'
 import '../plugins/gt-sdk'
 
@@ -64,10 +72,19 @@ export default {
   ],
 
   data() {
+    const defaultFioName = this.$route.query.fioName || ''
+    let [address, domain] = defaultFioName.split(FIO_ADDRESS_DELIMITER)
+    if (address && !domain) {
+      domain = address
+      address = ''
+    }
     return {
       address: null,
       validAddress: null,
-      renewLoading: false
+      renewLoading: false,
+      ownerPublicKey: null,
+      addressFromUrl: address,
+      domainFromUrl: domain
     }
   },
 
@@ -131,7 +148,19 @@ export default {
         key: 'renewResult', path: '/public-api/renew',
         body: { address, referralCode, publicKey: this.Account.pubAddress, redirectUrl }
       })
-    }
+    },
+
+    checkPublicAddress: debounce(function(address) {
+      if (!address) return
+      this.$store.dispatch('Account/getPubAddress', {
+        address,
+        cb: publicKey => {
+          this.$nextTick(() => {
+            this.ownerPublicKey = publicKey
+          })
+        }
+      })
+    }, 500)
   },
 
   watch: {
@@ -155,6 +184,9 @@ export default {
           window.location = forward_url
         }
       }
+    },
+    address: function(value) {
+      this.checkPublicAddress(value)
     }
   },
 
@@ -186,6 +218,10 @@ export default {
       return this.Account.loading[`isAccountCouldBeRenewed`]._loading
     },
 
+    checkAddressPubKeyLoading() {
+      return this.Account.loading[`getPubAddress`]._loading
+    },
+
     renewAccountAlert() {
       if (this.validAddress === null) {
         return {}
@@ -208,6 +244,20 @@ export default {
       return {}
     },
 
+    renewAccountWarning() {
+      if (this.validAddress === false) {
+        return {}
+      }
+
+      const type = this.renewAddress ? 'Address' : 'Domain'
+
+      if (this.ownerPublicKey && this.publicKey && this.ownerPublicKey !== this.publicKey) {
+        return { warning: `${type} is owned by a public key that is different from the key that was sent in. Please confirm you are renewing the correct ${type}.` }
+      }
+
+      return {}
+    },
+
     priceBeforeCredit() {
       return this.renewAddress ?
         +Number(this.Wallet.wallet.account_renew_price) :
@@ -221,6 +271,29 @@ export default {
 
     allowPublicDomains() {
       return this.Wallet.wallet.allow_pub_domains
+    },
+
+    defaultDomainValue() {
+      if (
+        this.renewAddress &&
+        this.Wallet.wallet.domains &&
+        this.Wallet.wallet.domains.indexOf(this.domainFromUrl) > -1
+      )
+        return this.domainFromUrl;
+
+      return this.domainFromUrl || this.defaultDomain;
+    },
+
+    defaultAddressValue() {
+      if (
+        this.renewAddress &&
+        this.addressFromUrl &&
+        this.Wallet.wallet.domains &&
+        this.Wallet.wallet.domains.indexOf(this.domainFromUrl) > -1
+      )
+        return this.addressFromUrl;
+
+      return "";
     }
   },
 

@@ -121,6 +121,12 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: false,
       comment: 'Enable / disable registration using site'
     },
+    auto_bundles_add: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      comment: 'When checked all addresses that have been registered by this profile using the registration site will have bundles added automatically if their bundle count drops below 5.'
+    },
     limit_ip_whitelist: {
       type: DataTypes.TEXT,
       allowNull: true,

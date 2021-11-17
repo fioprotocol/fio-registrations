@@ -267,6 +267,15 @@
         </b-form-checkbox>
       </b-form-group>
 
+      <b-form-group id="auto-bundles-add" class="mb-4"
+                    label="" label-for="auto-bundles-add-check"
+                    description="When checked all addresses that have been registered by this profile using the registration site will have bundles added automatically if their bundle count drops below 5."
+      >
+        <b-form-checkbox id="auto-bundles-add-check" v-model="form.auto_bundles_add" class="mt-1">
+          Add bundles automatically
+        </b-form-checkbox>
+      </b-form-group>
+
       <b-modal id="success-modal" title="Save Wallet" variant="info" @ok="resetUpsert" ok-only>
         {{upsertWallet.success}}
       </b-modal>
@@ -350,6 +359,7 @@ function formDefaults () {
 
     allow_pub_domains: false,
     disable_reg: false,
+    auto_bundles_add: false,
     limit_ip_whitelist: '',
   }
 }

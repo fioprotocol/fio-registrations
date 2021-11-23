@@ -21,11 +21,6 @@ class Mailchimp {
   }
    */
   async send(message) {
-    if (process.env.NODE_ENV === "development") {
-      this.debug("development", JSON.stringify(message));
-      return;
-    }
-
     if (message.from == null) {
       message.from = process.env.EMAIL_FROM;
     }

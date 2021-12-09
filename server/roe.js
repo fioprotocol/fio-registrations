@@ -1,7 +1,7 @@
 const JsonFetch = require('../src/api/json-fetch');
 const db = require('./db/models');
 
-const roeEndpoint = 'https://bitmax.io/api/pro/v1/'
+const roeEndpoint = 'https://ascendex.com/api/pro/v1/'
 const requestRoe = JsonFetch(roeEndpoint, {})
 const roeKey = 'roe'
 const minToUpdate = 15

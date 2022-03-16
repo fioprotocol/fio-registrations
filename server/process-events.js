@@ -261,7 +261,7 @@ async function getRegisteredAmountByIp(walletId, ip, isFree = false, statuses = 
         and a.ip = '${ip}'
         and a.type = '${ACCOUNT_TYPES.register}'
         ${freeWhere}
-        and (select id from blockchain_trx where blockchain_trx.account_id = a.id and blockchain_trx.type = '${ACCOUNT_TYPES.register}') IS null
+        and (select id from blockchain_trx where blockchain_trx.account_id = a.id and blockchain_trx.type = '${ACCOUNT_TYPES.register}' limit 1) IS null
       group by a.wallet_id;
   `)
     amount += regRequests[0] && regRequests[0].accounts ? parseInt(regRequests[0].accounts) : 0

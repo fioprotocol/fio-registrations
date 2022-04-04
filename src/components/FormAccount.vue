@@ -51,7 +51,7 @@
           <input
                   class="address-pub-domain"
                   v-model="localAddress"
-                  placeholder="Address search"
+                  placeholder="FIO Crypto Handle search"
                   :id="`${type}-input`"
                   :ref="`${type}-input`" >
         </div>

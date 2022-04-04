@@ -367,7 +367,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
     const accountsNumber = accountsByDomain.length ? parseInt(accountsByDomain[0].accounts) : 0
     const domainsLimit = wallet.domains_limit[addressArray[1]] || null
     if (domainsLimit !== null && accountsNumber >= parseInt(domainsLimit)) {
-      return res.status(400).send({ error: `FIO Address registrations no longer available for that domain`, errorCode: errorCodes.REGISTRATION_NOT_AVAILABLE })
+      return res.status(400).send({ error: `FIO Crypto Handle registrations no longer available for that domain`, errorCode: errorCodes.REGISTRATION_NOT_AVAILABLE })
     }
   }
 
@@ -437,7 +437,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
         const amountRegistered = await getRegisteredAmountForOwner(wallet.id, publicKey, [addressArray[1]], true)
         if (parseInt(amountRegistered) > 0) {
           return res.status(400).send({
-            error: `You have already registered a free address for that domain`,
+            error: `You have already registered a free FIO Crypto Handle for that domain`,
             errorCode: errorCodes.ONE_FREE_ADDRESS_PER_DOMAIN_ERROR
           })
         }
@@ -462,7 +462,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
         })
         if (registeringAccount && registeringAccount.id) {
           return res.status(400).send({
-            error: `You have already sent a request to register a free address for that domain`,
+            error: `You have already sent a request to register a free FIO Crypto Handle for that domain`,
             errorCode: errorCodes.ALREADY_SENT_REGISTRATION_REQ_FOR_DOMAIN
           })
         }
@@ -471,7 +471,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
           const amountRegisteredByIp = await getRegisteredAmountByIp(wallet.id, ipAddress, true)
           if (amountRegisteredByIp > 4) {
             return res.status(400).send({
-              error: `You have already registered a free address for that domain`,
+              error: `You have already registered a free FIO Crypto Handle for that domain`,
               errorCode: errorCodes.ONE_FREE_ADDRESS_PER_DOMAIN_ERROR
             })
           }

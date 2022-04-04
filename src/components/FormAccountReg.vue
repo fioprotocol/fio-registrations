@@ -359,7 +359,7 @@ export default {
       }
 
       if (this.limitError === true) {
-        return { error: 'FIO Address registrations no longer available for that domain' }
+        return { error: 'FIO Crypto Handle registrations no longer available for that domain' }
       }
 
       if (this.domainIsNotRegistered === true) {

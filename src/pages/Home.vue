@@ -15,7 +15,7 @@
           <div class="container text-left">
             <div v-if="!enterPublicKey">
               <div class="mt-3">
-                Many wallets support FIO Protocol and allow you to easily register FIO Address or FIO Domain and link it to that wallet. Check your favorite wallet for a FIO Address registration.
+                Many wallets support FIO Protocol and allow you to easily register FIO Crypto Handle or FIO Domain and link it to that wallet. Check your favorite wallet for a FIO Crypto Handle registration.
               </div>
 
               <div class="mt-3 mb-3">
@@ -100,7 +100,7 @@
           <div>
             <div class="row">
               <div v-if="regPublicKey && validPublicKey && regAddress" class="col-sm">
-                <h4>Register FIO Address</h4>
+                <h4>Register FIO Crypto Handle</h4>
                 <p class="h5"><strong>username</strong>@domain</p>
                 <br/>
                 <FormAccountReg
@@ -137,7 +137,7 @@
                 <div class="text-left">
                   <div class="list-group">
                     <small class="list-group-item">
-                      &rsaquo;&nbsp;Create FIO Addresses on your own domain<br/>
+                      &rsaquo;&nbsp;Create FIO Crypto Handle on your own domain<br/>
                       &rsaquo;&nbsp;Transferable between wallets and users<br/>
                       &rsaquo;&nbsp;Reserve now for {{Wallet.wallet.domain_sale_price}} USDC or equivalent
                     </small>
@@ -146,7 +146,7 @@
               </div>
 
               <div v-if="renewAddress" class="col-sm">
-                <h4>Renew FIO Address</h4>
+                <h4>Renew FIO Crypto Handle</h4>
                 <p class="h5"><strong>username</strong>@domain</p>
                 <br/>
                 <FormAccountRenew
@@ -212,11 +212,11 @@
     <div class="footer text-center py-3">
       <div class="container mt-4">
         <div class="d-flex justify-content-around" v-if="(regAddress || regDomain) && referralCode">
-          <a :href="`/address/renew/${referralCode}?publicKey=${regPublicKey}`">Renew existing Address</a>
+          <a :href="`/address/renew/${referralCode}?publicKey=${regPublicKey}`">Renew existing FIO Crypto Handle</a>
           <a :href="`/domain/renew/${referralCode}?publicKey=${regPublicKey}`">Renew existing Domain</a>
         </div>
         <div class="d-flex justify-content-around" v-if="(renewAddress || renewDomain) && (this.Account.pubAddress || regPublicKey)">
-          <a :href="`/address/${referralCode}?publicKey=${this.Account.pubAddress || regPublicKey}`">Register new Address</a>
+          <a :href="`/address/${referralCode}?publicKey=${this.Account.pubAddress || regPublicKey}`">Register new FIO Crypto Handle</a>
           <a :href="`/domain/${referralCode}?publicKey=${this.Account.pubAddress || regPublicKey}`">Register new Domain</a>
         </div>
       </div>

@@ -306,9 +306,9 @@ async function broadcastNewAccountOrRenew({
     fioAction = address ?
       await regaddress( account, owner_key, tpid, actor, permission ) :
       await regdomain( domain, owner_key, tpid )
-  } else if (type === ACCOUNT_TYPES.renew && !address) { // todo: address check could be removed when ACCOUNT_TYPES.renew and ACCOUNT_TYPES.addBundles becomes different
+  } else if (type === ACCOUNT_TYPES.renew) {
     fioAction = await renewdomain( domain, tpid )
-  } else if (type === ACCOUNT_TYPES.addBundles && address) { // todo: same
+  } else if (type === ACCOUNT_TYPES.addBundles) {
     fioAction = await addBundlesToAddress( account, tpid );
   }
 

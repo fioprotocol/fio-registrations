@@ -1,8 +1,7 @@
 const ACCOUNT_TYPES = {
   register: 'register',
   renew: 'renew',
-  // todo: fix db rules before setting custom value or create separate table for ACCOUNT_TYPES (with enum ids)
-  addBundles: 'renew'
+  addBundles: 'add_bundles'
 }
 
 module.exports = {

@@ -91,13 +91,14 @@ class FioApi extends FioClient {
     }
   }
 
-  renewAddress({address, maxFee, tpid, actor}, options = {}) {
+addBundlesToAddress({address, maxFee, tpid, actor, bundleSets}, options = {}) {
     return {
       account: 'fio.address',
-      name: 'renewaddress',
+      name: 'addbundles',
       authorization: options.authorization || this.options.authorization,
       data: {
         fio_address: address,
+        bundle_sets: bundleSets,
         max_fee: maxFee,
         tpid,
         actor: options.actor || actor

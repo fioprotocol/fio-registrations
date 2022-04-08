@@ -125,10 +125,10 @@ class FioClient {
     )
   }
 
-  getFeeRenewAddress = async (fio_address) => {
+  getFeeAddBundledTransactions = async (fio_address) => {
     await this.init
     return this.getFee(
-      'renew_fio_address', fio_address.replace(/:/, '@')
+        'add_bundled_transactions', fio_address.replace(/:/, '@')
     )
   }
 

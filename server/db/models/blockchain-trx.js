@@ -5,9 +5,9 @@ module.exports = (sequelize, DataTypes) => {
     type: {
       type: DataTypes.STRING(30),
       allowNull: false,
-      values: ['register', 'renew'],
+      values: ['register', 'renew', 'add_bundles'],
       validate: {
-        isIn: [['register', 'renew']]
+        isIn: [['register', 'renew', 'add_bundles']]
       },
       comment: 'Primary reason for this transaction'
     },

@@ -166,7 +166,7 @@ export default {
       let ret
       try {
         const {trx_status, pay_status, trx_type} = row
-        const successLabel = { 'renew': 'Renewed', 'register': 'Registered' }
+        const successLabel = { 'renew': 'Renewed', 'register': 'Registered', 'add_bundles': 'Bundles Added' }
 
         if(trx_status) {
           if(trx_status === 'pending') { return ret = 'Pending: Awaiting blockchain finality' }

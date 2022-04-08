@@ -17,7 +17,7 @@
           :disabled="address === null || checkAddressLoading || processingRenew || checkAddressPubKeyLoading"
         >
           <div v-if="!checkAddressLoading && !processingRenew && !checkAddressPubKeyLoading">
-            Renew
+            {{ renewAddress ? 'Add Bundles' : 'Renew' }}
           </div>
           <div v-else
             class="mb-1 spinner-grow spinner-grow-sm text-light"
@@ -249,10 +249,11 @@ export default {
         return {}
       }
 
-      const type = this.renewAddress ? 'Address' : 'Domain'
+      const type = this.renewAddress ? 'FIO Crypto Handle' : 'Domain'
+      const action = this.renewAddress ? 'adding bundles' : 'renewing'
 
       if (this.ownerPublicKey && this.publicKey && this.ownerPublicKey !== this.publicKey) {
-        return { warning: `${type} is owned by a public key that is different from the key that was sent in. Please confirm you are renewing the correct ${type}.` }
+        return { warning: `${type} is owned by a public key that is different from the key that was sent in. Please confirm you are ${action} to the correct ${type}.`}
       }
 
       return {}

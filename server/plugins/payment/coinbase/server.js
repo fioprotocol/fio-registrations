@@ -70,13 +70,14 @@ class Coinbase {
   */
   async createCharge({
     name, logoUrl, price, type, address, publicKey,
-    accountId, redirectUrl
+    accountId, redirectUrl, isRegisterAction
   }) {
     const typeName = type === 'account' ? 'Account' : 'Domain'
+    const actionName = isRegisterAction ? 'Registration' : (type === 'account' ? 'Adding Bundles' : 'Renewing')
 
     // @see https://commerce.coinbase.com/docs/api/#charges
     const charge = {
-      name: `FIO ${typeName} Registration`,
+      name: `FIO ${typeName} ${actionName}`,
       description: `Payment for ${address}`,
       logo_url: logoUrl,
       pricing_type: 'fixed_price',

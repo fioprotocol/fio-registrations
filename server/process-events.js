@@ -104,8 +104,8 @@ const renewdomain = async (domain, tpid, walletActor = '', walletPermission = ''
   }, options)
 }
 
-const renewaddress = async (address, tpid, walletActor = '', walletPermission = '') => {
-  const maxFee = await fio.getFeeRenewAddress(actor)
+const addBundlesToAddress = async (address, tpid, walletActor = '', walletPermission = '') => {
+  const maxFee = await fio.getFeeAddBundledTransactions(actor)
   const options = {}
   if (walletActor && walletPermission) {
     options.authorization = [{
@@ -114,8 +114,9 @@ const renewaddress = async (address, tpid, walletActor = '', walletPermission = 
     }]
     options.actor = walletActor
   }
-  return fio.renewAddress({
+  return fio.addBundlesToAddress({
     address,
+    bundleSets: 1,
     maxFee,
     tpid,
     actor
@@ -305,10 +306,10 @@ async function broadcastNewAccountOrRenew({
     fioAction = address ?
       await regaddress( account, owner_key, tpid, actor, permission ) :
       await regdomain( domain, owner_key, tpid )
-  } else if (type === ACCOUNT_TYPES.renew) {
-    fioAction = address ?
-      await renewaddress( account, tpid ) :
-      await renewdomain( domain, tpid )
+  } else if (type === ACCOUNT_TYPES.renew && !address) { // todo: address check could be removed when ACCOUNT_TYPES.renew and ACCOUNT_TYPES.addBundles becomes different
+    fioAction = await renewdomain( domain, tpid )
+  } else if (type === ACCOUNT_TYPES.addBundles && address) { // todo: same
+    fioAction = await addBundlesToAddress( account, tpid );
   }
 
   let transaction, trx_id, expiration

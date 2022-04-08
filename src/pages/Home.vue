@@ -146,7 +146,7 @@
               </div>
 
               <div v-if="renewAddress" class="col-sm">
-                <h4>Renew FIO Crypto Handle</h4>
+                <h4>Add bundles to existing FIO Crypto Handle</h4>
                 <p class="h5"><strong>username</strong>@domain</p>
                 <br/>
                 <FormAccountRenew
@@ -160,7 +160,7 @@
                 <div class="text-left mb-4">
                   <div class="list-group">
                     <small class="list-group-item marketing">
-                      &rsaquo;&nbsp;Renew now for {{Wallet.wallet.account_renew_price}} USDC or equivalent
+                      &rsaquo;&nbsp;Add 100 bundles now for {{Wallet.wallet.account_renew_price}} USDC or equivalent
                     </small>
                   </div>
                 </div>
@@ -212,7 +212,7 @@
     <div class="footer text-center py-3">
       <div class="container mt-4">
         <div class="d-flex justify-content-around" v-if="(regAddress || regDomain) && referralCode">
-          <a :href="`/address/renew/${referralCode}?publicKey=${regPublicKey}`">Renew existing FIO Crypto Handle</a>
+          <a :href="`/address/renew/${referralCode}?publicKey=${regPublicKey}`">Add bundles to existing FIO Crypto Handle</a>
           <a :href="`/domain/renew/${referralCode}?publicKey=${regPublicKey}`">Renew existing Domain</a>
         </div>
         <div class="d-flex justify-content-around" v-if="(renewAddress || renewDomain) && (this.Account.pubAddress || regPublicKey)">

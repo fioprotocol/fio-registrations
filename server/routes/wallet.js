@@ -154,7 +154,7 @@ router.post('/public-api/ref-wallet', handler(async (req, res) => {
       }
     }
     if (wallet.account_sale_active) {
-      const accountRenewFee = await fio.getFeeRenewAddress('')
+      const accountRenewFee = await fio.getFeeAddBundledTransactions('')
       plainWallet.account_renew_price = convert(accountRenewFee, roe)
     }
     if (wallet.domain_sale_active) {
@@ -570,7 +570,7 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
 
     const charge = await processor.createCharge({
       name, logoUrl: logo_url, price: adjPrice, type, address, publicKey,
-      accountId: account.id, redirectUrl
+      isRegisterAction: true, accountId: account.id, redirectUrl
     })
 
     charge.pay_source = process.env.PLUGIN_PAYMENT
@@ -664,8 +664,9 @@ router.post('/public-api/renew', handler(async (req, res) => {
   }
 
   const addressArray = address.split('@')
-  const renewAccount = addressArray.length === 2
-  const type = renewAccount ? 'account' : 'domain'
+  const isAddBundlesToAddress = addressArray.length === 2
+  const type = isAddBundlesToAddress ? 'account' : 'domain'
+  const accountType = isAddBundlesToAddress ? ACCOUNT_TYPES.addBundles : ACCOUNT_TYPES.renew;
 
   if (!isValidAddress(address)) {
     return res.status(400).send(
@@ -674,7 +675,7 @@ router.post('/public-api/renew', handler(async (req, res) => {
   }
 
   if (!publicKey) {
-    publicKey = renewAccount ? await fio.getAddress(address) : await fio.getPubAddressByDomain(address)
+    publicKey = isAddBundlesToAddress ? await fio.getAddress(address) : await fio.getPubAddressByDomain(address)
     console.log(publicKey);
   }
 
@@ -696,7 +697,7 @@ router.post('/public-api/renew', handler(async (req, res) => {
 
   try {
     const roe = await getROE()
-    const fee = type === 'account' ? await fio.getFeeRenewAddress('') : await fio.getFeeRenewDomain('')
+    const fee = isAddBundlesToAddress ? await fio.getFeeAddBundledTransactions('') : await fio.getFeeRenewDomain('')
     price = +Number(convert(fee, roe))
   } catch (e) {
     console.log(e);
@@ -717,7 +718,7 @@ router.post('/public-api/renew', handler(async (req, res) => {
       address: addressArray.length === 1 ? null : addressArray[0],
       owner_key: publicKey,
       wallet_id: wallet.id,
-      type: ACCOUNT_TYPES.renew,
+      type: accountType,
       ip: ipAddress,
       created: new Date()
     }
@@ -728,7 +729,8 @@ router.post('/public-api/renew', handler(async (req, res) => {
         domain: accountObj.domain,
         address: accountObj.address || null,
         wallet_id: wallet.id,
-        type: ACCOUNT_TYPES.renew,
+
+        type: accountType,
         created: {[Op.gte]: new Date(new Date().getTime() + 5 * 60000)} // was renewal created is last 5 min
       },
       transaction,
@@ -740,7 +742,7 @@ router.post('/public-api/renew', handler(async (req, res) => {
         domain: accountObj.domain,
         address: accountObj.address || null,
         owner_key: publicKey,
-        account_type: ACCOUNT_TYPES.renew
+        account_type: accountType
       },
       {},
       account,
@@ -756,7 +758,8 @@ router.post('/public-api/renew', handler(async (req, res) => {
       address,
       publicKey,
       accountId: account.id,
-      redirectUrl
+      redirectUrl,
+      isRegisterAction: false
     })
 
     charge.pay_source = process.env.PLUGIN_PAYMENT
@@ -779,7 +782,7 @@ router.post('/public-api/renew', handler(async (req, res) => {
       metadata,
       account_id: account.id,
       forward_url,
-      type: 'renew'
+      type: accountType
     }, tr)
 
     let pay_status

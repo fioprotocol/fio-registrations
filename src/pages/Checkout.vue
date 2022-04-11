@@ -37,7 +37,7 @@
           </div>
 
           <div class="mt-3">
-            <h5>Blockchain {{isRenewal ? 'Renewal' : 'Registration'}}</h5>
+            <h5>Blockchain {{isRenewal ? (wallet.address ? 'Adding Bundles' : 'Renewal') : 'Registration'}}</h5>
           </div>
           <div class="mt-2 mb-4">
             <TrxMonitor
@@ -237,7 +237,7 @@
         <div class="text-left" v-if="paidEnough && !allConfirmed">
           <small>
             Payment collected, your {{wallet.address ? 'address' : 'domain'}}
-            will be {{isRenewal ? 'renewed' : 'registered'}}. You may return at any time for an update.
+            will be {{isRenewal ? (wallet.address ? 'replenished' : 'renewed') : 'registered'}}. You may return at any time for an update.
           </small>
         </div>
 

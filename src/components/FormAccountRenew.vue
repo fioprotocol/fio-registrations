@@ -7,7 +7,7 @@
         :domains="domains"
         :defaultDomain="defaultDomainValue"
         :defaultAddress="defaultAddressValue"
-        :buyAddress="renewAddress"
+        :buyAddress="isAddBundles"
         :allowPublicDomains="allowPublicDomains"
       >
         <button
@@ -17,7 +17,7 @@
           :disabled="address === null || checkAddressLoading || processingRenew || checkAddressPubKeyLoading"
         >
           <div v-if="!checkAddressLoading && !processingRenew && !checkAddressPubKeyLoading">
-            {{ renewAddress ? 'Add Bundles' : 'Renew' }}
+            {{ isAddBundles ? 'Add Bundles' : 'Renew' }}
           </div>
           <div v-else
             class="mb-1 spinner-grow spinner-grow-sm text-light"
@@ -101,7 +101,7 @@ export default {
       type: String,
       required: false
     },
-    renewAddress: {
+    isAddBundles: {
       type: Boolean,
       default: true
     }
@@ -227,7 +227,7 @@ export default {
         return {}
       }
 
-      const type = this.renewAddress ? 'Address' : 'Domain'
+      const type = this.isAddBundles ? 'Address' : 'Domain'
 
       if (this.validAddress === false) {
         return {error: 'Invalid ' + type}
@@ -249,8 +249,8 @@ export default {
         return {}
       }
 
-      const type = this.renewAddress ? 'FIO Crypto Handle' : 'Domain'
-      const action = this.renewAddress ? 'adding bundles' : 'renewing'
+      const type = this.isAddBundles ? 'FIO Crypto Handle' : 'Domain'
+      const action = this.isAddBundles ? 'adding bundles' : 'renewing'
 
       if (this.ownerPublicKey && this.publicKey && this.ownerPublicKey !== this.publicKey) {
         return { warning: `${type} is owned by a public key that is different from the key that was sent in. Please confirm you are ${action} to the correct ${type}.`}
@@ -260,7 +260,7 @@ export default {
     },
 
     priceBeforeCredit() {
-      return this.renewAddress ?
+      return this.isAddBundles ?
         +Number(this.Wallet.wallet.account_renew_price) :
         +Number(this.Wallet.wallet.domain_renew_price)
     },
@@ -276,7 +276,7 @@ export default {
 
     defaultDomainValue() {
       if (
-        this.renewAddress &&
+        this.isAddBundles &&
         this.Wallet.wallet.domains &&
         this.Wallet.wallet.domains.indexOf(this.domainFromUrl) > -1
       )
@@ -287,7 +287,7 @@ export default {
 
     defaultAddressValue() {
       if (
-        this.renewAddress &&
+        this.isAddBundles &&
         this.addressFromUrl &&
         this.Wallet.wallet.domains &&
         this.Wallet.wallet.domains.indexOf(this.domainFromUrl) > -1

@@ -105,6 +105,8 @@ const renewdomain = async (domain, tpid, walletActor = '', walletPermission = ''
 }
 
 const addBundlesToAddress = async (address, tpid, walletActor = '', walletPermission = '') => {
+  const DEFAULT_BUNDLES_SETS_AMOUNT = 1;
+
   const maxFee = await fio.getFeeAddBundledTransactions(actor)
   const options = {}
   if (walletActor && walletPermission) {
@@ -116,7 +118,7 @@ const addBundlesToAddress = async (address, tpid, walletActor = '', walletPermis
   }
   return fio.addBundlesToAddress({
     address,
-    bundleSets: 1,
+    bundleSets: DEFAULT_BUNDLES_SETS_AMOUNT,
     maxFee,
     tpid,
     actor

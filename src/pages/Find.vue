@@ -202,23 +202,23 @@
                   <div class="row">
                     <b-col cols="auto" v-if="canRetry(row)">
                       <b-button size="sm" v-b-modal.retry-modal>
-                        Retry {{row.item.account_type === 'register' ? 'Registration' : 'Renewal'}}
+                        Retry {{row.item.account_type === 'register' ? 'Registration' : (row.item.account_type === 'add_bundles' ? 'Adding Bundles' : 'Renewal')}}
                       </b-button>
                       <b-modal id="retry-modal" @ok="updateTrxStatus('retry')"
-                        title="Retry Registration"
+                        title="Retry"
                       >
-                        Register <b>{{account(row.item)}}</b> anyways?
+                        {{ row.item.account_type === 'register' ? 'Register' : (row.item.account_type === 'add_bundles' ? 'Add Bundles to' : 'Renew') }} <b>{{account(row.item)}}</b> anyways?
                       </b-modal>
                     </b-col>
 
                     <b-col cols="auto" v-if="canCancel(row)">
                       <b-button size="sm" v-b-modal.cancel-modal varient="danger">
-                        Cancel Registration
+                        Cancel {{ row.item.account_type === 'register' ? 'Registration' : (row.item.account_type === 'add_bundles' ? 'Adding Bundles' : 'Renewal') }}
                       </b-button>
                       <b-modal id="cancel-modal" @ok="updateTrxStatus('cancel')"
                         title="Cancel" cancel-title="Abort" ok-title="OK, Cancel"
                       >
-                        Cancel registration for <b>{{account(row.item)}}</b>?
+                        Cancel {{ row.item.account_type === 'register' ? 'registration for' : (row.item.account_type === 'add_bundles' ? 'adding Bundles to' : 'renewal for') }} <b>{{account(row.item)}}</b>?
                         <!-- <span v-if="row.item.trx_status">
                           Remember to credit the customer's balance.
                         </span> -->

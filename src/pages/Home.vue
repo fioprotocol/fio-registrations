@@ -153,7 +153,7 @@
                         :referralCode="referralCode"
                         :defaultDomain="defaultDomain"
                         :publicKey="regPublicKey"
-                        :renewAddress="true"
+                        :isAddBundles="true"
                         :renewPending="accountReg"
                         @renewPending="accountReg = $event"
                 />
@@ -174,7 +174,7 @@
                         :referralCode="referralCode"
                         :defaultDomain="defaultDomain"
                         :publicKey="regPublicKey"
-                        :renewAddress="false"
+                        :isAddBundles="false"
                 />
                 <div class="text-left">
                   <div class="list-group">

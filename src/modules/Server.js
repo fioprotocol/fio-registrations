@@ -10,6 +10,7 @@ export default {
   state: {
       ...loading.defaults([
       'user', 'users', 'saveUser', 'deleteUser',
+      'accountProfile', 'accountProfiles', 'saveAccountProfile', 'deleteAccountProfile',
       'find', 'findRefresh', 'refreshPaymentResult',
       'sendInvite', 'invite',
       'wallet', 'wallets', 'upsertWallet', 'uploadImage', 'fillRegistrationsSearch'

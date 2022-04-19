@@ -48,15 +48,15 @@ async function all() {
     .catch(err => console.error(err))
 }
 
-const regdomain = async (domain, ownerPublic, tpid, walletActor = '', walletPermission = '') => {
+const regdomain = async (domain, ownerPublic, tpid, defaultWalletActor = null, defaultWalletPermission = null) => {
   const maxFee = await fio.getFeeDomain(actor)
   const options = {}
-  if (walletActor && walletPermission) {
+  if (defaultWalletActor && defaultWalletPermission) {
     // options.authorization = [{
-    //   actor: walletActor,
-    //   permission: walletPermission
+    //   actor: defaultWalletActor,
+    //   permission: defaultWalletPermission
     // }]
-    // options.actor = walletActor
+    // options.actor = defaultWalletActor
   }
   return fio.registerDomain({
     domain,
@@ -67,7 +67,7 @@ const regdomain = async (domain, ownerPublic, tpid, walletActor = '', walletPerm
   }, options)
 }
 
-const regaddress = async (address, ownerPublic, tpid, walletActor = '', walletPermission = '') => {
+const regaddress = async (address, ownerPublic, tpid, walletActor = null, walletPermission = null) => {
   const maxFee = await fio.getFeeAddress(actor)
   const options = {}
   if (walletActor && walletPermission) {
@@ -86,15 +86,15 @@ const regaddress = async (address, ownerPublic, tpid, walletActor = '', walletPe
   }, options)
 }
 
-const renewdomain = async (domain, tpid, walletActor = '', walletPermission = '') => {
+const renewdomain = async (domain, tpid, defaultWalletActor = null, defaultWalletPermission = null) => {
   const maxFee = await fio.getFeeRenewDomain(actor)
   const options = {}
-  if (walletActor && walletPermission) {
+  if (defaultWalletActor && defaultWalletPermission) {
     options.authorization = [{
-      actor: walletActor,
-      permission: walletPermission
+      actor: defaultWalletActor,
+      permission: defaultWalletPermission
     }]
-    options.actor = walletActor
+    options.actor = defaultWalletActor
   }
   return fio.renewDomain({
     domain,
@@ -104,17 +104,17 @@ const renewdomain = async (domain, tpid, walletActor = '', walletPermission = ''
   }, options)
 }
 
-const addBundlesToAddress = async (address, tpid, walletActor = '', walletPermission = '') => {
+const addBundlesToAddress = async (address, tpid, defaultWalletActor = null, defaultWalletPermission = null) => {
   const DEFAULT_BUNDLES_SETS_AMOUNT = 1;
 
   const maxFee = await fio.getFeeAddBundledTransactions(actor)
   const options = {}
-  if (walletActor && walletPermission) {
+  if (defaultWalletActor && defaultWalletPermission) {
     options.authorization = [{
-      actor: walletActor,
-      permission: walletPermission
+      actor: defaultWalletActor,
+      permission: defaultWalletPermission
     }]
-    options.actor = walletActor
+    options.actor = defaultWalletActor
   }
   return fio.addBundlesToAddress({
     address,
@@ -159,13 +159,14 @@ async function getPaidNeedingAccounts() {
                       acc_payer.id account_pay_id,
                       acc_payer.account_id,
                       w.tpid,
-                      w.actor,
-                      w.permission
+                      acpr.actor,
+                      acpr.permission
         from account a
             inner join acc_payer on acc_payer.account_id = a.id
             left join last on last.account_id = acc_payer.account_id and last.type = a.type
             left join blockchain_trx_event bte on bte.id = last.mid
             left join wallet w on a.wallet_id = w.id
+            left join account_profile acpr on w.account_profile_id = acpr.id
         where last.account_id is null OR bte.trx_status = 'retry'
         order by a.id;
   `)
@@ -178,6 +179,7 @@ async function getAccountsByDomainsAndStatus(walletId, domains = [], statuses = 
     domain,
     accounts: 1
   }))
+  // eslint-disable-next-line no-unreachable
   const domainWhere = domains.length ? ` and a.domain in (${domains.map(domain => `'${domain}'`).join(',')}) ` : ''
   const statusesWhere = statuses.length > 1 ? ` (${statuses.map(status => `bte.trx_status = '${status}'`).join(' OR ')}) ` : ` bte.trx_status = '${statuses[0]}' `
   const [accounts] = await sequelize.query(`
@@ -302,16 +304,23 @@ async function broadcastNewAccountOrRenew({
     permission,
     type
   })
+  let defaultActor = null;
+  let defaultPermission = null;
+  const defaultAccountRaw = await db.AccountProfile.findOne({where: {is_default: true}});
+  const defaultAccount = defaultAccountRaw.get();
+  defaultActor = defaultAccount.actor;
+  defaultPermission = defaultAccount.permission;
+
   const account = (address ? address + '@' : '') + domain
   let fioAction
   if (type === ACCOUNT_TYPES.register) {
     fioAction = address ?
       await regaddress( account, owner_key, tpid, actor, permission ) :
-      await regdomain( domain, owner_key, tpid )
+      await regdomain( domain, owner_key, tpid, defaultActor, defaultPermission )
   } else if (type === ACCOUNT_TYPES.renew) {
-    fioAction = await renewdomain( domain, tpid )
+    fioAction = await renewdomain( domain, tpid, defaultActor, defaultPermission )
   } else if (type === ACCOUNT_TYPES.addBundles) {
-    fioAction = await addBundlesToAddress( account, tpid );
+    fioAction = await addBundlesToAddress( account, tpid, defaultActor, defaultPermission );
   }
 
   let transaction, trx_id, expiration

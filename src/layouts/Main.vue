@@ -26,6 +26,12 @@
               Admin Users
             </b-nav-item>
 
+            <b-nav-item :to="{name: 'account-profiles'}"
+              exact exact-active-class="active"
+            >
+              Account Profiles
+            </b-nav-item>
+
             <b-nav-item :to="{name: 'wallets'}"
               exact exact-active-class="active"
             >

@@ -35,10 +35,8 @@ if(!process.env.TITLE) {
 
 /** Debit or credit a public key's balance */
 router.post('/adjustment', handler(async (req, res) => {
-  const {user_id, username} = res.state
-  if(!user_id) {
-    return res.status(401).send({error: 'Unauthorized'})
-  }
+  const {username} = res.state
+
 
   const {publicKey, notes} = req.body
   const amount = Number(req.body.amount)
@@ -63,11 +61,6 @@ router.post('/adjustment', handler(async (req, res) => {
 }))
 
 router.get('/transactions/:publicKey', handler(async (req, res) => {
-  const {user_id} = res.state
-  if(!user_id) {
-    return res.status(401).send({error: 'Unauthorized'})
-  }
-
   const {publicKey} = req.params
   assert(publicKey, 'Missing url parameter: publicKey')
   assert(PublicKey.isValid(publicKey), 'Invalid: publicKey')
@@ -152,11 +145,6 @@ router.get('/find/:search/:page?', handler(async (req, res) => {
  * Separate (account pay/blockchain trx) search
  */
 router.get('/find-by/:type/:search/:?page', handler(async (req, res) => {
-  const {user_id} = res.state
-  if(!user_id) {
-    return res.status(401).send({error: 'Unauthorized'})
-  }
-
   const { type, search, page = 1 } = req.params
   if (!type || type.trim() === '') {
     return res.status(401).send({error: 'Missing url parameter: type'})
@@ -454,11 +442,6 @@ router.post('/update-trx-status', handler(async (req, res) => {
 }))
 
 router.post('/update-payment/:extern_id', handler(async (req, res) => {
-  const {user_id} = res.state
-  if(!user_id) {
-    return res.status(401).send({error: 'Unauthorized'})
-  }
-
   const {extern_id} = req.params
   assert(extern_id, 'Required: extern_id')
 
@@ -469,11 +452,6 @@ router.post('/update-payment/:extern_id', handler(async (req, res) => {
 
 /** Get all wallets */
 router.get('/wallets', handler(async (req, res) => {
-  const {user_id} = res.state
-  if(!user_id) {
-    return res.status(401).send({error: 'Unauthorized'})
-  }
-
   const wallets = await db.Wallet.findAll()
 
   return res.send({list: wallets.map(w => w.get())})
@@ -484,11 +462,6 @@ router.get('/wallets', handler(async (req, res) => {
   @arg {boolean} req.body.webhook_enabled -- true converts to date now(), false into a null
 */
 router.post('/wallet', handler(async (req, res) => {
-  const {user_id} = res.state
-  if(!user_id) {
-    return res.status(401).send({error: 'Unauthorized'})
-  }
-
   const {referral_code, newWallet} = req.body
   assert(referral_code, 'missing body url part: referral_code')
   assert(/^[a-z0-9-]{3,20}$/.test(referral_code), 'referral_code must be lowercase and may have letters, numbers, use dashes and be 20 characters or less.')
@@ -568,18 +541,14 @@ router.post('/wallet', handler(async (req, res) => {
 }))
 
 router.get('/wallet/:referral_code', handler(async (req, res) => {
-  const {user_id} = res.state
-  if(!user_id) {
-    return res.status(401).send({error: 'Unauthorized'})
-  }
-
   const {referral_code} = req.params
   assert(referral_code, 'missing body url part: referral_code')
   assert(/^[a-z0-9-]{3,20}$/.test(referral_code), 'referral_code must be lowercase and may have letters, numbers, use dashes and be 20 characters or less.')
 
   const wallet = await db.Wallet.findOne({
-    where: { referral_code }
-  })
+    where: { referral_code },
+    include: db.AccountProfile
+  });
 
   if(!wallet) {
     return res.send({error: `Unknown referral code`})
@@ -604,16 +573,18 @@ router.get('/wallet/:referral_code', handler(async (req, res) => {
     return acc
   }, {})
 
+  const accProfiles = await db.AccountProfile.findAll({
+    attributes: accProfileCols,
+    order: ['created_at']
+  })
+
+  result.accountProfilesList = accProfiles.map(acc => acc.get())
+
   return res.send(result)
 }))
 
 /** Wallet logos */
 router.post('/upload', handler(async (req, res) => {
-  const {user_id} = res.state
-  if(!user_id) {
-    return res.status(401).send({error: 'Unauthorized'})
-  }
-
   const {folder, filename, mimeType, data} = req.body
 
   const upload = await plugins.upload
@@ -626,9 +597,7 @@ router.post('/upload', handler(async (req, res) => {
 */
 router.post('/send-invite', handler(async (req, res) => {
   const {user_id} = res.state
-  if(!user_id) {
-    return res.status(401).send({error: 'Unauthorized'})
-  }
+
 
   const {email, inviteUrl} = req.body
 
@@ -705,9 +674,7 @@ const userCols = [
 /** Get logged in user */
 router.get('/user', handler(async (req, res) => {
   const {user_id} = res.state
-  if(!user_id) {
-    return res.status(401).send({error: 'Unauthorized'})
-  }
+
 
   const userRow = await db.User.findOne({
     attributes: userCols,
@@ -727,11 +694,6 @@ router.get('/user', handler(async (req, res) => {
 
 /** Fetch all users */
 router.get('/users', handler(async (req, res) => {
-  const {user_id} = res.state
-  if(!user_id) {
-    return res.status(401).send({error: 'Unauthorized'})
-  }
-
   const users = await db.User.findAll({
     attributes: userCols,
     order: ['created']
@@ -742,9 +704,7 @@ router.get('/users', handler(async (req, res) => {
 
 router.delete('/user/:id', handler(async (req, res) => {
   const {user_id} = res.state
-  if(!user_id) {
-    return res.status(401).send({error: 'Unauthorized'})
-  }
+
 
   const deleteId = req.params.id
   assert(deleteId !== undefined, 'required id (user id)')
@@ -767,9 +727,7 @@ router.delete('/user/:id', handler(async (req, res) => {
 
 router.post('/user', handler(async (req, res) => {
   const {user_id} = res.state
-  if(!user_id) {
-    return res.status(401).send({error: 'Unauthorized'})
-  }
+
 
   const {email, password, username, mfa_enabled, api_enabled} = req.body
   const update = {email, mfa_enabled, api_enabled}
@@ -842,6 +800,125 @@ router.get('/csv-report', handler(async (req, res) => {
   }
   const { csv, fileName } = await generateCsvReport(req.query.ref, req.query.domain, req.query.after)
   return res.send({ success: { csv, fileName }});
+}))
+
+const accProfileCols = [
+  'id', 'actor', 'permission', 'created_at', 'is_default', 'updated_at',
+  'name'
+]
+
+router.get('/account-profiles', handler(async (req, res) => {
+  const { user_id } = res.state
+  if (!user_id) {
+    return res.status(401).send({ error: 'Unauthorized' })
+  }
+  const accProfiles = await db.AccountProfile.findAll({
+    attributes: accProfileCols,
+    order: ['created_at']
+  })
+
+  return res.send({list: accProfiles.map(acc => acc.get())})
+}))
+
+router.delete('/account-profile/:id', handler(async (req, res) => {
+  const deleteId = req.params.id
+  assert(deleteId !== undefined, 'required id (account_profile id)')
+
+  const rows = await db.AccountProfile.destroy({where: {id: deleteId, is_default: false}})
+
+  if(rows !== 1) {
+    console.log('Delete failed, rows:', rows);
+    return res.status(401).send({error: 'Delete failed'})
+  }
+  return res.send({success: 'Deleted'})
+}))
+
+
+router.get('/account-profile/:id', handler(async (req, res) => {
+  const { user_id } = res.state;
+  const profileId = req.params.id;
+
+  if (!user_id) {
+    return res.status(401).send({ error: 'Unauthorized' })
+  }
+
+  if (!profileId) {
+    return res.send({error: 'Id should be provided'})
+  }
+
+  let accProfileRaw;
+  try {
+    accProfileRaw = await db.AccountProfile.findOne({
+      attributes: accProfileCols,
+      where: {id: profileId}
+    })
+    if (!accProfileRaw) {
+      return res.send({error: 'Account not found'})
+    }
+  } catch (e) {
+    return res.send({error: 'Account not found'})
+  }
+
+  const accProfile = accProfileRaw.get()
+
+
+  return res.send(accProfile)
+}))
+
+router.post('/account-profile/:id?', handler(async (req, res) => {
+  const {actor, permission, name} = req.body
+  const updateId = req.params.id
+
+  const valuesToSave = {
+    actor: actor || '',
+    permission: permission || '',
+    name: name || null,
+  }
+
+  if (!valuesToSave.actor || !/^[a-zA-Z0-9]{12,12}$/.test(valuesToSave.actor)) {
+    return res.send({error: `Wrong value for actor field.`})
+  }
+
+  if (!valuesToSave.permission || !/(^[a-z1-5.]{0,11}[a-z1-5]$)|(^[a-z1-5.]{12}[a-j1-5]$)/.test(valuesToSave.permission)) {
+    return res.send({error: `Wrong value for permission field.`})
+  }
+
+  if (valuesToSave.name && !/^[a-z][a-z0-9]{2,29}$/.test(valuesToSave.name || '')) {
+    return res.send({error: `Wrong value for name field.`})
+  }
+
+  try {
+    if (!updateId) {
+      const existProfile = await db.AccountProfile.findOne({where: {permission: valuesToSave.permission, actor: valuesToSave.actor}})
+      if (existProfile) {
+        return res.send({error: 'This Account Profile is already exist'})
+      }
+
+      const createdProfile = await db.AccountProfile.create(valuesToSave)
+      if (createdProfile && createdProfile.id) {
+        return res.send({id: createdProfile.id, success: 'Created'})
+      }
+
+      return res.send({error: 'Create failed'})
+    }
+
+    const where = {id: updateId}
+
+    const existUpdateProfile = await db.AccountProfile.findOne({where})
+    if (!existUpdateProfile) {
+      return res.send({error: 'Account Profile not found'})
+    }
+
+    const [updatedRowsCount] = await db.AccountProfile.update(valuesToSave, { where })
+
+    if (updatedRowsCount === 1) {
+      return res.send({success: 'Updated'})
+    }
+
+    return res.send({error: 'Update failed'})
+  } catch(error) {
+    return res.send({error: error.message})
+  }
 }))
 
 module.exports = router

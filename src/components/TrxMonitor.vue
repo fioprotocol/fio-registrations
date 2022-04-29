@@ -34,17 +34,6 @@
               </a>
             </span>
           </span>
-
-          <span v-if="row.trx_status === 'pending'">
-            <Elapsed :expires_at="expiresAt(row)" >
-              <template v-slot:prefix>&nbsp;&mdash;&nbsp;</template>
-              <template v-slot:expired>
-                &nbsp;
-                <span class="mb-1 spinner-grow spinner-grow-sm"
-                role="status" aria-hidden="true"></span>
-              </template>
-            </Elapsed>
-          </span>
           <span v-else>
             <span v-if="isPending(row)">
               &nbsp;
@@ -60,7 +49,6 @@
 
 <script>
 import {mapState} from 'vuex'
-import Elapsed from './Elapsed'
 
 // used for a summary per account
 let uid = 0
@@ -79,8 +67,6 @@ export default {
     afterTopActive: Boolean,
     refresh: Number,
   },
-
-  components: { Elapsed },
 
   data() {
     return {
@@ -166,10 +152,11 @@ export default {
       let ret
       try {
         const {trx_status, pay_status, trx_type} = row
+
         const successLabel = { 'renew': 'Renewed', 'register': 'Registered', 'add_bundles': 'Bundles Added' }
 
         if(trx_status) {
-          if(trx_status === 'pending') { return ret = 'Pending: Awaiting blockchain finality' }
+          if(trx_status === 'pending') { return ret = 'Created' }
           if(trx_status === 'retry') { return ret = 'Pending: Retrying' }
           if(trx_status === 'success') { return ret = successLabel[trx_type] || 'Registered' }
           if(trx_status === 'expire') { return ret = 'Failed' }

@@ -168,15 +168,12 @@ export default {
         }
 
         if(pay_status) {
-          if(pay_status === 'pending') { return ret = 'Pending: Awaiting Payment' }
           if(pay_status === 'success') { return ret = 'Pending: Registering on blockchain' }
           if(pay_status === 'review') { return ret = 'Failed' }
           if(pay_status === 'cancel') { return ret = 'Cancelled' }
         } else {
           if(trx_status === 'review') {
             return ret = 'Failed'
-          } else {
-            return ret = 'Pending: Awaiting Payment'
           }
         }
 
@@ -193,11 +190,7 @@ export default {
       }
 
       if(row.trx_status) {
-        return /pending|retry/.test(row.trx_status)
-      }
-
-      if(row.pay_status) {
-        return /pending/.test(row.pay_status)
+        return /retry/.test(row.trx_status)
       }
 
       return false

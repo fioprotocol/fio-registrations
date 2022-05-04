@@ -54,7 +54,7 @@ module.exports = async function({
 
   if(required) {
     if (!state.user_id || !state.login_at) {
-      throw new Error('Please login')
+      throw new Error('Unauthorized')
     }
     if (state.force_password_change) {
       throw new Error('Please change your password')

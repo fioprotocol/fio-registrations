@@ -23,10 +23,7 @@ const { ACCOUNT_TYPES } = require('../constants')
   Create or update a payment in the system.  A pay_status of `success` will trigger a domain registration.
 */
 router.post('/buy', handler(async (req, res) => {
-  const {username, user_id} = res.state
-  if(!user_id) {
-    return res.status(401).send({error: 'Unauthorized'})
-  }
+  const {username} = res.state
 
   const {
     referral_code = null,

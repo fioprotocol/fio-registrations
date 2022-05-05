@@ -11,6 +11,7 @@ const {Op} = Sequelize
 
 const { saveRegistrationsSearchItem, checkCreatedBcTrxEvents } = require('./registrations-search-util')
 const { processNotifications } = require('./services/notification')
+const { sendInsufficientFundsNotification } = require('./services/fallback-funds-email');
 const { ACCOUNT_TYPES } = require('./constants')
 
 const {Fio, Ecc} = require('@fioprotocol/fiojs')
@@ -29,6 +30,8 @@ const fio = new FioApi(chainEndpoint, {
   authorization: [{actor, permission: 'active'}],
   chainId
 })
+
+const INSUFFICIENT_FUNDS_ERR_MESSAGE = 'Insufficient funds to cover fee';
 
 async function all() {
   // pending => success or expire
@@ -158,6 +161,7 @@ async function getPaidNeedingAccounts() {
                       a.type,
                       acc_payer.id account_pay_id,
                       acc_payer.account_id,
+                      w.name wallet_profile_name,
                       w.tpid,
                       acpr.actor,
                       acpr.permission
@@ -288,6 +292,7 @@ async function broadcastNewAccountOrRenew({
   domain,
   address,
   owner_key,
+  wallet_profile_name,
   tpid,
   actor,
   permission,
@@ -300,6 +305,7 @@ async function broadcastNewAccountOrRenew({
     address,
     owner_key,
     tpid,
+    wallet_profile_name,
     actor,
     permission,
     type
@@ -329,7 +335,30 @@ async function broadcastNewAccountOrRenew({
     transaction = await fio.transaction([fioAction])
     trx_id = await fio.transactionId(transaction)
     expiration = transaction.expiration
-  } catch(error) {
+  } catch (error) {
+
+    // try to execute using fallback account when no funds
+    if (
+      error.message === INSUFFICIENT_FUNDS_ERR_MESSAGE
+      && actor !== process.env.REG_FALLBACK_ACCOUNT
+      && permission !== process.env.REG_FALLBACK_PERMISSION
+    ) {
+      await sendInsufficientFundsNotification(account, wallet_profile_name, fioAction.authorization[0])
+      return broadcastNewAccountOrRenew({
+          account_id,
+          account_pay_id,
+          domain,
+          address,
+          owner_key,
+          tpid,
+          wallet_profile_name,
+          actor: process.env.REG_FALLBACK_ACCOUNT,
+          permission: process.env.REG_FALLBACK_PERMISSION,
+          type
+        }
+      )
+    }
+
     const dbTrx = await db.BlockchainTrx.create({
       type,
       account_id

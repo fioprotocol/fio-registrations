@@ -339,9 +339,7 @@ async function broadcastNewAccountOrRenew({
 
     // try to execute using fallback account when no funds
     if (
-      error.message === INSUFFICIENT_FUNDS_ERR_MESSAGE
-      && actor !== process.env.REG_FALLBACK_ACCOUNT
-      && permission !== process.env.REG_FALLBACK_PERMISSION
+      error.message === INSUFFICIENT_FUNDS_ERR_MESSAGE && actor !== process.env.REG_FALLBACK_ACCOUNT
     ) {
       await sendInsufficientFundsNotification(account, wallet_profile_name, fioAction.authorization[0])
       return broadcastNewAccountOrRenew({

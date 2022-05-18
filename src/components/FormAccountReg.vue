@@ -376,8 +376,9 @@ export default {
       }
 
       const type = this.buyAddress ? 'Address' : 'Domain'
+      const typeTitle = this.buyAddress ? 'Fio Crypto Handle' : 'Domain'
       if(this.address === this.Account.registeredAccount) {
-        return {error: `${type} "${this.address}" is already registered`}
+        return {error: `${typeTitle} "${this.address}" is already registered`}
       }
       if (this.Account.loading[`is${type}Registered`]._error) {
         return {error: this.Account.loading[`is${type}Registered`]._error}
@@ -396,9 +397,9 @@ export default {
 
       if(this.validatedAddress) {
         if(this.freeSale) {
-          return {success: `${type} "${this.address}" is available`}
+          return {success: `${typeTitle} "${this.address}" is available`}
         }
-        return {success: `${type} "${this.address}" is available for $${this.priceBeforeCredit}/year`}
+        return {success: `${typeTitle} "${this.address}" is available for $${this.priceBeforeCredit}/year`}
       }
       return {}
     },

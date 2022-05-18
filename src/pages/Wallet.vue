@@ -140,7 +140,7 @@
         <b-form-select
             id="account-profile"
             v-model="form.account_profile_id"
-            :options="(wallet.accountProfilesList || []).map(o => ({...o, text: `Name: ${JSON.stringify(o.name)}, Actor: ${o.actor}, Permission: ${o.permission}`}))"
+            :options="(accountProfiles.list || []).map(o => ({...o, text: `Name: ${JSON.stringify(o.name)}, Actor: ${o.actor}, Permission: ${o.permission}`}))"
             value-field="id"
             text-field="text"
         ></b-form-select>
@@ -486,21 +486,20 @@ export default {
       for(let key in this.form) {
         let value
         if(key === 'account_profile_id') {
-          value = this.wallet.AccountProfile.id
+          value = this.wallet.AccountProfile ? this.wallet.AccountProfile.id : defaults[key];
         } else if(key === 'webhook_enabled') {
-          value = this.wallet[key] != null
+          value = !!this.wallet[key]
         } else if (key === 'domains') {
           value = this.wallet.domains ? this.wallet.domains.map(domain => {
             const domainLimit = this.wallet.domains_limit[domain] ? this.wallet.domains_limit[domain] : null
             return { domain, limit: domainLimit, registered: this.wallet.accountsByDomain[domain] }
-          }) : []
+          }) : defaults[key]
         } else {
           const walletValue = this.wallet[key]
-          value = walletValue == null ? defaults[key] : walletValue
+          value = walletValue ? walletValue : defaults[key]
         }
         form[key] = value
       }
-      console.log(this.wallet.limit_ip_whitelist.indexOf('120'));
       return form
     },
 
@@ -514,9 +513,6 @@ export default {
     },
 
     modified() {
-      if(!this.wallet) {
-        return false
-      }
       const form = this.formatWalletToForm()
       for (let key in this.form) {
         if (key === 'domains') {
@@ -545,6 +541,7 @@ export default {
       upsertWallet: state => state.Server.upsertWallet,
       uploadImage: state => state.Server.uploadImage,
       appInfo: state => state.AppInfo.info,
+      accountProfiles: state => state.Server.accountProfiles,
     }),
 
     newWallet() {
@@ -592,6 +589,7 @@ export default {
 
   created() {
     this.$store.dispatch('AppInfo/load')
+    this.$store.dispatch('Server/get', {key: 'accountProfiles', path: 'account-profiles'})
     if(this.referralCode) {
       this.$store.dispatch('Server/get', {
         key: 'wallet', path: 'wallet/' + this.referralCode

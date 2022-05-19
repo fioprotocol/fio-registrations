@@ -376,7 +376,7 @@ export default {
       }
 
       const type = this.buyAddress ? 'Address' : 'Domain'
-      const typeTitle = this.buyAddress ? 'Fio Crypto Handle' : 'Domain'
+      const typeTitle = this.buyAddress ? 'FIO Crypto Handle' : 'Domain'
       if(this.address === this.Account.registeredAccount) {
         return {error: `${typeTitle} "${this.address}" is already registered`}
       }

@@ -814,7 +814,7 @@ router.get('/account-profiles', handler(async (req, res) => {
   }
   const accProfiles = await db.AccountProfile.findAll({
     attributes: accProfileCols,
-    order: ['created_at']
+    order: [[sequelize.literal('created_at, is_default'), 'desc']]
   })
 
   return res.send({list: accProfiles.map(acc => acc.get())})

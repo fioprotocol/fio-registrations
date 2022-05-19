@@ -2,7 +2,7 @@
   <div>
     <div>
       <b-table
-        :items="accountProfiles.list"
+        :items="(accountProfiles.list || []).map(o=>({...o, _rowVariant: o.is_default ? 'info' : null}))"
         primary-key="id"
         :fields="fields"
         @row-selected="onRowSelected"

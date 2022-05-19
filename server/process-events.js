@@ -438,7 +438,7 @@ async function broadcastNewAccountOrRenew({
 
     const notes = fieldError ? fieldError.error : JSON.stringify(bc)
 
-    if(
+    if (
       notes === 'FIO domain already registered' ||
       notes === 'FIO address already registered'
     ) {

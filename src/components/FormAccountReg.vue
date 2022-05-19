@@ -370,14 +370,14 @@ export default {
         return { error: 'Domain is not public' }
       }
 
-      if(this.validAddress === false) {
-        const type = this.buyAddress ? 'address' : 'domain'
-        return {error: 'Invalid ' + type}
+      if (this.validAddress === false) {
+        const typeTitle = this.buyAddress ? 'Crypto Handle' : 'domain'
+        return {error: 'Invalid ' + typeTitle}
       }
 
       const type = this.buyAddress ? 'Address' : 'Domain'
       const typeTitle = this.buyAddress ? 'FIO Crypto Handle' : 'Domain'
-      if(this.address === this.Account.registeredAccount) {
+      if (this.address === this.Account.registeredAccount) {
         return {error: `${typeTitle} "${this.address}" is already registered`}
       }
       if (this.Account.loading[`is${type}Registered`]._error) {

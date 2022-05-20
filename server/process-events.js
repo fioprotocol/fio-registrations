@@ -337,26 +337,6 @@ async function broadcastNewAccountOrRenew({
     expiration = transaction.expiration
   } catch (error) {
 
-    // try to execute using fallback account when no funds
-    if (
-      error.message === INSUFFICIENT_FUNDS_ERR_MESSAGE && actor !== process.env.REG_FALLBACK_ACCOUNT
-    ) {
-      await sendInsufficientFundsNotification(account, wallet_profile_name, fioAction.authorization[0])
-      return broadcastNewAccountOrRenew({
-          account_id,
-          account_pay_id,
-          domain,
-          address,
-          owner_key,
-          tpid,
-          wallet_profile_name,
-          actor: process.env.REG_FALLBACK_ACCOUNT,
-          permission: process.env.REG_FALLBACK_PERMISSION,
-          type
-        }
-      )
-    }
-
     const dbTrx = await db.BlockchainTrx.create({
       type,
       account_id
@@ -437,6 +417,26 @@ async function broadcastNewAccountOrRenew({
       bc.fields.find(f => f.error) : null
 
     const notes = fieldError ? fieldError.error : JSON.stringify(bc)
+
+    // try to execute using fallback account when no funds
+    if (
+      notes === INSUFFICIENT_FUNDS_ERR_MESSAGE && actor !== process.env.REG_FALLBACK_ACCOUNT
+    ) {
+      await sendInsufficientFundsNotification(account, wallet_profile_name, fioAction.authorization[0])
+      return broadcastNewAccountOrRenew({
+          account_id,
+          account_pay_id,
+          domain,
+          address,
+          owner_key,
+          tpid,
+          wallet_profile_name,
+          actor: process.env.REG_FALLBACK_ACCOUNT,
+          permission: process.env.REG_FALLBACK_PERMISSION,
+          type
+        }
+      )
+    }
 
     if (
       notes === 'FIO domain already registered' ||

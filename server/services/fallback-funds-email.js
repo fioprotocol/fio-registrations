@@ -7,7 +7,7 @@ const DEFAULT_EMAIL_DATA = {
 }
 
 const lastNotificationKey = 'lastInsufficientFundsNotificationSent'
-const TIMEOUT_HOURS = 24
+const TIMEOUT_HOURS = 1000 * 60 * 60 * 24 // 24 hours
 
 const sendInsufficientFundsNotification = async (fioName, walletProfileName, authorization) => {
   const now = new Date()

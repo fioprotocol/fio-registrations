@@ -34,17 +34,6 @@
               </a>
             </span>
           </span>
-
-          <span v-if="row.trx_status === 'pending'">
-            <Elapsed :expires_at="expiresAt(row)" >
-              <template v-slot:prefix>&nbsp;&mdash;&nbsp;</template>
-              <template v-slot:expired>
-                &nbsp;
-                <span class="mb-1 spinner-grow spinner-grow-sm"
-                role="status" aria-hidden="true"></span>
-              </template>
-            </Elapsed>
-          </span>
           <span v-else>
             <span v-if="isPending(row)">
               &nbsp;
@@ -60,7 +49,6 @@
 
 <script>
 import {mapState} from 'vuex'
-import Elapsed from './Elapsed'
 
 // used for a summary per account
 let uid = 0
@@ -79,8 +67,6 @@ export default {
     afterTopActive: Boolean,
     refresh: Number,
   },
-
-  components: { Elapsed },
 
   data() {
     return {
@@ -166,10 +152,11 @@ export default {
       let ret
       try {
         const {trx_status, pay_status, trx_type} = row
-        const successLabel = { 'renew': 'Renewed', 'register': 'Registered' }
+
+        const successLabel = { 'renew': 'Renewed', 'register': 'Registered', 'add_bundles': 'Bundles Added' }
 
         if(trx_status) {
-          if(trx_status === 'pending') { return ret = 'Pending: Awaiting blockchain finality' }
+          if(trx_status === 'pending') { return ret = 'Created' }
           if(trx_status === 'retry') { return ret = 'Pending: Retrying' }
           if(trx_status === 'success') { return ret = successLabel[trx_type] || 'Registered' }
           if(trx_status === 'expire') { return ret = 'Failed' }
@@ -181,15 +168,12 @@ export default {
         }
 
         if(pay_status) {
-          if(pay_status === 'pending') { return ret = 'Pending: Awaiting Payment' }
           if(pay_status === 'success') { return ret = 'Pending: Registering on blockchain' }
           if(pay_status === 'review') { return ret = 'Failed' }
           if(pay_status === 'cancel') { return ret = 'Cancelled' }
         } else {
           if(trx_status === 'review') {
             return ret = 'Failed'
-          } else {
-            return ret = 'Pending: Awaiting Payment'
           }
         }
 
@@ -206,11 +190,7 @@ export default {
       }
 
       if(row.trx_status) {
-        return /pending|retry/.test(row.trx_status)
-      }
-
-      if(row.pay_status) {
-        return /pending/.test(row.pay_status)
+        return /retry/.test(row.trx_status)
       }
 
       return false

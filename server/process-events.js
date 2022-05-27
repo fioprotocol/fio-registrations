@@ -11,6 +11,7 @@ const {Op} = Sequelize
 
 const { saveRegistrationsSearchItem, checkCreatedBcTrxEvents } = require('./registrations-search-util')
 const { processNotifications } = require('./services/notification')
+const { sendInsufficientFundsNotification } = require('./services/fallback-funds-email');
 const { ACCOUNT_TYPES } = require('./constants')
 
 const {Fio, Ecc} = require('@fioprotocol/fiojs')
@@ -30,6 +31,8 @@ const fio = new FioApi(chainEndpoint, {
   chainId
 })
 
+const INSUFFICIENT_FUNDS_ERR_MESSAGE = 'Insufficient funds to cover fee';
+
 async function all() {
   // pending => success or expire
   await trace({checkIrreversibility})()
@@ -48,15 +51,15 @@ async function all() {
     .catch(err => console.error(err))
 }
 
-const regdomain = async (domain, ownerPublic, tpid, walletActor = '', walletPermission = '') => {
+const regdomain = async (domain, ownerPublic, tpid, defaultWalletActor = null, defaultWalletPermission = null) => {
   const maxFee = await fio.getFeeDomain(actor)
   const options = {}
-  if (walletActor && walletPermission) {
+  if (defaultWalletActor && defaultWalletPermission) {
     // options.authorization = [{
-    //   actor: walletActor,
-    //   permission: walletPermission
+    //   actor: defaultWalletActor,
+    //   permission: defaultWalletPermission
     // }]
-    // options.actor = walletActor
+    // options.actor = defaultWalletActor
   }
   return fio.registerDomain({
     domain,
@@ -67,7 +70,7 @@ const regdomain = async (domain, ownerPublic, tpid, walletActor = '', walletPerm
   }, options)
 }
 
-const regaddress = async (address, ownerPublic, tpid, walletActor = '', walletPermission = '') => {
+const regaddress = async (address, ownerPublic, tpid, walletActor = null, walletPermission = null) => {
   const maxFee = await fio.getFeeAddress(actor)
   const options = {}
   if (walletActor && walletPermission) {
@@ -86,15 +89,15 @@ const regaddress = async (address, ownerPublic, tpid, walletActor = '', walletPe
   }, options)
 }
 
-const renewdomain = async (domain, tpid, walletActor = '', walletPermission = '') => {
+const renewdomain = async (domain, tpid, defaultWalletActor = null, defaultWalletPermission = null) => {
   const maxFee = await fio.getFeeRenewDomain(actor)
   const options = {}
-  if (walletActor && walletPermission) {
+  if (defaultWalletActor && defaultWalletPermission) {
     options.authorization = [{
-      actor: walletActor,
-      permission: walletPermission
+      actor: defaultWalletActor,
+      permission: defaultWalletPermission
     }]
-    options.actor = walletActor
+    options.actor = defaultWalletActor
   }
   return fio.renewDomain({
     domain,
@@ -104,18 +107,21 @@ const renewdomain = async (domain, tpid, walletActor = '', walletPermission = ''
   }, options)
 }
 
-const renewaddress = async (address, tpid, walletActor = '', walletPermission = '') => {
-  const maxFee = await fio.getFeeRenewAddress(actor)
+const addBundlesToAddress = async (address, tpid, defaultWalletActor = null, defaultWalletPermission = null) => {
+  const DEFAULT_BUNDLES_SETS_AMOUNT = 1;
+
+  const maxFee = await fio.getFeeAddBundledTransactions(actor)
   const options = {}
-  if (walletActor && walletPermission) {
+  if (defaultWalletActor && defaultWalletPermission) {
     options.authorization = [{
-      actor: walletActor,
-      permission: walletPermission
+      actor: defaultWalletActor,
+      permission: defaultWalletPermission
     }]
-    options.actor = walletActor
+    options.actor = defaultWalletActor
   }
-  return fio.renewAddress({
+  return fio.addBundlesToAddress({
     address,
+    bundleSets: DEFAULT_BUNDLES_SETS_AMOUNT,
     maxFee,
     tpid,
     actor
@@ -155,14 +161,16 @@ async function getPaidNeedingAccounts() {
                       a.type,
                       acc_payer.id account_pay_id,
                       acc_payer.account_id,
+                      w.name wallet_profile_name,
                       w.tpid,
-                      w.actor,
-                      w.permission
+                      acpr.actor,
+                      acpr.permission
         from account a
             inner join acc_payer on acc_payer.account_id = a.id
             left join last on last.account_id = acc_payer.account_id and last.type = a.type
             left join blockchain_trx_event bte on bte.id = last.mid
             left join wallet w on a.wallet_id = w.id
+            left join account_profile acpr on w.account_profile_id = acpr.id
         where last.account_id is null OR bte.trx_status = 'retry'
         order by a.id;
   `)
@@ -175,6 +183,7 @@ async function getAccountsByDomainsAndStatus(walletId, domains = [], statuses = 
     domain,
     accounts: 1
   }))
+  // eslint-disable-next-line no-unreachable
   const domainWhere = domains.length ? ` and a.domain in (${domains.map(domain => `'${domain}'`).join(',')}) ` : ''
   const statusesWhere = statuses.length > 1 ? ` (${statuses.map(status => `bte.trx_status = '${status}'`).join(' OR ')}) ` : ` bte.trx_status = '${statuses[0]}' `
   const [accounts] = await sequelize.query(`
@@ -261,7 +270,7 @@ async function getRegisteredAmountByIp(walletId, ip, isFree = false, statuses = 
         and a.ip = '${ip}'
         and a.type = '${ACCOUNT_TYPES.register}'
         ${freeWhere}
-        and (select id from blockchain_trx where blockchain_trx.account_id = a.id and blockchain_trx.type = '${ACCOUNT_TYPES.register}') IS null
+        and (select id from blockchain_trx where blockchain_trx.account_id = a.id and blockchain_trx.type = '${ACCOUNT_TYPES.register}' limit 1) IS null
       group by a.wallet_id;
   `)
     amount += regRequests[0] && regRequests[0].accounts ? parseInt(regRequests[0].accounts) : 0
@@ -283,6 +292,7 @@ async function broadcastNewAccountOrRenew({
   domain,
   address,
   owner_key,
+  wallet_profile_name,
   tpid,
   actor,
   permission,
@@ -295,20 +305,28 @@ async function broadcastNewAccountOrRenew({
     address,
     owner_key,
     tpid,
+    wallet_profile_name,
     actor,
     permission,
     type
   })
+  let defaultActor = null;
+  let defaultPermission = null;
+  const defaultAccountRaw = await db.AccountProfile.findOne({where: {is_default: true}});
+  const defaultAccount = defaultAccountRaw.get();
+  defaultActor = defaultAccount.actor;
+  defaultPermission = defaultAccount.permission;
+
   const account = (address ? address + '@' : '') + domain
   let fioAction
   if (type === ACCOUNT_TYPES.register) {
     fioAction = address ?
       await regaddress( account, owner_key, tpid, actor, permission ) :
-      await regdomain( domain, owner_key, tpid )
+      await regdomain( domain, owner_key, tpid, defaultActor, defaultPermission )
   } else if (type === ACCOUNT_TYPES.renew) {
-    fioAction = address ?
-      await renewaddress( account, tpid ) :
-      await renewdomain( domain, tpid )
+    fioAction = await renewdomain( domain, tpid, defaultActor, defaultPermission )
+  } else if (type === ACCOUNT_TYPES.addBundles) {
+    fioAction = await addBundlesToAddress( account, tpid, defaultActor, defaultPermission );
   }
 
   let transaction, trx_id, expiration
@@ -317,7 +335,8 @@ async function broadcastNewAccountOrRenew({
     transaction = await fio.transaction([fioAction])
     trx_id = await fio.transactionId(transaction)
     expiration = transaction.expiration
-  } catch(error) {
+  } catch (error) {
+
     const dbTrx = await db.BlockchainTrx.create({
       type,
       account_id
@@ -399,7 +418,27 @@ async function broadcastNewAccountOrRenew({
 
     const notes = fieldError ? fieldError.error : JSON.stringify(bc)
 
-    if(
+    // try to execute using fallback account when no funds
+    if (
+      notes === INSUFFICIENT_FUNDS_ERR_MESSAGE && actor !== process.env.REG_FALLBACK_ACCOUNT
+    ) {
+      await sendInsufficientFundsNotification(account, wallet_profile_name, fioAction.authorization[0])
+      return broadcastNewAccountOrRenew({
+          account_id,
+          account_pay_id,
+          domain,
+          address,
+          owner_key,
+          tpid,
+          wallet_profile_name,
+          actor: process.env.REG_FALLBACK_ACCOUNT,
+          permission: process.env.REG_FALLBACK_PERMISSION,
+          type
+        }
+      )
+    }
+
+    if (
       notes === 'FIO domain already registered' ||
       notes === 'FIO address already registered'
     ) {

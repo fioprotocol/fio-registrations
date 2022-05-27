@@ -87,12 +87,17 @@ app.use(handler(async function(req, res, next) {
   }
 
   // validate and re-parse prior server-state from the client
-  res.state = await AuthState({
-    stateString: req.get('state'),
-    stateHash: req.get('state-hash'),
-    bearer,
-    required
-  })
+  try {
+    res.state = await AuthState({
+      stateString: req.get('state'),
+      stateHash: req.get('state-hash'),
+      bearer,
+      required
+    })
+  } catch (e) {
+    return res.status(401).send({error: e.message || 'Unauthorized'})
+  }
+
 
   // Server routes may modify this state
   const send = res.send.bind(res)

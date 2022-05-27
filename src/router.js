@@ -16,6 +16,8 @@ const SendInvite = () => import(/* webpackChunkName: "admin" */ './pages/SendInv
 const Wallets = () => import(/* webpackChunkName: "admin" */ './pages/Wallets.vue')
 const Wallet = () => import(/* webpackChunkName: "admin" */ './pages/Wallet.vue')
 const Settings = () => import(/* webpackChunkName: "admin" */ './pages/Settings.vue')
+const AccountProfilesList = () => import(/* webpackChunkName: "admin" */ './pages/AccountProfilesList.vue')
+const AccountProfile = () => import(/* webpackChunkName: "admin" */ './pages/AccountProfile.vue')
 
 const beforeEnter = (to, from, next) => {
   if(to.name !== 'login') {
@@ -57,6 +59,8 @@ const routes = [
       { path: 'wallets', name: 'wallets', component: Wallets, beforeEnter },
       { path: 'wallet/:referralCode?', name: 'wallet', component: Wallet, beforeEnter, props: true },
       { path: 'settings', name: 'settings', component: Settings, beforeEnter, props: true },
+      { path: 'account-profiles', name: 'account-profiles', component: AccountProfilesList, beforeEnter },
+      { path: 'account-profile/:profileId?', name: 'account-profile', component: AccountProfile, beforeEnter, props: true },
     ]
   },
 

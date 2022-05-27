@@ -99,16 +99,6 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: ['pending', 'retry', 'success', 'expire', 'review', 'cancel'],
       comment: 'enabled webhook events'
     },
-    actor: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      defaultValue: ''
-    },
-    permission: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      defaultValue: ''
-    },
     api_enabled: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
@@ -132,6 +122,10 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       defaultValue: '',
       comment: 'Disables limit registrations of free addresses for these IP addresses'
+    },
+    account_profile_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true
     }
   }, {
     tableName: 'wallet'
@@ -141,6 +135,7 @@ module.exports = (sequelize, DataTypes) => {
     Wallet.hasMany(models.Account, {foreignKey: 'wallet_id'})
     Wallet.hasMany(models.Notification, {foreignKey: 'wallet_id'})
     Wallet.hasOne(models.WalletApi, { foreignKey: 'wallet_id', onDelete: 'CASCADE' })
+    Wallet.belongsTo(models.AccountProfile, { foreignKey: 'account_profile_id' });
   };
 
   return Wallet;

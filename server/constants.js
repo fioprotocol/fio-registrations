@@ -1,6 +1,7 @@
 const ACCOUNT_TYPES = {
   register: 'register',
-  renew: 'renew'
+  renew: 'renew',
+  addBundles: 'add_bundles'
 }
 
 module.exports = {

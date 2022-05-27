@@ -134,28 +134,18 @@
         <small class="text-muted">Enter the benificary account name <b>account@domain</b> (if any) that will receive fees from new registered accounts.</small>
       </b-form-group>
 
-      <b-form-group id="actor-group"
-        label="Actor:" label-for="actor" type="text"
+      <b-form-group id="account-profile-group"
+                    label="Account Profile:" label-for="account-profile" type="text"
       >
-        <b-form-input id="actor" v-model="form.actor"
-          placeholder="Enter actor" :state="actorValidation"
-          minlength="7" maxlength="127"
-        >
-        </b-form-input>
+        <b-form-select
+            id="account-profile"
+            v-model="form.account_profile_id"
+            :options="(accountProfiles.list || []).map(o => ({...o, text: `Name: ${JSON.stringify(o.name)}, Actor: ${o.actor}, Permission: ${o.permission}`}))"
+            value-field="id"
+            text-field="text"
+        ></b-form-select>
 
-        <small class="text-muted">Enter actor...</small>
-      </b-form-group>
-
-      <b-form-group id="permission-group"
-        label="Permission:" label-for="permission" type="text"
-      >
-        <b-form-input id="permission" v-model="form.permission"
-          placeholder="Enter permission" :state="permissionValidation"
-          minlength="7" maxlength="127"
-        >
-        </b-form-input>
-
-        <small class="text-muted">Enter permission...</small>
+        <small class="text-muted">Select Account Profile or will be used default one...</small>
       </b-form-group>
 
       <!--<b-form-group id="domains-group"-->
@@ -338,8 +328,7 @@ function formDefaults () {
     account_roe_active: false,
 
     tpid: '',
-    actor: '',
-    permission: '',
+    account_profile_id: null,
 
     webhook_endpoint: '',
     webhook_enabled: false,
@@ -496,20 +485,21 @@ export default {
       const defaults = formDefaults()
       for(let key in this.form) {
         let value
-        if(key === 'webhook_enabled') {
-          value = this.wallet[key] != null
+        if(key === 'account_profile_id') {
+          value = this.wallet.AccountProfile ? this.wallet.AccountProfile.id : defaults[key];
+        } else if(key === 'webhook_enabled') {
+          value = !!this.wallet[key]
         } else if (key === 'domains') {
           value = this.wallet.domains ? this.wallet.domains.map(domain => {
             const domainLimit = this.wallet.domains_limit[domain] ? this.wallet.domains_limit[domain] : null
             return { domain, limit: domainLimit, registered: this.wallet.accountsByDomain[domain] }
-          }) : []
+          }) : defaults[key]
         } else {
           const walletValue = this.wallet[key]
-          value = walletValue == null ? defaults[key] : walletValue
+          value = walletValue ? walletValue : defaults[key]
         }
         form[key] = value
       }
-      console.log(this.wallet.limit_ip_whitelist.indexOf('120'));
       return form
     },
 
@@ -523,9 +513,6 @@ export default {
     },
 
     modified() {
-      if(!this.wallet) {
-        return false
-      }
       const form = this.formatWalletToForm()
       for (let key in this.form) {
         if (key === 'domains') {
@@ -554,6 +541,7 @@ export default {
       upsertWallet: state => state.Server.upsertWallet,
       uploadImage: state => state.Server.uploadImage,
       appInfo: state => state.AppInfo.info,
+      accountProfiles: state => state.Server.accountProfiles,
     }),
 
     newWallet() {
@@ -583,16 +571,6 @@ export default {
         /^[a-zA-Z0-9@-]{4,}$/.test(this.form.tpid)
     },
 
-    actorValidation() {
-      return this.form.actor === '' ||
-        /^[a-zA-Z0-9]{12,12}$/.test(this.form.actor)
-    },
-
-    permissionValidation() {
-      return this.form.permission === '' ||
-        /(^[a-z1-5.]{0,11}[a-z1-5]$)|(^[a-z1-5.]{12}[a-j1-5]$)/.test(this.form.permission)
-    },
-
     domainsValidation() {
       return this.form.domains.length > 0
     },
@@ -611,6 +589,7 @@ export default {
 
   created() {
     this.$store.dispatch('AppInfo/load')
+    this.$store.dispatch('Server/get', {key: 'accountProfiles', path: 'account-profiles'})
     if(this.referralCode) {
       this.$store.dispatch('Server/get', {
         key: 'wallet', path: 'wallet/' + this.referralCode

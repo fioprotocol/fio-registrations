@@ -352,15 +352,11 @@ router.post('/public-api/buy-address', handler(async (req, res) => {
 
   if (buyAccount) {
     if (wallet.domains.indexOf(addressArray[1]) < 0) {
-      if (wallet.allow_pub_domains) {
-        if (!await fio.isAccountRegistered(addressArray[1])) {
-          return res.status(404).send({error: `Domain is not registered`, errorCode: errorCodes.DOMAIN_IS_NOT_REGISTERED})
-        }
-        if (!await fio.isDomainPublic(addressArray[1])) {
-          return res.status(404).send({error: `Domain is not public`, errorCode: errorCodes.DOMAIN_IS_NOT_PUBLIC})
-        }
-      } else {
-        return res.status(400).send({ error: `This domain not allowed for this referrer code`, errorCode: errorCodes.DOMAIN_IS_NOT_ALLOWED_FOR_REF })
+      if (!await fio.isAccountRegistered(addressArray[1])) {
+        return res.status(404).send({error: `Domain is not registered`, errorCode: errorCodes.DOMAIN_IS_NOT_REGISTERED})
+      }
+      if (!await fio.isDomainPublic(addressArray[1])) {
+        return res.status(404).send({error: `Domain is not public`, errorCode: errorCodes.DOMAIN_IS_NOT_PUBLIC})
       }
     }
     const accountsByDomain = await getAccountsByDomainsAndStatus(wallet.id, [addressArray[1]])

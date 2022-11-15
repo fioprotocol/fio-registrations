@@ -2,6 +2,15 @@ const router = require('express').Router();
 
 const plugins = require('../plugins')
 
+router.get('/public-api/ping', async (req, res) => {
+  res.send({
+    data: {
+      success: true,
+    },
+    status: 1,
+  });
+});
+
 router.get('/public-api/info', async (req, res) => {
   const payment = await plugins.payment
   res.send({

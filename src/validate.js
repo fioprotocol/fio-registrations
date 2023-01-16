@@ -1,4 +1,5 @@
-const accountRe = /^[a-z0-9-]{1,62}$/
+const addressRE = new RegExp(/^(?:(?=.{3,64}$)[a-zA-Z0-9]{1}(?:(?:(?!-{2,}))[a-zA-Z0-9-]*[a-zA-Z0-9]+){0,1}@[a-zA-Z0-9]{1}(?:(?:(?!-{2,}))[a-zA-Z0-9-]*[a-zA-Z0-9]+){0,1}$)/, 'gim');
+const fchRE = new RegExp(/^(?:(?=.{3,64}$)[a-zA-Z0-9]{1}(?:(?:(?!-{2,}))[a-zA-Z0-9-]*[a-zA-Z0-9]+){0,1}$)/, 'gim');
 const accountMaxLength = 64
 
 /**
@@ -12,19 +13,11 @@ function isValidAddress(address) {
     account.length + domain.length + 1 :
     account.length
 
-  if(combinedLength > accountMaxLength)  {
+  if (combinedLength > accountMaxLength)  {
     return false
   }
 
-  const dashSplit = account.split('-')
-  if(dashSplit.find(part => part === '') === '') {
-    return false // two dashes in a row
-    // also covers: a-z0-9 is required on either side of any dash
-  }
-
-  return accountRe.test(account) && (
-    domain === undefined || isValidAddress(domain)
-  )
+  return domain ? addressRE.test(address) : fchRE.test(account);
 }
 
 module.exports = {

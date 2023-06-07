@@ -9,6 +9,7 @@
   "license": "MIT",
   "scripts": {
     "start": "node server/index.js",
+    "scheduler": "node server/scheduler.js",
     "ngrok": "node ./server/ngrok",
     "serve": "nodemon --exec 'node server' & vue-cli-service serve",
     "apidoc": "apidoc -i server/routes/ -o public/docs/api",

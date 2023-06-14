@@ -4,6 +4,7 @@ const processEvents = require('./process-events')
 const processWebhooks = require('./process-webhooks')
 
 function runScheduler() {
+  console.info('--- SCHEDULER START ---');
   if(process.env.PROCESS_EVENTS_MS > 0) {
     let running = false
     function run() {

@@ -1,15 +1,17 @@
 'use strict';
 
 module.exports = {
-  up: async QI => {
-   return await QI.changeColumn('registrations-search', 'owner_key', {
+  up: async (QI, DT) => {
+    await QI.changeColumn('registrations-search', 'owner_key', {
+      type: DT.STRING,
       allowNull: true,
       defaultValue: null,
     });
   },
 
-  down: async QI => {
+  down: async (QI, DT) => {
     return QI.changeColumn('registrations-search', 'owner_key', {
+      type: DT.STRING,
       allowNull: false,
     });
   },

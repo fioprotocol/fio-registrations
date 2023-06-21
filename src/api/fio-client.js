@@ -209,6 +209,38 @@ class FioClient {
     }
     return ''
   }
+
+  async getAccountNameByDomain(domain) {
+    await this.init;
+    const hash = crypto.createHash('sha1');
+    const bound =
+      '0x' +
+      hash
+        .update(domain.toLowerCase())
+        .digest()
+        .slice(0, 16)
+        .reverse()
+        .toString('hex');
+
+    const result = await this.chain.post('/get_table_rows', {
+      code: 'fio.address',
+      scope: 'fio.address',
+      table: 'domains',
+      lower_bound: bound,
+      upper_bound: bound,
+      key_type: 'i128',
+      index_position: '4',
+      json: true,
+    });
+
+    if (result.rows && result.rows.length) {
+      const account = result.rows[0].account;
+      if (account) {
+        return account;
+      }
+    }
+    return '';
+  }
 }
 
 module.exports = FioClient

@@ -10,7 +10,8 @@ module.exports = (sequelize, DataTypes) => {
     },
     owner_key: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: true,
+      defaultValue: null
     },
     address: {
       type: DataTypes.STRING,

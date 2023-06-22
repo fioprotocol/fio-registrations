@@ -676,7 +676,14 @@ router.post('/public-api/renew', handler(async (req, res) => {
   }
 
   if (!PublicKey.isValid(publicKey)) {
-    return res.status(400).send({ error: 'Missing public key' })
+    let accountName = null;
+
+    if (!isAddBundlesToAddress) {
+      accountName = await fio.getAccountNameByDomain(address);
+    }
+    if (!accountName || accountName !== 'fio.oracle') {
+      return res.status(400).send({ error: 'Missing public key' });
+    }
   }
 
   try {

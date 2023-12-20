@@ -22,17 +22,17 @@ class FioApiDefaults extends FioApi {
           const err = []
           if(msg.request && msg.request.body) {
             // console.log may hide body
-            err.push({body: JSON.stringify(msg.request.body)})
+            err.push({body: JSON.stringify(msg.request.body, null, 4)})
           }
           if(msg.result && msg.result.fields) {
             // console.log hides arrays
-            err.push({fields: JSON.stringify(msg.result.fields)})
+            err.push({fields: JSON.stringify(msg.result.fields, null, 4)})
           }
           if(err.length) {
             debug.error(err)
           }
         } else {
-          debug(JSON.stringify(msg))
+          debug(JSON.stringify(msg, null, 4))
         }
       }
     }

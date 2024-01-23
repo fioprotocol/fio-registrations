@@ -37,7 +37,7 @@
           <span v-else>
             <span v-if="isPending(row)">
               &nbsp;
-              <span class="mb-1 spinner-grow spinner-grow-sm"
+              <span class="spinner-grow spinner-grow-sm"
               role="status" aria-hidden="true"></span>
             </span>
           </span>

@@ -20,13 +20,13 @@
               Check Availability
             </div>
             <div v-else
-              class="mb-1 spinner-grow spinner-grow-sm text-light"
+              class="spinner-grow spinner-grow-sm text-light"
               role="status" aria-hidden="true">
             </div>
           </div>
           <div v-if="validatedAddress">
-            <div v-if="captchaIsLoading"
-                 class="mb-1 spinner-grow spinner-grow-sm text-light"
+            <div v-if="registrationLoading || captchaIsLoading"
+                 class="spinner-grow spinner-grow-sm text-light"
                  role="status" aria-hidden="true">
             </div>
             <div v-else-if="freeSale || priceAfterCredit === 0">
@@ -84,7 +84,8 @@ export default {
       captchaErrored: false,
       captchaLoaded: false,
       captchaTimeout: 0,
-      captchaCounter: 0
+      captchaCounter: 0,
+      registrationLoading: false,
     }
   },
 
@@ -121,7 +122,7 @@ export default {
     },
 
     submitForm() {
-      if (this.captchaIsLoading) return
+      if (this.captchaIsLoading || this.registrationLoading) return
       this.limitError = false
       this.domainIsNotRegistered = false
       this.domainIsNotPublic = false
@@ -186,6 +187,7 @@ export default {
     register(captchaParams = {}) {
       const { referralCode, address, publicKey } = this
       const redirectUrl = window.location.href
+      this.registrationLoading = true;
 
       this.$store.dispatch('Server/post', {
         key: 'buyResult', path: '/public-api/buy-address',
@@ -237,6 +239,9 @@ export default {
   watch: {
     ['buyResult._loading']: function(loading) {
       if (loading) { return }
+
+      this.registrationLoading = false;
+
       if (this.buyResult.captchaStatus === 'fail') {
         try {
           if (this.captchaObj) this.captchaObj.reset();

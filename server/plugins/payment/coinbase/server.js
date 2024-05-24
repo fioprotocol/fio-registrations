@@ -83,7 +83,7 @@ class Coinbase {
       pricing_type: 'fixed_price',
       local_price: {
         amount: String(price),
-        currency: 'USDC'
+        currency: 'USD'
       },
       code: accountId,
       metadata: {
@@ -105,7 +105,6 @@ class Coinbase {
 
       // 3rd party payment interface
       update.pricing = result.data.pricing
-      update.addresses = result.data.addresses
 
 
       return update
@@ -237,34 +236,17 @@ const webhookEventTypes = {
 }
 
 function payEvents(payments, timeline) {
-  const unapplied_payment = []
-
   // Capture change in payment status from pending to confirmed.
   for(let payment of payments) {
-    let applied = false
 
     // Apply payments to timeline (oldest timeline entry first)
     for(let i = timeline.length - 1; i >= 0; i--) {
       const line = timeline[i]
-      if(!line.payment) {
-        continue
-      }
 
-      if(
-        line.payment.network === payment.network &&
-        line.payment.transaction_id === payment.transaction_id
-      ) {
-        line.apply = {
-          amount: payment.value.local.amount,
-          status: payment.status
-        }
-        applied = true
-        break
+      line.apply = {
+        amount: payment.value.local.amount,
+        status: payment.status
       }
-    }
-
-    if(!applied) {
-      unapplied_payment.push(payment)
     }
   }
 
@@ -272,28 +254,29 @@ function payEvents(payments, timeline) {
 
   for(let i = 0; i < timeline.length; i++) {
     const line = timeline[i]
-    const {context, status} = line
+    const { status } = line
 
-    const extern_status = context ? context : status
-    const isPending = pollingStatusMap[extern_status]
+    const isPending = pollingStatusMap[status]
     let confirmed_total = null, pending_total = null
 
     const metadata = {}
 
     if(line.apply) {
-      if(line.apply.status === 'CONFIRMED') {
+      if(line.apply.status && line.apply.status.toLowerCase() === 'confirmed') {
         confirmed_total = line.apply.amount
-      } else if(line.apply.status === 'PENDING') {
-        pending_total = line.apply.amount
+      } else if (line.apply.status && line.apply.status.toLowerCase() === 'pending') {
+        pending_total = line.apply.amount;
+      } else if (line.apply.status && line.apply.status.toLowerCase() === 'signed') {
+        pending_total = line.apply.amount;
       } else {
-        metadata.unknown_payment_status = line.apply.status
+        metadata.unknown_payment_status = line.apply.status;
       }
     }
 
     events.push({
       pending: isPending === undefined ? true : isPending,
       event_id: String(i),
-      extern_status,
+      extern_status: status,
       extern_time: line.time,
       confirmed_total,
       pending_total,
@@ -304,32 +287,32 @@ function payEvents(payments, timeline) {
 
   // Conbase may show payments that are not in the timeline yet
   // @see ./examples/unapplied-payment.json
-  for(let i = 0; i < unapplied_payment.length; i++) {
-    const payment = unapplied_payment[i]
+  // for(let i = 0; i < unapplied_payment.length; i++) {
+  //   const payment = unapplied_payment[i]
 
-    const metadata = {}
-    const isPending = pollingStatusMap[payment.status]
+  //   const metadata = {}
+  //   const isPending = pollingStatusMap[payment.status]
 
-    let confirmed_total = null, pending_total = null
+  //   let confirmed_total = null, pending_total = null
 
-    if(payment.status === 'CONFIRMED') {
-      confirmed_total = payment.value.local.amount
-    } else if(payment.status === 'PENDING') {
-      pending_total = payment.value.local.amount
-    } else {
-      metadata.unknown_payment_status = payment.status
-    }
+  //   if(payment.status && payment.status.toLowerCase() === 'confirmed') {
+  //     confirmed_total = payment.value.local.amount
+  //   } else if(payment.status && payment.status.toLowerCase() === 'pending') {
+  //     pending_total = payment.value.local.amount
+  //   } else {
+  //     metadata.unknown_payment_status = payment.status
+  //   }
 
-    events.push({
-      pending: isPending === undefined ? true : isPending,
-      event_id: String(events.length + i),
-      extern_status: payment.status,
-      extern_time: payment.detected_at,
-      confirmed_total,
-      pending_total,
-      metadata: Object.keys(metadata).length ? metadata : null
-    })
-  }
+  //   events.push({
+  //     pending: isPending === undefined ? true : isPending,
+  //     event_id: String(events.length + i),
+  //     extern_status: payment.status,
+  //     extern_time: payment.detected_at,
+  //     confirmed_total,
+  //     pending_total,
+  //     metadata: Object.keys(metadata).length ? metadata : null
+  //   })
+  // }
 
   return events
 }

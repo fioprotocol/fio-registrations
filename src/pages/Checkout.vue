@@ -28,7 +28,7 @@
       <div v-if="loading">
         <div class="mt-5 mb-5 spinner-border spinner-border"
           role="status" aria-hidden="true"/>
-      </div>
+        </div>
       <div v-else class="card-body">
         <div v-if="complete">
           <h5>Payment Complete</h5>
@@ -64,7 +64,13 @@
             <h5>Insufficient Payment</h5>
           </div>
 
-          <small>
+          <div v-if="charge && charge.hosted_url">
+            <a :href="charge.hosted_url" target="_blank" rel="noopener noreferrer">
+              CHECK PAYMENT STATUS
+            </a>
+          </div>
+
+          <!-- <small>
             <table class="table">
               <thead>
                 <tr>
@@ -96,7 +102,7 @@
                 </tr>
               </tbody>
             </table>
-          </small>
+          </small> -->
         </div>
 
         <div v-if="expired" class="container">
@@ -108,9 +114,15 @@
         <div v-if="!complete && !selected && !paidEnough && !expired">
           <div class="card-title mb-3">
             <h5>{{info.title}}</h5>
+
+            <div v-if="charge && charge.hosted_url && !charge.payments.length">
+              <button @click="openHostedUrl()" size="sm" style="width: 100px;" class="btn btn-success mt-4" name="pay">
+                PAY
+              </button>
+            </div>
           </div>
 
-          <p class="card-text">
+          <!-- <p class="card-text">
             <small>
               Select a cryptocurrency
             </small>
@@ -123,7 +135,7 @@
                 {{coin.name}}
               </div>
             </li>
-          </ul>
+          </ul> -->
 
           <!-- <div v-if="cancelCharge.error" role="alert"
             class="alert alert-danger mt-3"
@@ -403,7 +415,7 @@ export default {
         return
       }
 
-      return this.charge.pricing[this.selected.network].amount
+      return this.charge.pricing.local.amount
     },
 
     paidEnough() {
@@ -563,6 +575,9 @@ export default {
         // incase there is nothing in the "back" history
         this.selected = null
       })
+    },
+    openHostedUrl() {
+      window.open(this.charge.hosted_url, '_blank');
     }
   },
 

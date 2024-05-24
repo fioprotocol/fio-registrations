@@ -5,6 +5,7 @@
 const pollingStatusMap = {
   // https://commerce.coinbase.com/docs/api/#charge-resource
   'NEW': true,
+  'SIGNED': true,
   'PENDING': true,
   'MULTIPLE': true,
   'UNRESOLVED': true,
